@@ -1,77 +1,153 @@
-<!doctype html>
-<html>
+!DOCTYPE html>
+<html lang="en">
 <head>
-  <title>Login</title>
-  <script type="module">
-    import { createClient }
-    from 'https://esm.sh/@supabase/supabase-js'
-
-    const supabase = createClient(
-      'https://yabclxadadynmprymcns.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYmNseGFkYWR5bm1wcnltY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0Njg4NzIsImV4cCI6MjA5ODA0NDg3Mn0.e2IwBxrW-NbMIqqWFZb8gnh5T95vlDwS-h2FhlWRb1k'
-    )
-
-    window.signup = async () => {
-      const email =
-        document.getElementById('email').value
-
-      const password =
-        document.getElementById('password').value
-
-      const { error } =
-        await supabase.auth.signUp({
-          email,
-          password
-        })
-
-      if (error)
-        alert(error.message)
-      else
-        alert('Account created')
-    }
-
-    window.login = async () => {
-      const email =
-        document.getElementById('email').value
-
-      const password =
-        document.getElementById('password').value
-
-      const { error } =
-        await supabase.auth.signInWithPassword({
-          email,
-          password
-        })
-
-      if (error)
-        alert(error.message)
-      else
-        window.location.href =
-          'dashbord.html'
-    }
-  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GymCoach Studio</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+.tab-active {
+    border-bottom: 2px solid #1a73e8;
+    color: #1a73e8;
+    font-weight: 600;
+}
+.form-hidden {
+    display: none !important;
+}
+</style>
 </head>
-<body>
-
-<h2>Login</h2>
-
-<input
-  id="email"
-  type="email"
-  placeholder="Email">
-
-<input
-  id="password"
-  type="password"
-  placeholder="Password">
-
-<button onclick="login()">
-  Login
-</button>
-
-<button onclick="signup()">
-  Sign Up
-</button>
-
+ 
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+ 
+<div class="bg-white w-full max-w-md rounded-2xl shadow-lg p-8">
+ 
+  <h1 class="text-3xl font-semibold text-center mb-2">GymCoach Studio</h1>
+  <p class="text-center text-gray-500 mb-8">Welcome back</p>
+ 
+  <!-- TABS -->
+  <div class="flex mb-6 border-b">
+    <button id="loginTab" class="flex-1 py-3 tab-active transition-all">Login</button>
+    <button id="signupTab" class="flex-1 py-3 text-gray-400 transition-all">Sign Up</button>
+  </div>
+ 
+  <!-- LOGIN FORM -->
+  <div id="loginForm">
+    <input id="loginEmail" type="email" placeholder="Email"
+      class="w-full border rounded-lg p-3 mb-4 focus:outline-none focus:border-blue-500">
+    <input id="loginPassword" type="password" placeholder="Password"
+      class="w-full border rounded-lg p-3 mb-6 focus:outline-none focus:border-blue-500">
+    <button id="loginBtn"
+      class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium">
+      Login
+    </button>
+    <p class="text-center text-sm text-gray-400 mt-4">
+      Don't have an account?
+      <span class="text-blue-600 cursor-pointer hover:underline" id="goSignup">Sign Up</span>
+    </p>
+  </div>
+ 
+  <!-- SIGNUP FORM -->
+  <div id="signupForm" class="form-hidden">
+    <input id="signupUsername" type="text" placeholder="Username"
+      class="w-full border rounded-lg p-3 mb-4 focus:outline-none focus:border-blue-500">
+    <input id="signupEmail" type="email" placeholder="Email"
+      class="w-full border rounded-lg p-3 mb-4 focus:outline-none focus:border-blue-500">
+    <input id="signupPassword" type="password" placeholder="Password"
+      class="w-full border rounded-lg p-3 mb-4 focus:outline-none focus:border-blue-500">
+    <input id="confirmPassword" type="password" placeholder="Confirm Password"
+      class="w-full border rounded-lg p-3 mb-6 focus:outline-none focus:border-blue-500">
+    <button id="signupBtn"
+      class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-medium">
+      Create Account
+    </button>
+    <p class="text-center text-sm text-gray-400 mt-4">
+      Already have an account?
+      <span class="text-blue-600 cursor-pointer hover:underline" id="goLogin">Login</span>
+    </p>
+  </div>
+ 
+</div>
+ 
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+ 
+const supabase = createClient(
+  'https://yabclxadadynmprymcns.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYmNseGFkYWR5bm1wcnltY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0Njg4NzIsImV4cCI6MjA5ODA0NDg3Mn0.e2IwBxrW-NbMIqqWFZb8gnh5T95vlDwS-h2FhlWRb1k'
+)
+ 
+const loginForm = document.getElementById('loginForm')
+const signupForm = document.getElementById('signupForm')
+const loginTab = document.getElementById('loginTab')
+const signupTab = document.getElementById('signupTab')
+ 
+function showLogin() {
+  loginForm.style.display = 'block'
+  signupForm.style.display = 'none'
+  loginTab.classList.add('tab-active')
+  loginTab.classList.remove('text-gray-400')
+  signupTab.classList.remove('tab-active')
+  signupTab.classList.add('text-gray-400')
+}
+ 
+function showSignup() {
+  signupForm.style.display = 'block'
+  loginForm.style.display = 'none'
+  signupTab.classList.add('tab-active')
+  signupTab.classList.remove('text-gray-400')
+  loginTab.classList.remove('tab-active')
+  loginTab.classList.add('text-gray-400')
+}
+ 
+loginTab.addEventListener('click', showLogin)
+signupTab.addEventListener('click', showSignup)
+document.getElementById('goSignup').addEventListener('click', showSignup)
+document.getElementById('goLogin').addEventListener('click', showLogin)
+ 
+// ── LOGIN ──
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const email = document.getElementById('loginEmail').value.trim()
+  const password = document.getElementById('loginPassword').value
+ 
+  if (!email || !password) {
+    alert('Please fill in all fields')
+    return
+  }
+ 
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+ 
+  if (error) {
+    alert(error.message)
+    return
+  }
+ 
+  window.location.href = 'dashbord.html'
+})
+ 
+// ── SIGNUP ──
+document.getElementById('signupBtn').addEventListener('click', async () => {
+  const username = document.getElementById('signupUsername').value.trim()
+  const email = document.getElementById('signupEmail').value.trim()
+  const password = document.getElementById('signupPassword').value
+  const confirmPassword = document.getElementById('confirmPassword').value
+ 
+  if (!username) { alert('Please enter a username'); return }
+  if (!email) { alert('Please enter an email'); return }
+  if (password.length < 6) { alert('Password must be at least 6 characters'); return }
+  if (password !== confirmPassword) { alert('Passwords do not match'); return }
+ 
+  const { error } = await supabase.auth.signUp({ email, password })
+ 
+  if (error) {
+    alert(error.message)
+    return
+  }
+ 
+  localStorage.setItem('username', username)
+  alert('Account created! Check your email to confirm.')
+  showLogin()
+})
+</script>
+ 
 </body>
 </html>
