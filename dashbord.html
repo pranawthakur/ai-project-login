@@ -98,4 +98,317 @@ textarea { resize: vertical; min-height: 64px; }
 }
 .bmi small { display: block; font-size: 11px; opacity: .85; }
 .bmi b { font-size: 1.3rem; }
-... (314 lines left)
+input[type=range] {
+  -webkit-appearance: none; appearance: none; height: 8px; padding: 0; border: none;
+  border-radius: 999px; background: linear-gradient(to right, var(--primary), var(--accent)); cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; border: 3px solid var(--primary); box-shadow: var(--shadow-glow); transition: transform .15s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 3px solid var(--primary); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-box { max-height: 220px; overflow-y: auto; border: 1px solid var(--border); background: #f3faf6; border-radius: 12px; padding: 12px; }
+.chip {
+  border: 1px solid var(--border); background: #fff; color: var(--muted);
+  font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+  transition: all .2s; animation: pop .3s cubic-bezier(.16,1,.3,1);
+}
+.chip:hover { transform: translateY(-2px); border-color: rgba(31,138,112,.5); color: var(--fg); }
+.chip.active { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: var(--shadow-glow); }
+.submit {
+  width: 100%; border: none; cursor: pointer; color: #fff;
+  background: var(--grad-hero); font-size: 14px; font-weight: 700;
+  padding: 14px; border-radius: 16px; box-shadow: var(--shadow-glow);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: transform .2s, filter .2s; animation: fadeUp .55s both;
+}
+.submit:hover { transform: translateY(-2px); filter: brightness(1.05); }
+.submit:active { transform: scale(.99); }
+.submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+.status { font-size: 12px; font-weight: 600; }
+.status.success { color: var(--success); }
+.status.error { color: var(--danger); }
+.status .spin { display: inline-block; animation: spin 1s linear infinite; }
+pre {
+  white-space: pre-wrap; background: #eef7f1; border-radius: 12px; padding: 16px;
+  font-size: 12px; line-height: 1.55; max-height: 380px; overflow: auto; margin: 0;
+}
+.mt { margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="blobs"><div class="blob a"></div><div class="blob b"></div><div class="blob c"></div></div>
+
+<div class="topbar">
+  <span class="user-email" id="userEmail"></span>
+  <button class="logout-btn" id="logoutBtn">Log out</button>
+</div>
+
+<div class="wrap">
+<header>
+<span class="badge">✨ Personalized for Indian gym-goers</span>
+<h1>Workout &amp; Diet Plan Request</h1>
+<p>Tell us about your body, goals, gym and diet — we'll forge a tailored plan request in seconds.</p>
+</header>
+
+<div class="card" style="animation-delay:.08s">
+<div class="card-head"><span class="icon">👤</span><h3>Basics</h3></div>
+<div class="grid c3">
+<div><label class="lbl">Name</label><input id="name" placeholder="Optional" /></div>
+<div><label class="lbl">Age</label><input id="age" type="number" min="10" max="90" /></div>
+<div><label class="lbl">Gender</label><select id="gender"><option>Male</option><option>Female</option><option>Other</option></select></div>
+</div>
+<div class="grid c3 mt">
+<div><label class="lbl">Height (cm)</label><input id="height" type="number" placeholder="e.g. 172" /></div>
+<div><label class="lbl">Weight (kg)</label><input id="weight" type="number" placeholder="e.g. 70" /></div>
+<div><label class="lbl">Target weight (kg, optional)</label><input id="target" type="number" placeholder="e.g. 65" /></div>
+</div>
+<div id="bmiBox"></div>
+<div class="mt"><label class="lbl">State / region in India (optional, helps pick familiar foods)</label><input id="region" placeholder="e.g. Gujarat, Punjab, Tamil Nadu" /></div>
+</div>
+
+<div class="card" style="animation-delay:.16s">
+<div class="card-head"><span class="icon">🎯</span><h3>Goals &amp; activity</h3></div>
+<div class="grid c2">
+<div><label class="lbl">Primary goal</label><select id="goal"><option>Fat loss</option><option>Muscle gain</option><option>Body recomposition</option><option>Maintenance</option><option>Strength building</option><option>General fitness</option></select></div>
+<div><label class="lbl">Training experience</label><select id="experience"><option>Beginner</option><option>Intermediate</option><option>Advanced</option></select></div>
+</div>
+<div class="mt"><label class="lbl">Activity level (outside the gym)</label>
+<select id="activity">
+<option value="sedentary">Sedentary (desk job, little exercise)</option>
+<option value="light">Lightly active (light exercise 1-3 days/week)</option>
+<option value="moderate" selected>Moderately active (moderate exercise 3-5 days/week)</option>
+<option value="very_active">Very active (hard exercise 6-7 days/week)</option>
+<option value="extreme">Extremely active (physical job + training)</option>
+</select>
+</div>
+</div>
+
+<div class="card" style="animation-delay:.24s">
+<div class="card-head"><span class="icon">🏋️</span><h3>Workout preferences</h3></div>
+<div class="grid c2">
+<div><label class="lbl">Training days / week: <span id="daysVal">4</span></label><input id="days" type="range" min="2" max="6" step="1" value="4" /></div>
+<div><label class="lbl">Session duration</label><select id="duration"><option>30-45 min</option><option selected>45-60 min</option><option>60-75 min</option><option>75-90 min</option></select></div>
+</div>
+<div class="mt"><label class="lbl">Equipment available at your gym (all selected by default — untick anything your gym doesn't have)</label>
+<div class="chip-box"><div class="chips" id="equipChips"></div></div>
+</div>
+</div>
+
+<div class="card" style="animation-delay:.32s">
+<div class="card-head"><span class="icon">🥗</span><h3>Diet preferences</h3></div>
+<div class="grid c2">
+<div><label class="lbl">Diet type</label><select id="diet"><option>Vegetarian</option><option>Eggetarian</option><option>Non-vegetarian</option><option>Vegan</option><option>Jain (no root vegetables)</option></select></div>
+<div><label class="lbl">Meals per day: <span id="mealsVal">4</span></label><input id="meals" type="range" min="2" max="6" step="1" value="4" /></div>
+</div>
+<div class="grid c2 mt">
+<div><label class="lbl">Meal rotation</label><select id="rotation"><option value="fixed">Same meals daily (easy to follow)</option><option value="short_rotation" selected>Rotate every 2-3 days</option><option value="weekly_rotation">Different meals every day of the week</option></select></div>
+<div><label class="lbl">Daily food budget</label><select id="budget"><option value="low">Low (₹150-250/day on food)</option><option value="medium" selected>Medium (₹250-450/day)</option><option value="high">High (₹450+/day)</option></select></div>
+</div>
+<div class="mt"><label class="lbl">Allergies / intolerances</label><div class="chips" id="allergyChips"></div></div>
+<div class="mt"><input id="otherAllergy" placeholder="Any other allergy or food to avoid (optional)" /></div>
+<div class="mt"><label class="lbl">Other medical / dietary notes (optional)</label><textarea id="notes" placeholder="e.g. knee injury, thyroid condition, diabetic, intermittent fasting"></textarea></div>
+</div>
+
+<button class="submit" id="submitBtn" style="animation-delay:.4s" onclick="handleSubmit()">📈 Generate plan</button>
+
+<div class="card mt" id="resultCard" style="display:none">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<h3 style="margin:0;font-size:1rem">Your plan</h3>
+<span class="status" id="status"></span>
+</div>
+<pre id="output"></pre>
+</div>
+
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+
+const supabase = createClient(
+  'https://yabclxadadynmprymcns.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYmNseGFkYWR5bm1wcnltY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0Njg4NzIsImV4cCI6MjA5ODA0NDg3Mn0.e2IwBxrW-NbMIqqWFZb8gnh5T95vlDwS-h2FhlWRb1k'
+)
+
+// ---- Config: point this at your FastAPI backend ----
+// DEV WORKFLOW (current): run `ngrok http 8000` locally, then paste the
+// https://xxxx.ngrok-free.app URL it gives you below. This changes every
+// time you restart ngrok on the free tier, so update this line each session.
+// PRODUCTION (later): replace with your real server's URL — no other
+// code changes needed anywhere else in this file.
+const BACKEND_ENDPOINT = "https://PASTE-YOUR-NGROK-URL-HERE.ngrok-free.app/api/generate"
+
+// Make supabase + session available to the non-module script below
+window.__supabase = supabase
+
+// ---- Auth guard: redirect to login if not signed in ----
+const { data: { session } } = await supabase.auth.getSession()
+if (!session) {
+  window.location.href = 'login.html.html'
+} else {
+  document.getElementById('userEmail').textContent = session.user.email
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await supabase.auth.signOut()
+  window.location.href = 'login.html.html'
+})
+
+window.__BACKEND_ENDPOINT = BACKEND_ENDPOINT
+window.__getAccessToken = async () => {
+  const { data: { session } } = await supabase.auth.getSession()
+  return session ? session.access_token : null
+}
+</script>
+
+<script>
+const EQUIPMENT = ["Barbell","Dumbbells","EZ curl bar","Flat bench","Incline/decline bench","Squat rack","Power rack / cage","Smith machine","Cable machine (dual stack)","Lat pulldown","Seated row machine","Leg press","Hack squat machine","Leg extension machine","Leg curl machine","Chest press machine","Shoulder press machine","Pec deck / chest fly machine","Assisted pull-up/dip machine","Pull-up bar","Dip station","Preacher curl bench","Hyperextension bench","Calf raise machine","Hip thrust machine / Smith setup","Cable crossover","Functional trainer","Kettlebells","Resistance bands","Battle ropes","Medicine balls","TRX / suspension trainer","Treadmill","Stationary bike / spin bike","Elliptical / cross-trainer","Rowing machine","Stair climber","Foam roller"];
+const ALLERGIES = ["Lactose / dairy","Gluten / wheat","Peanuts / tree nuts","Soy","Eggs","Shellfish / seafood","None"];
+const ACTIVITY = {sedentary:"Sedentary (desk job, little exercise)",light:"Lightly active (light exercise 1-3 days/week)",moderate:"Moderately active (moderate exercise 3-5 days/week)",very_active:"Very active (hard exercise 6-7 days/week)",extreme:"Extremely active (physical job + training)"};
+const ROTATION = {fixed:"Same meals daily (easy to follow)",short_rotation:"Rotate every 2-3 days",weekly_rotation:"Different meals every day of the week"};
+const BUDGET = {low:"Low (₹150-250/day on food)",medium:"Medium (₹250-450/day)",high:"High (₹450+/day)"};
+
+const availableEquipment = new Set(EQUIPMENT);
+const allergies = new Set();
+const $ = (id) => document.getElementById(id);
+
+function renderEquip() {
+  const box = $("equipChips"); box.innerHTML = "";
+  EQUIPMENT.forEach(eq => {
+    const c = document.createElement("button");
+    c.className = "chip" + (availableEquipment.has(eq) ? " active" : "");
+    c.textContent = eq;
+    c.onclick = () => { availableEquipment.has(eq) ? availableEquipment.delete(eq) : availableEquipment.add(eq); renderEquip(); };
+    box.appendChild(c);
+  });
+  const all = availableEquipment.size === EQUIPMENT.length;
+  const toggle = document.createElement("button");
+  toggle.className = "chip" + (all ? " active" : "");
+  toggle.textContent = all ? "Clear all" : "Select all";
+  toggle.onclick = () => { all ? availableEquipment.clear() : EQUIPMENT.forEach(e => availableEquipment.add(e)); renderEquip(); };
+  box.appendChild(toggle);
+}
+
+function renderAllergies() {
+  const box = $("allergyChips"); box.innerHTML = "";
+  ALLERGIES.forEach(a => {
+    const c = document.createElement("button");
+    c.className = "chip" + (allergies.has(a) ? " active" : "");
+    c.textContent = a;
+    c.onclick = () => { allergies.has(a) ? allergies.delete(a) : allergies.add(a); renderAllergies(); };
+    box.appendChild(c);
+  });
+}
+renderEquip(); renderAllergies();
+
+function computeBMI() {
+  const h = parseFloat($("height").value), w = parseFloat($("weight").value);
+  if (!h || !w) return null;
+  return Math.round((w / ((h/100)**2)) * 10) / 10;
+}
+function bmiCategory(b) { return b<18.5?"Underweight":b<25?"Normal":b<30?"Overweight":"Obese"; }
+function renderBMI() {
+  const b = computeBMI(), box = $("bmiBox");
+  box.innerHTML = b===null ? "" :
+    `<div class="bmi"><div>🔥 <small>BMI</small><b>${b}</b></div><div><small>Category</small><b>${bmiCategory(b)}</b></div></div>`;
+}
+["height","weight"].forEach(id => $(id).addEventListener("input", renderBMI));
+$("days").addEventListener("input", e => $("daysVal").textContent = e.target.value);
+$("meals").addEventListener("input", e => $("mealsVal").textContent = e.target.value);
+
+function buildPrompt() {
+  const v = (id) => $(id).value;
+  const b = computeBMI();
+  const allergyList = [...allergies].filter(a => a !== "None");
+  if (v("otherAllergy").trim()) allergyList.push(v("otherAllergy").trim());
+  const noAllergies = allergies.has("None") && allergyList.length === 0;
+  const equipArr = [...availableEquipment];
+  const unselected = EQUIPMENT.filter(e => !availableEquipment.has(e));
+  let equipText;
+  if (availableEquipment.size === EQUIPMENT.length) equipText = "Full commercial gym access (all standard equipment available).";
+  else if (equipArr.length === 0) equipText = "No specific equipment confirmed — assume only bodyweight and any commonly available gym equipment, and call out clearly which equipment each exercise needs.";
+  else if (unselected.length > 0 && unselected.length <= equipArr.length) equipText = `Full commercial gym access except the following, which are NOT available: ${unselected.join(", ")}. Avoid prescribing exercises that require this missing equipment.`;
+  else equipText = `Available equipment: ${equipArr.join(", ")}. Do not prescribe exercises requiring equipment outside this list.`;
+
+  const lines = [
+    "Generate a detailed, personalized workout and diet plan for an Indian gym-goer with the following profile. Use Indian food items, regional dish names, and easily available Indian groceries throughout the diet plan. Output should be structured, practical, and ready to render on a dashboard.","",
+    "## Personal details",
+    `- Name: ${v("name") || "Not provided"}`,
+    `- Age: ${v("age") || "Not provided"}`,
+    `- Gender: ${v("gender")}`,
+    `- Height: ${v("height") ? v("height")+" cm" : "Not provided"}`,
+    `- Weight: ${v("weight") ? v("weight")+" kg" : "Not provided"}`,
+    b !== null ? `- BMI: ${b} (${bmiCategory(b)}) — calculated from height/weight, use this to inform calorie targets and pacing` : "- BMI: not calculable (missing height/weight)",
+    v("target") ? `- Target weight: ${v("target")} kg` : null,
+    v("region") ? `- Region/state in India: ${v("region")} (use regionally familiar foods where relevant)` : null, "",
+    "## Goals & activity",
+    `- Primary goal: ${v("goal")}`,
+    `- Activity level: ${ACTIVITY[v("activity")]}`,
+    `- Training experience: ${v("experience")}`, "",
+    "## Workout preferences",
+    `- Training days per week: ${v("days")}`,
+    `- Preferred session duration: ${v("duration")}`,
+    `- ${equipText}`,
+    `- Default context: regular gym-goer, so structure the split (e.g. push/pull/legs, upper/lower, full body) appropriately for ${v("days")} days/week at ${v("experience").toLowerCase()} level.`, "",
+    "## Diet preferences",
+    `- Diet type: ${v("diet")}`,
+    `- Meals per day: ${v("meals")}`,
+    `- Meal rotation: ${ROTATION[v("rotation")]}`,
+    `- Daily food budget: ${BUDGET[v("budget")]}`,
+    noAllergies ? "- Allergies/intolerances: none reported" : `- Allergies/intolerances: ${allergyList.join(", ") || "none reported"} — strictly exclude these and any obvious derivative ingredients`,
+    v("notes").trim() ? `- Other medical/dietary notes: ${v("notes").trim()}` : null, "",
+    "## Output requirements",
+    "- Provide a weekly workout schedule with exercises, sets, reps, and rest periods.",
+    "- Provide a daily meal plan matching the meal rotation preference, with Indian dishes, approximate portion sizes, and approximate calories/macros per meal.",
+    "- Keep all meals within the stated budget and diet type, and fully avoid listed allergens.",
+    "- Briefly explain the reasoning behind the calorie and macro targets based on the BMI, goal, and activity level.",
+    "- Format the response so it can be parsed into a dashboard view (clear headings per day, consistent structure)."
+  ];
+  return { promptText: lines.filter(l => l !== null).join("\n"), bmi: b };
+}
+
+async function handleSubmit() {
+  const { promptText, bmi } = buildPrompt();
+  const btn = $("submitBtn");
+  $("resultCard").style.display = "block";
+  $("output").textContent = "";
+  const s = $("status");
+  s.className = "status"; s.innerHTML = '<span class="spin">⏳</span> Generating your plan… this can take a minute on local Llama 3.1.';
+  btn.disabled = true;
+
+  try {
+    const token = await window.__getAccessToken();
+    if (!token) {
+      throw new Error("Not logged in — please log in again.");
+    }
+
+    const res = await fetch(window.__BACKEND_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "ngrok-skip-browser-warning": "true"
+      },
+      body: JSON.stringify({ prompt: promptText, bmi })
+    });
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      throw new Error(errBody.detail || `Backend error (${res.status})`);
+    }
+
+    const data = await res.json();
+    $("output").textContent = data.result || "(empty response from model)";
+    s.className = "status success"; s.textContent = "✓ Plan generated";
+  } catch (err) {
+    $("output").textContent = promptText + "\n\n---\n(Plan generation failed — showing your request instead. See status message above.)";
+    s.className = "status error"; s.textContent = "✗ " + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
