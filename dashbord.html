@@ -127,15 +127,6 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .submit:hover { transform: translateY(-2px); filter: brightness(1.05); }
 .submit:active { transform: scale(.99); }
 .submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
-.status { font-size: 12px; font-weight: 600; }
-.status.success { color: var(--success); }
-.status.error { color: var(--danger); }
-.status .spin { display: inline-block; animation: spin 1s linear infinite; }
-pre {
-  white-space: pre-wrap; background: #eef7f1; border-radius: 12px; padding: 16px;
-  font-size: 12px; line-height: 1.55; max-height: 380px; overflow: auto; margin: 0;
-}
-.mt { margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -192,7 +183,7 @@ pre {
 <div><label class="lbl">Training days / week: <span id="daysVal">4</span></label><input id="days" type="range" min="2" max="6" step="1" value="4" /></div>
 <div><label class="lbl">Session duration</label><select id="duration"><option>30-45 min</option><option selected>45-60 min</option><option>60-75 min</option><option>75-90 min</option></select></div>
 </div>
-<div class="mt"><label class="lbl">Equipment available at your gym (all selected by default — untick anything your gym doesn't have)</label>
+<div class="mt"><label class="lbl">Equipment available at your gym</label>
 <div class="chip-box"><div class="chips" id="equipChips"></div></div>
 </div>
 </div>
@@ -204,8 +195,8 @@ pre {
 <div><label class="lbl">Meals per day: <span id="mealsVal">4</span></label><input id="meals" type="range" min="2" max="6" step="1" value="4" /></div>
 </div>
 <div class="grid c2 mt">
-<div><label class="lbl">Meal rotation</label><select id="rotation"><option value="fixed">Same meals daily (easy to follow)</option><option value="short_rotation" selected>Rotate every 2-3 days</option><option value="weekly_rotation">Different meals every day of the week</option></select></div>
-<div><label class="lbl">Daily food budget</label><select id="budget"><option value="low">Low (₹150-250/day on food)</option><option value="medium" selected>Medium (₹250-450/day)</option><option value="high">High (₹450+/day)</option></select></div>
+<div><label class="lbl">Meal rotation</label><select id="rotation"><option value="fixed">Same meals daily</option><option value="short_rotation" selected>Rotate every 2-3 days</option><option value="weekly_rotation">Different meals every day</option></select></div>
+<div><label class="lbl">Daily food budget</label><select id="budget"><option value="low">Low (₹150-250/day)</option><option value="medium" selected>Medium (₹250-450/day)</option><option value="high">High (₹450+/day)</option></select></div>
 </div>
 <div class="mt"><label class="lbl">Allergies / intolerances</label><div class="chips" id="allergyChips"></div></div>
 <div class="mt"><input id="otherAllergy" placeholder="Any other allergy or food to avoid (optional)" /></div>
@@ -213,37 +204,20 @@ pre {
 </div>
 
 <button class="submit" id="submitBtn" style="animation-delay:.4s" onclick="handleSubmit()">📈 Generate plan</button>
-
-<div class="card mt" id="resultCard" style="display:none">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-<h3 style="margin:0;font-size:1rem">Your plan</h3>
-<span class="status" id="status"></span>
-</div>
-<pre id="output"></pre>
 </div>
 
-</div>
-
+<!-- ── MODULE SCRIPT: Supabase auth + all app logic ── -->
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js'
-  window.handleSubmit = handleSubmit;
+
+const BACKEND_ENDPOINT = "https://crinkle-accent-thursday.ngrok-free.dev/api/generate"
 
 const supabase = createClient(
   'https://yabclxadadynmprymcns.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYmNseGFkYWR5bm1wcnltY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0Njg4NzIsImV4cCI6MjA5ODA0NDg3Mn0.e2IwBxrW-NbMIqqWFZb8gnh5T95vlDwS-h2FhlWRb1k'
 )
 
-// ---- Config: point this at your FastAPI backend ----
-// DEV WORKFLOW (current): run `ngrok http 8000` locally, then paste the
-// https://xxxx.ngrok-free.app URL it gives you below. This changes every
-// time you restart ngrok on the free tier, so update this line each session.
-// PRODUCTION (later): replace with your real server's URL — no other
-// code changes needed anywhere else in this file.
-const BACKEND_ENDPOINT = "https://crinkle-accent-thursday.ngrok-free.dev/api/generate"
-
-window.__supabase = supabase
-
-// ---- Auth guard: redirect to login if not signed in ----
+// Auth guard
 const { data: { session } } = await supabase.auth.getSession()
 if (!session) {
   window.location.href = 'login.html.html'
@@ -256,138 +230,75 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   window.location.href = 'login.html.html'
 })
 
+// Expose to non-module scripts
 window.__BACKEND_ENDPOINT = BACKEND_ENDPOINT
-window.__getAccessToken = async () => {
-  const { data: { session } } = await supabase.auth.getSession()
-  return session ? session.access_token : null
-}
-</script>
 
-<script>
-const EQUIPMENT = ["Barbell","Dumbbells","EZ curl bar","Flat bench","Incline/decline bench","Squat rack","Power rack / cage","Smith machine","Cable machine (dual stack)","Lat pulldown","Seated row machine","Leg press","Hack squat machine","Leg extension machine","Leg curl machine","Chest press machine","Shoulder press machine","Pec deck / chest fly machine","Assisted pull-up/dip machine","Pull-up bar","Dip station","Preacher curl bench","Hyperextension bench","Calf raise machine","Hip thrust machine / Smith setup","Cable crossover","Functional trainer","Kettlebells","Resistance bands","Battle ropes","Medicine balls","TRX / suspension trainer","Treadmill","Stationary bike / spin bike","Elliptical / cross-trainer","Rowing machine","Stair climber","Foam roller"];
-const ALLERGIES = ["Lactose / dairy","Gluten / wheat","Peanuts / tree nuts","Soy","Eggs","Shellfish / seafood","None"];
-const ACTIVITY = {sedentary:"Sedentary (desk job, little exercise)",light:"Lightly active (light exercise 1-3 days/week)",moderate:"Moderately active (moderate exercise 3-5 days/week)",very_active:"Very active (hard exercise 6-7 days/week)",extreme:"Extremely active (physical job + training)"};
-const ROTATION = {fixed:"Same meals daily (easy to follow)",short_rotation:"Rotate every 2-3 days",weekly_rotation:"Different meals every day of the week"};
-const BUDGET = {low:"Low (₹150-250/day on food)",medium:"Medium (₹250-450/day)",high:"High (₹450+/day)"};
+// ── Equipment & allergy chip sets (shared with handleSubmit) ──
+const EQUIPMENT = ["Barbell","Dumbbells","EZ curl bar","Flat bench","Incline/decline bench","Squat rack","Power rack / cage","Smith machine","Cable machine (dual stack)","Lat pulldown","Seated row machine","Leg press","Hack squat machine","Leg extension machine","Leg curl machine","Chest press machine","Shoulder press machine","Pec deck / chest fly machine","Assisted pull-up/dip machine","Pull-up bar","Dip station","Preacher curl bench","Hyperextension bench","Calf raise machine","Hip thrust machine / Smith setup","Cable crossover","Functional trainer","Kettlebells","Resistance bands","Battle ropes","Medicine balls","TRX / suspension trainer","Treadmill","Stationary bike / spin bike","Elliptical / cross-trainer","Rowing machine","Stair climber","Foam roller"]
+const ALLERGIES = ["Lactose / dairy","Gluten / wheat","Peanuts / tree nuts","Soy","Eggs","Shellfish / seafood","None"]
 
-const availableEquipment = new Set(EQUIPMENT);
-const allergies = new Set();
-const $ = (id) => document.getElementById(id);
+const availableEquipment = new Set(EQUIPMENT)
+const allergies = new Set()
+const $ = id => document.getElementById(id)
 
 function renderEquip() {
-  const box = $("equipChips"); box.innerHTML = "";
+  const box = $("equipChips"); box.innerHTML = ""
   EQUIPMENT.forEach(eq => {
-    const c = document.createElement("button");
-    c.className = "chip" + (availableEquipment.has(eq) ? " active" : "");
-    c.textContent = eq;
-    c.onclick = () => { availableEquipment.has(eq) ? availableEquipment.delete(eq) : availableEquipment.add(eq); renderEquip(); };
-    box.appendChild(c);
-  });
-  const all = availableEquipment.size === EQUIPMENT.length;
-  const toggle = document.createElement("button");
-  toggle.className = "chip" + (all ? " active" : "");
-  toggle.textContent = all ? "Clear all" : "Select all";
-  toggle.onclick = () => { all ? availableEquipment.clear() : EQUIPMENT.forEach(e => availableEquipment.add(e)); renderEquip(); };
-  box.appendChild(toggle);
+    const c = document.createElement("button")
+    c.className = "chip" + (availableEquipment.has(eq) ? " active" : "")
+    c.textContent = eq
+    c.onclick = () => { availableEquipment.has(eq) ? availableEquipment.delete(eq) : availableEquipment.add(eq); renderEquip() }
+    box.appendChild(c)
+  })
+  const all = availableEquipment.size === EQUIPMENT.length
+  const toggle = document.createElement("button")
+  toggle.className = "chip" + (all ? " active" : "")
+  toggle.textContent = all ? "Clear all" : "Select all"
+  toggle.onclick = () => { all ? availableEquipment.clear() : EQUIPMENT.forEach(e => availableEquipment.add(e)); renderEquip() }
+  box.appendChild(toggle)
 }
 
 function renderAllergies() {
-  const box = $("allergyChips"); box.innerHTML = "";
+  const box = $("allergyChips"); box.innerHTML = ""
   ALLERGIES.forEach(a => {
-    const c = document.createElement("button");
-    c.className = "chip" + (allergies.has(a) ? " active" : "");
-    c.textContent = a;
-    c.onclick = () => { allergies.has(a) ? allergies.delete(a) : allergies.add(a); renderAllergies(); };
-    box.appendChild(c);
-  });
+    const c = document.createElement("button")
+    c.className = "chip" + (allergies.has(a) ? " active" : "")
+    c.textContent = a
+    c.onclick = () => { allergies.has(a) ? allergies.delete(a) : allergies.add(a); renderAllergies() }
+    box.appendChild(c)
+  })
 }
-renderEquip(); renderAllergies();
+
+renderEquip()
+renderAllergies()
 
 function computeBMI() {
-  const h = parseFloat($("height").value), w = parseFloat($("weight").value);
-  if (!h || !w) return null;
-  return Math.round((w / ((h/100)**2)) * 10) / 10;
+  const h = parseFloat($("height").value), w = parseFloat($("weight").value)
+  if (!h || !w) return null
+  return Math.round((w / ((h/100)**2)) * 10) / 10
 }
-function bmiCategory(b) { return b<18.5?"Underweight":b<25?"Normal":b<30?"Overweight":"Obese"; }
+function bmiCategory(b) { return b<18.5?"Underweight":b<25?"Normal":b<30?"Overweight":"Obese" }
 function renderBMI() {
-  const b = computeBMI(), box = $("bmiBox");
+  const b = computeBMI(), box = $("bmiBox")
   box.innerHTML = b===null ? "" :
-    `<div class="bmi"><div>🔥 <small>BMI</small><b>${b}</b></div><div><small>Category</small><b>${bmiCategory(b)}</b></div></div>`;
+    `<div class="bmi"><div>🔥 <small>BMI</small><b>${b}</b></div><div><small>Category</small><b>${bmiCategory(b)}</b></div></div>`
 }
-["height","weight"].forEach(id => $(id).addEventListener("input", renderBMI));
-$("days").addEventListener("input", e => $("daysVal").textContent = e.target.value);
-$("meals").addEventListener("input", e => $("mealsVal").textContent = e.target.value);
+["height","weight"].forEach(id => $(id).addEventListener("input", renderBMI))
+$("days").addEventListener("input", e => $("daysVal").textContent = e.target.value)
+$("meals").addEventListener("input", e => $("mealsVal").textContent = e.target.value)
 
-function buildPrompt() {
-  const v = (id) => $(id).value;
-  const b = computeBMI();
-  const allergyList = [...allergies].filter(a => a !== "None");
-  if (v("otherAllergy").trim()) allergyList.push(v("otherAllergy").trim());
-  const noAllergies = allergies.has("None") && allergyList.length === 0;
-  const equipArr = [...availableEquipment];
-  const unselected = EQUIPMENT.filter(e => !availableEquipment.has(e));
-  let equipText;
-  if (availableEquipment.size === EQUIPMENT.length) equipText = "Full commercial gym access (all standard equipment available).";
-  else if (equipArr.length === 0) equipText = "No specific equipment confirmed — assume only bodyweight and any commonly available gym equipment, and call out clearly which equipment each exercise needs.";
-  else if (unselected.length > 0 && unselected.length <= equipArr.length) equipText = `Full commercial gym access except the following, which are NOT available: ${unselected.join(", ")}. Avoid prescribing exercises that require this missing equipment.`;
-  else equipText = `Available equipment: ${equipArr.join(", ")}. Do not prescribe exercises requiring equipment outside this list.`;
-
-  const lines = [
-    "Generate a detailed, personalized workout and diet plan for an Indian gym-goer with the following profile. Use Indian food items, regional dish names, and easily available Indian groceries throughout the diet plan. Output should be structured, practical, and ready to render on a dashboard.","",
-    "## Personal details",
-    `- Name: ${v("name") || "Not provided"}`,
-    `- Age: ${v("age") || "Not provided"}`,
-    `- Gender: ${v("gender")}`,
-    `- Height: ${v("height") ? v("height")+" cm" : "Not provided"}`,
-    `- Weight: ${v("weight") ? v("weight")+" kg" : "Not provided"}`,
-    b !== null ? `- BMI: ${b} (${bmiCategory(b)}) — calculated from height/weight, use this to inform calorie targets and pacing` : "- BMI: not calculable (missing height/weight)",
-    v("target") ? `- Target weight: ${v("target")} kg` : null,
-    v("region") ? `- Region/state in India: ${v("region")} (use regionally familiar foods where relevant)` : null, "",
-    "## Goals & activity",
-    `- Primary goal: ${v("goal")}`,
-    `- Activity level: ${ACTIVITY[v("activity")]}`,
-    `- Training experience: ${v("experience")}`, "",
-    "## Workout preferences",
-    `- Training days per week: ${v("days")}`,
-    `- Preferred session duration: ${v("duration")}`,
-    `- ${equipText}`,
-    `- Default context: regular gym-goer, so structure the split (e.g. push/pull/legs, upper/lower, full body) appropriately for ${v("days")} days/week at ${v("experience").toLowerCase()} level.`, "",
-    "## Diet preferences",
-    `- Diet type: ${v("diet")}`,
-    `- Meals per day: ${v("meals")}`,
-    `- Meal rotation: ${ROTATION[v("rotation")]}`,
-    `- Daily food budget: ${BUDGET[v("budget")]}`,
-    noAllergies ? "- Allergies/intolerances: none reported" : `- Allergies/intolerances: ${allergyList.join(", ") || "none reported"} — strictly exclude these and any obvious derivative ingredients`,
-    v("notes").trim() ? `- Other medical/dietary notes: ${v("notes").trim()}` : null, "",
-    "## Output requirements",
-    "- Provide a weekly workout schedule with exercises, sets, reps, and rest periods.",
-    "- Provide a daily meal plan matching the meal rotation preference, with Indian dishes, approximate portion sizes, and approximate calories/macros per meal.",
-    "- Keep all meals within the stated budget and diet type, and fully avoid listed allergens.",
-    "- Briefly explain the reasoning behind the calorie and macro targets based on the BMI, goal, and activity level.",
-    "- Format the response so it can be parsed into a dashboard view (clear headings per day, consistent structure)."
-  ];
-  return { promptText: lines.filter(l => l !== null).join("\n"), bmi: b };
-}
-
+// ── handleSubmit: exposed to window so onclick can reach it ──
 function handleSubmit() {
-  const btn = $("submitBtn");
+  const btn = $("submitBtn")
+  const backendBase = window.__BACKEND_ENDPOINT.replace(/\/api\/generate$/, "")
+  const resultUrl = backendBase + "/result"
 
-  // Build the base URL: same origin as the backend endpoint but at /result
-  const backendBase = window.__BACKEND_ENDPOINT.replace(//api/generate$/, "");
-  const resultUrl = backendBase + "/result";
+  btn.disabled = true
+  btn.textContent = "⏳ Generating… this may take a minute"
 
-  // Show a loading state on the button
-  btn.disabled = true;
-  btn.textContent = "⏳ Generating… this may take a minute";
+  const allergyList = [...allergies].filter(a => a !== "None")
+  if ($("otherAllergy").value.trim()) allergyList.push($("otherAllergy").value.trim())
 
-  // Collect allergies
-  const allergyList = [...allergies].filter(a => a !== "None");
-  if ($("otherAllergy").value.trim()) allergyList.push($("otherAllergy").value.trim());
-
-  // Collect equipment
-  const equipList = [...availableEquipment];
-
-  // All fields posted directly — main.py builds the profile from these
   const fields = {
     name:       $("name").value.trim() || "User",
     age:        $("age").value || "25",
@@ -406,25 +317,27 @@ function handleSubmit() {
     budget:     $("budget").value,
     notes:      $("notes").value.trim(),
     allergies:  allergyList.join(", ") || "none",
-    equipment:  equipList.join(", ") || "full gym",
-  };
-
-  // Create a hidden form and POST — browser navigates to the rendered result page
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = resultUrl;
-
-  for (const [key, val] of Object.entries(fields)) {
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = key;
-    input.value = val;
-    form.appendChild(input);
+    equipment:  [...availableEquipment].join(", ") || "full gym",
   }
 
-  document.body.appendChild(form);
-  form.submit();
+  const form = document.createElement("form")
+  form.method = "POST"
+  form.action = resultUrl
+
+  for (const [key, val] of Object.entries(fields)) {
+    const input = document.createElement("input")
+    input.type = "hidden"
+    input.name = key
+    input.value = val
+    form.appendChild(input)
+  }
+
+  document.body.appendChild(form)
+  form.submit()
 }
+
+window.handleSubmit = handleSubmit
+
 </script>
 </body>
 </html>
