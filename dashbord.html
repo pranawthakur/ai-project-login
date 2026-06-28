@@ -372,7 +372,7 @@ function handleSubmit() {
   const btn = $("submitBtn");
 
   // Build the base URL: same origin as the backend endpoint but at /result
-  const backendBase = BACKEND_ENDPOINT.replace(/\/api\/generate$/, "");
+  const backendBase = window.__BACKEND_ENDPOINT.replace(//api/generate$/, "");
   const resultUrl = backendBase + "/result";
 
   // Show a loading state on the button
