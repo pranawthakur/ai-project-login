@@ -236,9 +236,11 @@ const ACTIVITY_MULTIPLIER = {sedentary:1.2,light:1.375,moderate:1.55,very_active
 const ROTATION = {fixed:"Same meals daily (easy to follow)",short_rotation:"Rotate every 2–3 days",weekly_rotation:"Different meals every day of the week"};
 const BUDGET = {low:"Low (₹150–250/day on food)",medium:"Medium (₹250–450/day)",high:"High (₹450+/day)"};
 
-// Protein range by experience (g per kg bodyweight) — midpoint used for calculation
-const PROTEIN_RANGE   = {Beginner:"1.0–1.1", Intermediate:"1.1–1.3", Advanced:"1.4–1.8"};
-const PROTEIN_MIDPOINT = {Beginner:1.05, Intermediate:1.2, Advanced:1.6};
+// Protein range by experience (g per kg bodyweight) — must match PROTEIN_MULTIPLIER
+// in promptgen-backend/app/fitness_generator.py. Midpoint here is only used for the
+// client-side preview estimate shown before the real backend-calculated value returns.
+const PROTEIN_RANGE   = {Beginner:"1.0–1.1", Intermediate:"1.2–1.4", Advanced:"1.5–2.0"};
+const PROTEIN_MIDPOINT = {Beginner:1.05, Intermediate:1.3, Advanced:1.75};
 
 const availableEquipment = new Set(EQUIPMENT);
 const allergies = new Set();
@@ -336,7 +338,7 @@ function renderMacros() {
       <div class="macro-item"><small>🥑 Fat</small><b>${m.fatG}g</b></div>
       <div class="macro-item"><small>📊 TDEE</small><b>${m.tdee} kcal</b></div>
     </div>
-    <div class="info-tip">Protein target: <b>${protLabel}</b> — Beginner 1.0–1.1g/kg → Intermediate 1.1–1.3g/kg → Advanced 1.4–1.8g/kg</div>`;
+    <div class="info-tip">Protein target: <b>${protLabel}</b> — Beginner 1.0–1.1g/kg → Intermediate 1.2–1.4g/kg → Advanced 1.5–2.0g/kg (exact value also weighted by activity level + BMI)</div>`;
 }
 
 ["height","weight","age","gender","activity","goal","experience"].forEach(id => {
@@ -731,7 +733,15 @@ async function handleSubmit() {
           signal: controller.signal,
         });
         clearTimeout(timer);
-        break; // got a response, stop retrying
+
+        // 502/503/504 from Render usually mean the service is still waking up
+        // from sleep — treat these as retryable too, not just network failures.
+        if ([502, 503, 504].includes(res.status) && i < fetchAttempts.length - 1) {
+          res = null;
+          await new Promise(r => setTimeout(r, 3000)); // brief pause before retrying a waking server
+          continue;
+        }
+        break; // got a real (non-transient) response, stop retrying
       } catch (err) {
         clearTimeout(timer);
         lastErr = err;
