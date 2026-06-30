@@ -706,10 +706,17 @@ async function handleSubmit() {
     // a while can take 30-60+ seconds to wake the server back up. We retry a
     // couple of times with increasing patience instead of failing immediately,
     // and update the message so it doesn't look broken while waiting.
+    // IMPORTANT: this endpoint generates a large structured JSON plan (7 days of
+    // workouts + 5 meals x 3 options each, all with macros) — a single Gemini call
+    // for this can legitimately take 30-60+ seconds even on a warm server. Aborting
+    // and retrying too aggressively doesn't actually cancel the backend's in-flight
+    // Gemini call — it just starts ANOTHER one on top of it, which can burn through
+    // Gemini's free-tier rate limit and make things worse. So: one long, patient
+    // attempt first; only retry if that one truly fails (network error or a real
+    // 502/503/504), not just because it's taking a while.
     const fetchAttempts = [
-      { timeoutMs: 20000,  message: 'Generating your plan…' },
-      { timeoutMs: 45000,  message: 'Still working — waking up the server, this can take up to a minute…' },
-      { timeoutMs: 60000,  message: 'Almost there — first request after idle time can be slow…' },
+      { timeoutMs: 75000,  message: 'Generating your plan — this can take up to a minute for a full weekly plan…' },
+      { timeoutMs: 90000,  message: 'Still working — first request after idle time can be slower, hang tight…' },
     ];
 
     let res = null;
@@ -738,7 +745,7 @@ async function handleSubmit() {
         // from sleep — treat these as retryable too, not just network failures.
         if ([502, 503, 504].includes(res.status) && i < fetchAttempts.length - 1) {
           res = null;
-          await new Promise(r => setTimeout(r, 3000)); // brief pause before retrying a waking server
+          await new Promise(r => setTimeout(r, 8000)); // give a possibly still-running prior attempt time to finish
           continue;
         }
         break; // got a real (non-transient) response, stop retrying

@@ -220,7 +220,7 @@ body{padding-bottom:76px}
       <div class="day-toggle">+</div>
     </div>
     <div class="day-body">
-      <div class="warmup-pill"><strong>Warmup:</strong> {{ day.warmup }}</div>
+      <div class="warmup-pill"><strong>Warmup:</strong> {{ day.warmup_exercises | join(' · ') }}</div>
       {% for ex in day.exercises %}
       <div class="ex-row">
         <div>
@@ -261,6 +261,10 @@ body{padding-bottom:76px}
             <span class="kcal-hi">{{ opt.kcal }} kcal</span>
             &nbsp;·&nbsp;
             <span class="mac-hi">{{ opt.protein_g }}g</span> protein
+            &nbsp;·&nbsp;
+            <span class="mac-hi">{{ opt.carb_g }}g</span> carbs
+            &nbsp;·&nbsp;
+            <span class="mac-hi">{{ opt.fat_g }}g</span> fat
           </div>
         </div>
       </div>
