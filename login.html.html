@@ -266,8 +266,16 @@
 
 </div>
 
+<script>
+  // Fire-and-forget: wake up the Render backend the instant this page loads,
+  // so it's hopefully warm by the time the user reaches "Generate My Plan".
+  // We don't await this or show any UI for it — just let it run in the background.
+  fetch('https://ai-project-login-de6g.onrender.com/health').catch(() => {
+    // Silently ignore errors — this is just a best-effort warm-up ping.
+  });
+</script>
 <script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
 const supabase = createClient(
   'https://yabclxadadynmprymcns.supabase.co',
