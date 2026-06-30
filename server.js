@@ -21,7 +21,8 @@ app.post("/api/generate", async (req, res) => {
   }
 
   const GROK_API_KEY = process.env.GROK_API_KEY;
-
+  
+console.log("KEY CHECK:", GROK_API_KEY ? `present, length ${GROK_API_KEY.length}` : "MISSING");
   if (!GROK_API_KEY) {
     return res.status(500).json({ error: "GROK_API_KEY not set in environment variables." });
   }
