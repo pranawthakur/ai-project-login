@@ -38,6 +38,41 @@ PROTEIN_MULTIPLIER = {
     "advanced":     (1.4, 1.8),
 }
 
+# ── EXERCISE VOLUME TABLE ──────────────────────────────────────────────────────
+# Scales workout rigour to experience level. Drives the hard exercise-count
+# instruction injected into the prompt so the LLM can't default to "1 exercise".
+EXERCISE_VOLUME = {
+    "beginner": {
+        "exercises_per_day": "4–5",
+        "sets_per_exercise":  "2–3",
+        "rest_between_sets":  "60–90 sec",
+        "intensity_note": (
+            "Focus on form and machine/cable-based movements. Avoid advanced "
+            "techniques (no drop sets, no supersets, no failure training)."
+        ),
+    },
+    "intermediate": {
+        "exercises_per_day": "5–7",
+        "sets_per_exercise":  "3–4",
+        "rest_between_sets":  "60–90 sec",
+        "intensity_note": (
+            "Mix compound and isolation movements. One superset pairing per "
+            "session is fine. Train close to failure on the last set of each exercise."
+        ),
+    },
+    "advanced": {
+        "exercises_per_day": "7–9",
+        "sets_per_exercise":  "4–5",
+        "rest_between_sets":  "45–75 sec (60–120 sec only on heavy compounds)",
+        "intensity_note": (
+            "High training density. Include at least 1–2 intensity techniques per "
+            "session (supersets, drop sets, rest-pause, or partials on the final "
+            "set of an isolation exercise). Push working sets close to or to failure. "
+            "Sessions should feel demanding and time-efficient, not relaxed."
+        ),
+    },
+}
+
 # ── DIET RESTRICTION TOKENS ───────────────────────────────────────────────────
 # Hard tokens injected into the prompt so the model cannot misread the setting.
 DIET_TOKENS = {
@@ -250,8 +285,27 @@ SCHEMA (copy key names precisely):
             "name":   "Chest Press (Machine)",
             "muscle": "Pecs · anterior delt",
             "sets":   "4",
-            "reps":   "10–12 reps"
+            "reps":   "10–12 reps",
+            "rest":   "75–90 sec",
+            "tempo_or_cue": "2 sec down, 1 sec squeeze at top"
+          },
+          {
+            "name":   "Incline Dumbbell Press",
+            "muscle": "Upper pecs · anterior delt",
+            "sets":   "3",
+            "reps":   "10–12 reps",
+            "rest":   "75–90 sec",
+            "tempo_or_cue": "Control the negative, don't bounce at bottom"
+          },
+          {
+            "name":   "Cable Lateral Raise",
+            "muscle": "Lateral delt",
+            "sets":   "3",
+            "reps":   "12–15 reps",
+            "rest":   "45–60 sec",
+            "tempo_or_cue": "Lead with elbow, no swinging"
           }
+          // continue for the FULL exercise count required — see EXERCISE COUNT RULES below
         ],
         "safety": "Keep chest up, shoulders back, wrists neutral."
       }
@@ -272,8 +326,23 @@ SCHEMA (copy key names precisely):
             "protein_g": 24,
             "carb_g":    90,
             "fat_g":     8
+          },
+          {
+            "food":      "3 Egg Whites + 1 Whole Egg Bhurji + 2 Multigrain Roti",
+            "kcal":      610,
+            "protein_g": 28,
+            "carb_g":    72,
+            "fat_g":     16
+          },
+          {
+            "food":      "150g Greek-style Curd + 40g Granola + 1 Apple",
+            "kcal":      600,
+            "protein_g": 22,
+            "carb_g":    85,
+            "fat_g":     12
           }
         ]
+        // EXACTLY 3 distinct options per meal — see MEAL RULES below
       }
       // 5 meals: breakfast, mid, lunch, post, dinner
     ]
@@ -341,6 +410,7 @@ def build_user_prompt(profile: dict) -> str:
             exp_key = k
             break
     protein_mult_str = f"{PROTEIN_MULTIPLIER[exp_key][0]}–{PROTEIN_MULTIPLIER[exp_key][1]} g/kg"
+    vol = EXERCISE_VOLUME[exp_key]
 
     # ── 5. Warmup hints per training days
     training_days_per_week = int(profile.get("days_per_week", 4))
@@ -408,14 +478,35 @@ For EVERY meal option supply these EXACT fields:
   "carb_g": <integer>,
   "fat_g": <integer>
 
+MEAL OPTION RULES (mandatory):
+- Each meal slot (breakfast, mid, lunch, post, dinner) MUST contain EXACTLY 3 entries in "options".
+- The 3 options for a given meal must use genuinely different core ingredients/dishes from
+  each other (not the same dish with a swapped garnish) — give the client real variety to
+  rotate through during the week.
+- All 3 options for a meal must independently land within roughly ±10% of that meal's target
+  kcal/protein share, so any one of the 3 is a valid swap-in.
+- Do not skip this for any of the 5 meals — 5 meals × 3 options = 15 total option objects in "diet.meals[].options".
+
 The sum of protein_g across the day's meals (best option of each) must hit ~{m['protein_g_mid']} g.
 The sum of kcal must be within ±80 kcal of {m['target_kcal']}.
 
 ━━ WORKOUT ━━
+Client experience level: {profile.get('experience', 'Intermediate')} → training rigour MUST match this tier, not a generic plan.
 Design exactly {training_days_per_week} training days and {7 - training_days_per_week} rest day(s) per week.
 Goal is {goal} → choose appropriate splits (e.g. Push/Pull/Legs, Upper/Lower, Full-Body).
 Session duration is {duration} — size the exercise volume accordingly.
 Avoid barbell squat, deadlift, barbell bench press, overhead barbell press (injury risk).
+
+EXERCISE VOLUME RULES (mandatory, scaled to {exp_key} level):
+- Exercises per training day: {vol['exercises_per_day']} (a single exercise per day is NEVER acceptable — every
+  non-rest day's "exercises" array must contain this many distinct movements, ordered compound → isolation).
+- Sets per exercise: {vol['sets_per_exercise']}
+- Rest between sets: {vol['rest_between_sets']}
+- Intensity guidance: {vol['intensity_note']}
+- For EVERY exercise object, include "rest" (e.g. "75–90 sec") and "tempo_or_cue" (a short form cue or
+  tempo instruction), in addition to name/muscle/sets/reps — do not omit these fields.
+- Vary exercise selection across the week's training days; do not repeat the exact same exercise list on
+  every day even within the same split type.
 
 WARMUP (warmup_exercises[] array): provide 4–5 specific exercises tailored to that day's split.
 Example warmup tokens by split type:
@@ -561,11 +652,22 @@ def enforce_schema(data: dict) -> dict:
     for day in data["workout"].get("days", []):
         if not day.get("is_rest", False):
             day.setdefault("warmup_exercises", [])
+            day.setdefault("exercises", [])
+            if len(day["exercises"]) < 4:
+                day["_low_volume_warning"] = (
+                    f"Only {len(day['exercises'])} exercise(s) generated for this day — "
+                    f"below the requested minimum. Consider regenerating."
+                )
 
     # Ensure each meal has full macro fields
     for meal in data["diet"].get("meals", []):
         meal.setdefault("options", [])
         meal.setdefault("kcal_range", "—")
+        if len(meal["options"]) < 3:
+            meal["_low_variety_warning"] = (
+                f"Only {len(meal['options'])} option(s) generated for "
+                f"{meal.get('title', meal.get('id', 'this meal'))} — expected 3."
+            )
         for opt in meal["options"]:
             opt.setdefault("kcal", 0)
             opt.setdefault("protein_g", 0)
