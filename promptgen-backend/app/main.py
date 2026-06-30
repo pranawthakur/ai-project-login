@@ -58,6 +58,7 @@ def whoami(user: dict = Depends(get_current_user)):
 @app.post("/result", response_class=HTMLResponse)
 async def result_page(
     request: Request,
+    user: dict = Depends(get_current_user),
     # Basic profile fields posted from dashbord.html
     name: str = Form(""),
     age: str = Form(""),
