@@ -274,40 +274,52 @@ SCHEMA (copy key names precisely):
       {
         "short":   "MON",
         "name":    "Monday",
-        "type":    "Push Day — Chest · Shoulders · Triceps",
+        "type":    "Legs Day — Quads · Hamstrings · Glutes",
         "is_rest": false,
         "warmup_exercises": [
-          "5 min incline treadmill walk",
-          "20× arm circles (forward + backward)"
+          "5 min stationary bike",
+          "20× bodyweight squats",
+          "15× leg swings each leg (front-back + lateral)",
+          "10× hip circles each side"
         ],
         "exercises": [
           {
-            "name":   "Chest Press (Machine)",
-            "muscle": "Pecs · anterior delt",
+            "name":   "Leg Press",
+            "muscle": "Quads · glutes (largest muscle group → trained first)",
             "sets":   "4",
             "reps":   "10–12 reps",
-            "rest":   "75–90 sec",
-            "tempo_or_cue": "2 sec down, 1 sec squeeze at top"
+            "rest":   "90–120 sec",
+            "tempo_or_cue": "Full range, don't lock knees out at top"
           },
           {
-            "name":   "Incline Dumbbell Press",
-            "muscle": "Upper pecs · anterior delt",
-            "sets":   "3",
+            "name":   "Romanian Deadlift (Dumbbell)",
+            "muscle": "Hamstrings · glutes",
+            "sets":   "4",
             "reps":   "10–12 reps",
-            "rest":   "75–90 sec",
-            "tempo_or_cue": "Control the negative, don't bounce at bottom"
+            "rest":   "90 sec",
+            "tempo_or_cue": "Hinge at hips, slight knee bend, feel the stretch"
           },
           {
-            "name":   "Cable Lateral Raise",
-            "muscle": "Lateral delt",
+            "name":   "Walking Lunges (Dumbbell)",
+            "muscle": "Quads · glutes",
             "sets":   "3",
-            "reps":   "12–15 reps",
+            "reps":   "12 reps each leg",
+            "rest":   "75 sec",
+            "tempo_or_cue": "Controlled descent, front knee stays over ankle"
+          },
+          {
+            "name":   "Seated Calf Raise",
+            "muscle": "Calves (smallest muscle group → trained last)",
+            "sets":   "3",
+            "reps":   "15–20 reps",
             "rest":   "45–60 sec",
-            "tempo_or_cue": "Lead with elbow, no swinging"
+            "tempo_or_cue": "Pause 1 sec at full stretch"
           }
-          // continue for the FULL exercise count required — see EXERCISE COUNT RULES below
+          // continue for the FULL exercise count required — see EXERCISE VOLUME RULES below.
+          // Note the ordering: largest muscle group's compound movement FIRST, smallest
+          // isolation movement LAST — apply this same priority on every training day.
         ],
-        "safety": "Keep chest up, shoulders back, wrists neutral."
+        "safety": "Keep chest up, knees tracking over toes, controlled tempo on every rep."
       }
       // 7 entries; rest days only need short/name/type/is_rest
     ]
@@ -495,11 +507,39 @@ Client experience level: {profile.get('experience', 'Intermediate')} → trainin
 Design exactly {training_days_per_week} training days and {7 - training_days_per_week} rest day(s) per week.
 Goal is {goal} → choose appropriate splits (e.g. Push/Pull/Legs, Upper/Lower, Full-Body).
 Session duration is {duration} — size the exercise volume accordingly.
-Avoid barbell squat, deadlift, barbell bench press, overhead barbell press (injury risk).
+Avoid free-weight barbell squat, deadlift, barbell bench press, overhead barbell press (injury risk) —
+use the machine/cable/dumbbell compound equivalents listed below instead.
+
+MUSCLE PRIORITY RULES (mandatory — bigger muscle groups get trained first and harder):
+- Order each day's "exercises" array by muscle size, largest → smallest:
+  1) Legs/Glutes (quads, hamstrings, glutes) → 2) Back (lats, mid-back) → 3) Chest →
+  4) Shoulders → 5) Arms (biceps/triceps) → 6) Calves/Core/small isolation last.
+- A day's first 1–2 exercises must ALWAYS be a compound movement for that day's largest
+  trained muscle group (see COMPOUND MOVEMENT LIBRARY below) — never open a session with
+  an isolation exercise.
+- Bigger muscle groups get MORE volume: Legs and Back days should sit at the top end of the
+  {vol['exercises_per_day']} range and the top end of {vol['sets_per_exercise']} sets; pure
+  Arms/Calves/Core work should sit at the lower end of those ranges.
+- Across the whole weekly split, Legs and Back must each appear in at least as many sessions
+  as Arms/Shoulders isolation work — do not under-train the big muscle groups relative to the
+  small ones.
+
+COMPOUND MOVEMENT LIBRARY (machine/cable/dumbbell-safe — use these as the opening 1–2
+exercises for the relevant muscle group instead of banned free-weight lifts):
+  Legs    → Leg Press, Hack Squat Machine, Smith Machine Squat, Goblet Squat (dumbbell),
+            Walking Lunges (dumbbell), Romanian Deadlift (dumbbell)
+  Back    → Lat Pulldown, Seated Cable Row, Chest-Supported Machine Row, Assisted Pull-up,
+            Single-Arm Dumbbell Row
+  Chest   → Machine Chest Press, Incline Dumbbell Press, Flat Dumbbell Press, Smith Machine
+            Bench Press
+  Shoulders → Machine Shoulder Press, Seated Dumbbell Press, Arnold Press
+Isolation work (lateral raises, curls, triceps extensions, calf raises, core/abs) comes AFTER
+the compound movement(s) for that day, never before.
 
 EXERCISE VOLUME RULES (mandatory, scaled to {exp_key} level):
 - Exercises per training day: {vol['exercises_per_day']} (a single exercise per day is NEVER acceptable — every
-  non-rest day's "exercises" array must contain this many distinct movements, ordered compound → isolation).
+  non-rest day's "exercises" array must contain this many distinct movements, ordered compound → isolation,
+  AND ordered by muscle size per the MUSCLE PRIORITY RULES above).
 - Sets per exercise: {vol['sets_per_exercise']}
 - Rest between sets: {vol['rest_between_sets']}
 - Intensity guidance: {vol['intensity_note']}
@@ -508,7 +548,11 @@ EXERCISE VOLUME RULES (mandatory, scaled to {exp_key} level):
 - Vary exercise selection across the week's training days; do not repeat the exact same exercise list on
   every day even within the same split type.
 
-WARMUP (warmup_exercises[] array): provide 4–5 specific exercises tailored to that day's split.
+WARMUP (warmup_exercises[] array) — THIS FIELD IS MANDATORY, NOT OPTIONAL:
+- EVERY non-rest day's JSON object MUST include a non-empty "warmup_exercises" array with
+  4–5 specific exercises tailored to that day's split. A training day with an empty or
+  missing warmup_exercises array is an INVALID response — never output one.
+- Only rest days (is_rest: true) omit warmup_exercises entirely.
 Example warmup tokens by split type:
   Push day  → {WARMUP_LIBRARY['push']}
   Pull day  → {WARMUP_LIBRARY['pull']}
@@ -653,6 +697,11 @@ def enforce_schema(data: dict) -> dict:
         if not day.get("is_rest", False):
             day.setdefault("warmup_exercises", [])
             day.setdefault("exercises", [])
+            if len(day["warmup_exercises"]) == 0:
+                day["_missing_warmup_warning"] = (
+                    "No warmup_exercises were generated for this training day "
+                    "despite being mandatory — the LLM dropped this field."
+                )
             if len(day["exercises"]) < 4:
                 day["_low_volume_warning"] = (
                     f"Only {len(day['exercises'])} exercise(s) generated for this day — "
