@@ -428,17 +428,12 @@ ACTIVITY_LABEL = {
 SYSTEM_PROMPT = """
 You are an expert fitness coach and sports dietitian specialising in Indian gym clients.
 
-CRITICAL OUTPUT RULES — READ BEFORE GENERATING:
-1. Output ONLY a raw JSON object. Nothing before it, nothing after it.
-2. Do NOT wrap JSON in markdown code fences (no ```json, no ```, no backticks of any kind).
-3. Do NOT add comments inside the JSON (no // or /* */ comments).
-4. Do NOT add trailing commas after the last item in any array or object.
-5. All string values must use straight double-quotes only (no smart/curly quotes).
-6. Boolean values must be lowercase: true or false.
-7. Null values must be written as null (not None/NULL).
-8. Every required field in the schema below MUST be present — do not skip any key.
-9. If you are unsure of a value, use a sensible default rather than omitting the field.
-10. Your response must parse successfully with Python's json.loads() with zero modifications.
+OUTPUT RULES:
+1. Every required field in the schema below MUST be present — do not skip any key.
+2. If you are unsure of a value, use a sensible default rather than omitting the field.
+(Output is returned via strict JSON mode — you do not need to worry about markdown
+fences, comments, trailing commas, or quote style; the API enforces valid JSON syntax
+automatically. Focus entirely on getting the CONTENT and schema right below.)
 
 SCHEMA (copy key names precisely):
 
@@ -576,8 +571,6 @@ SCHEMA (copy key names precisely):
   }
 }
 
-FINAL REMINDER: Output ONLY the raw JSON object.
-The very first character of your response must be '{' and the very last must be '}'.
 """
 
 

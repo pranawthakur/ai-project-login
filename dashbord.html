@@ -658,7 +658,23 @@ expRules.dropSets !== "Not recommended at beginner level — prioritise learning
   return { promptText: lines.filter(l => l !== null).join("\n"), bmi: b, macros: m };
 }
 
+let _isGenerating = false;
+
 async function handleSubmit() {
+  // Guard against double-clicks / impatient re-clicks while a generation is
+  // already running. Previously the button stayed clickable the whole time,
+  // so a second click here started a fully separate handleSubmit() call —
+  // and therefore a second Gemini request — on top of the first.
+  if (_isGenerating) return;
+  _isGenerating = true;
+  const submitBtn = document.querySelector(".submit");
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = "0.6";
+    submitBtn.style.cursor = "not-allowed";
+    submitBtn.textContent = "⏳ Generating…";
+  }
+
   const { bmi, macros } = buildPrompt();
   $("resultCard").style.display = "block";
   renderMacros();
@@ -706,17 +722,15 @@ async function handleSubmit() {
     // a while can take 30-60+ seconds to wake the server back up. We retry a
     // couple of times with increasing patience instead of failing immediately,
     // and update the message so it doesn't look broken while waiting.
-    // IMPORTANT: this endpoint generates a large structured JSON plan (7 days of
-    // workouts + 5 meals x 3 options each, all with macros) — a single Gemini call
-    // for this can legitimately take 30-60+ seconds even on a warm server. Aborting
-    // and retrying too aggressively doesn't actually cancel the backend's in-flight
-    // Gemini call — it just starts ANOTHER one on top of it, which can burn through
-    // Gemini's free-tier rate limit and make things worse. So: one long, patient
-    // attempt first; only retry if that one truly fails (network error or a real
-    // 502/503/504), not just because it's taking a while.
+    // NOTE on why retrying here is now safe: the backend caps each Gemini call
+    // at ~55s server-side AND dedupes overlapping requests per user (see
+    // main.py _inflight_results) — so if this retry fires while the previous
+    // attempt is still technically in flight, the backend attaches it to the
+    // SAME Gemini call instead of starting a second one. Retrying no longer
+    // burns extra requests against the daily quota.
     const fetchAttempts = [
-      { timeoutMs: 75000,  message: 'Generating your plan — this can take up to a minute for a full weekly plan…' },
-      { timeoutMs: 90000,  message: 'Still working — first request after idle time can be slower, hang tight…' },
+      { timeoutMs: 65000,  message: 'Generating your plan — this can take up to a minute for a full weekly plan…' },
+      { timeoutMs: 65000,  message: 'Still working — first request after idle time can be slower, hang tight…' },
     ];
 
     let res = null;
@@ -781,6 +795,14 @@ async function handleSubmit() {
     out.style.display = "block";
     out.textContent = "Error: " + err.message;
     s.className = "status error"; s.textContent = "✗ " + err.message;
+  } finally {
+    _isGenerating = false;
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.style.opacity = "";
+      submitBtn.style.cursor = "";
+      submitBtn.textContent = "📈 Generate My Plan";
+    }
   }
 }
 </script>

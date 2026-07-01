@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI, Depends, HTTPException, Request, Form
 from fastapi.responses import JSONResponse, HTMLResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -36,6 +37,15 @@ class ManualCORS(BaseHTTPMiddleware):
 
 app = FastAPI(title="Prompt Generator API")
 app.add_middleware(ManualCORS)
+
+# ── In-flight request dedup ─────────────────────────────────────────────────
+# Keyed by user id. If the same user's browser fires a second /result request
+# while their first one is still running (a frontend retry-on-timeout, or an
+# impatient double-click on "Generate My Plan"), we attach to the SAME Gemini
+# call instead of starting a new one. This is what actually fixes "requests
+# counted that we never manually triggered" — the retry/double-click no longer
+# turns into a second billed Gemini request.
+_inflight_results: dict[str, asyncio.Task] = {}
 
 print("Gemini key loaded:", bool(settings.gemini_api_key))
 print(
@@ -124,8 +134,26 @@ async def result_page(
 
     user_prompt = build_user_prompt(profile)
 
-    try:
+    async def _run() -> str:
+        """The actual Gemini call + parse + render, run at most once per user
+        no matter how many overlapping /result requests come in for them."""
         raw = await generate_with_ollama(user_prompt, system=SYSTEM_PROMPT)
+        data = parse_llm_json(raw)
+        data = enforce_schema(data, profile)
+        return render_dashboard(data)
+
+    user_key = str(user.get("sub", "anonymous"))
+
+    # If this user already has a generation in flight (frontend retry after a
+    # client-side timeout, or a double-click on "Generate My Plan"), attach to
+    # that SAME task instead of kicking off a second Gemini call.
+    task = _inflight_results.get(user_key)
+    if task is None or task.done():
+        task = asyncio.create_task(_run())
+        _inflight_results[user_key] = task
+
+    try:
+        html = await task
     except RuntimeError as e:
         return HTMLResponse(
             content=(
@@ -134,19 +162,19 @@ async def result_page(
             ),
             status_code=503,
         )
-
-    try:
-        data = parse_llm_json(raw)
-        data = enforce_schema(data, profile)
-        html = render_dashboard(data)
-    except (ValueError, Exception) as e:
+    except Exception as e:
         return HTMLResponse(
             content=(
                 f"<pre style='font-family:monospace;padding:40px;white-space:pre-wrap'>"
-                f"Parse error: {e}\n\nRaw LLM output:\n{raw}</pre>"
+                f"Parse error: {e}</pre>"
                 f"<p style='padding:0 40px'><a href='javascript:history.back()'>← Go back</a></p>"
             ),
             status_code=500,
         )
+    finally:
+        # Only clear the slot if it's still pointing at OUR task — it may have
+        # already been replaced by a newer request from the same user.
+        if _inflight_results.get(user_key) is task and task.done():
+            _inflight_results.pop(user_key, None)
 
     return HTMLResponse(content=html)
