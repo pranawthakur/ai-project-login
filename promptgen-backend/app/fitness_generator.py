@@ -24,6 +24,8 @@ import re
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
+from split_engine import recommend_split, SPLIT_LIBRARY
+
 
 # ── TEMPLATE DIR ─────────────────────────────────────────────────────────────
 TEMPLATE_DIR = Path(__file__).parent.parent / "Templates"
@@ -34,13 +36,9 @@ TEMPLATE_FILE = "result.html"
 # Keys match the <select> values in dashbord.html  (Beginner / Intermediate / Advanced)
 # These are the OUTER bounds for each tier. The actual multiplier used is computed
 # dynamically within this band based on activity level + BMI — see _protein_multiplier().
-# NOTE: this is the single source of truth for these numbers. dashbord.html (both
-# copies — root and promptgen-backend/) has its OWN duplicate PROTEIN_RANGE /
-# PROTEIN_MIDPOINT constants used only for the client-side preview card; keep them
-# in sync with this table by hand whenever it changes.
 PROTEIN_MULTIPLIER = {
-    "beginner":     (1.0, 1.0),    # g of protein per kg of body-weight — flat, not a band
-    "intermediate": (1.1, 1.3),
+    "beginner":     (1.0, 1.1),    # g of protein per kg of body-weight
+    "intermediate": (1.2, 1.4),
     "advanced":     (1.5, 2.0),
 }
 
@@ -53,21 +51,6 @@ _ACTIVITY_PROTEIN_SCORE = {
     "very_active": 0.75,
     "extreme":     1.0,
 }
-
-
-def _resolve_exp_key(experience_raw: str) -> str:
-    """
-    Single source of truth for turning a free-text experience value (from the
-    form, e.g. "Beginner") into one of the PROTEIN_MULTIPLIER / EXERCISE_VOLUME
-    keys. Previously this prefix-matching logic was copy-pasted in three
-    different places (_calculate_macros, build_user_prompt, enforce_schema)
-    and could drift out of sync with each other — now there's one place to fix.
-    """
-    exp_raw = (experience_raw or "intermediate").lower().strip()
-    for k in PROTEIN_MULTIPLIER:
-        if exp_raw.startswith(k[:3]):   # beg / int / adv prefix match
-            return k
-    return "intermediate"
 
 
 def _bmi_protein_score(bmi: float) -> float:
@@ -133,212 +116,6 @@ EXERCISE_VOLUME = {
         ),
     },
 }
-
-# Hard numeric ceilings derived from EXERCISE_VOLUME above. The LLM is *told* to
-# respect EXERCISE_VOLUME via the prompt, but prompt instructions aren't
-# guaranteed to be followed — this table is enforced in code (see enforce_schema)
-# as a backstop so a beginner can never actually end up with an advanced-volume
-# workout even if the model ignores the instructions.
-EXERCISE_LIMITS = {
-    "beginner":     {"max_exercises": 5, "max_sets": 3},
-    "intermediate": {"max_exercises": 7, "max_sets": 4},
-    "advanced":     {"max_exercises": 9, "max_sets": 5},
-}
-
-# ── WORKOUT SPLIT TABLE ──────────────────────────────────────────────────────
-# Previously the prompt just said "choose appropriate splits (e.g. Push/Pull/
-# Legs, Upper/Lower, Full-Body)" with no link to experience tier or training
-# days/week — so the LLM consistently defaulted to the easiest listed example,
-# Full Body, for EVERY day regardless of how many days were selected. This
-# table makes the split deterministic in code, same as the protein/calorie
-# numbers above, instead of leaving it to the model to infer.
-# Keys match WARMUP_LIBRARY so warmup selection lines up with the split.
-SPLIT_LABELS = {
-    "full":  "Full Body",
-    "upper": "Upper Body",
-    "lower": "Lower Body",
-    "push":  "Push (Chest / Shoulders / Triceps)",
-    "pull":  "Pull (Back / Biceps)",
-    "legs":  "Legs (Quads / Hamstrings / Glutes)",
-}
-
-SPLIT_TEMPLATES = {
-    "beginner": {
-        1: ["full"],
-        2: ["full", "full"],
-        3: ["full", "full", "full"],
-        4: ["upper", "lower", "upper", "lower"],
-        5: ["upper", "lower", "full", "upper", "lower"],
-        6: ["upper", "lower", "full", "upper", "lower", "full"],
-        7: ["upper", "lower", "full", "upper", "lower", "full", "upper"],
-    },
-    "intermediate": {
-        1: ["full"],
-        2: ["upper", "lower"],
-        3: ["push", "pull", "legs"],
-        4: ["upper", "lower", "upper", "lower"],
-        5: ["push", "pull", "legs", "upper", "lower"],
-        6: ["push", "pull", "legs", "push", "pull", "legs"],
-        7: ["push", "pull", "legs", "upper", "lower", "push", "pull"],
-    },
-    "advanced": {
-        1: ["full"],
-        2: ["upper", "lower"],
-        3: ["push", "pull", "legs"],
-        4: ["upper", "lower", "upper", "lower"],
-        5: ["push", "pull", "legs", "upper", "lower"],
-        6: ["push", "pull", "legs", "push", "pull", "legs"],
-        7: ["push", "pull", "legs", "push", "pull", "legs", "upper"],
-    },
-}
-
-
-def _resolve_split_sequence(exp_key: str, days_per_week: int) -> list:
-    """
-    Deterministic ordered list of split keys (one per training day) for the
-    given experience tier + training frequency. Clamps days_per_week into
-    1-7 so an out-of-range form value can't KeyError.
-    """
-    days = max(1, min(7, int(days_per_week)))
-    table = SPLIT_TEMPLATES.get(exp_key, SPLIT_TEMPLATES["intermediate"])
-    return table.get(days, table[min(table.keys(), key=lambda d: abs(d - days))])
-
-# Machine/cable/dumbbell-safe compound movements, keyed by muscle group. This is
-# the single source of truth for the "COMPOUND MOVEMENT LIBRARY" block injected
-# into the prompt AND for _is_compound_exercise() below (used when trimming a
-# day's exercise list so compound lifts are never the ones cut to make room).
-COMPOUND_MOVEMENT_LIBRARY = {
-    "Legs": [
-        "Leg Press", "Hack Squat Machine", "Smith Machine Squat",
-        "Goblet Squat (dumbbell)", "Walking Lunges (dumbbell)",
-        "Romanian Deadlift (dumbbell)",
-    ],
-    "Back": [
-        "Lat Pulldown", "Seated Cable Row", "Chest-Supported Machine Row",
-        "Assisted Pull-up", "Single-Arm Dumbbell Row",
-    ],
-    "Chest": [
-        "Machine Chest Press", "Incline Dumbbell Press", "Flat Dumbbell Press",
-        "Smith Machine Bench Press",
-    ],
-    "Shoulders": [
-        "Machine Shoulder Press", "Seated Dumbbell Press", "Arnold Press",
-    ],
-}
-_COMPOUND_NAMES_LOWER = [
-    n.lower() for names in COMPOUND_MOVEMENT_LIBRARY.values() for n in names
-]
-
-
-def _is_compound_exercise(ex: dict) -> bool:
-    """
-    Best-effort check for whether an exercise object is a compound movement,
-    using the COMPOUND_MOVEMENT_LIBRARY names. Bidirectional substring match so
-    it still recognises e.g. "Romanian Deadlift" against the library's "Romanian
-    Deadlift (dumbbell)", or vice versa, without needing an exact string match.
-    """
-    name = str(ex.get("name", "")).lower().strip()
-    if not name:
-        return False
-    return any(c in name or name in c for c in _COMPOUND_NAMES_LOWER)
-
-
-# Arms have no COMPOUND_MOVEMENT_LIBRARY entry (curls/pushdowns genuinely are
-# isolation lifts — that classification is correct and stays as-is). But that
-# meant bicep/triceps work was always the first thing cut by
-# _trim_preserving_compounds, and could also simply never get generated by the
-# LLM despite the prompt's muscle-priority rules. SPLIT_ARM_REQUIREMENTS +
-# ARM_FALLBACK_EXERCISES are a code-side backstop: after trimming, any training
-# day whose split should train biceps/triceps gets checked, and back-filled
-# with a default exercise if that muscle is missing — regardless of whether it
-# was never generated, or generated then trimmed away.
-SPLIT_ARM_REQUIREMENTS = {
-    "push":  ["triceps"],
-    "pull":  ["biceps"],
-    "legs":  [],
-    "upper": ["biceps", "triceps"],
-    "lower": [],
-    "full":  ["biceps", "triceps"],
-}
-
-ARM_FALLBACK_EXERCISES = {
-    "biceps": {
-        "name": "Seated Dumbbell Bicep Curl",
-        "muscle": "Biceps",
-        "sets": "3",
-        "reps": "10–12 reps",
-        "rest": "60 sec",
-        "tempo_or_cue": "Controlled tempo, no swinging, squeeze at the top",
-    },
-    "triceps": {
-        "name": "Cable Triceps Pushdown",
-        "muscle": "Triceps",
-        "sets": "3",
-        "reps": "10–12 reps",
-        "rest": "60 sec",
-        "tempo_or_cue": "Elbows pinned to sides, full extension, controlled return",
-    },
-}
-
-
-def _has_muscle(exercises: list, muscle_keyword: str) -> bool:
-    """True if any exercise in the list already targets the given muscle
-    (checked against both the 'muscle' and 'name' fields, substring match)."""
-    kw = muscle_keyword.lower()
-    for ex in exercises:
-        if kw in str(ex.get("muscle", "")).lower() or kw in str(ex.get("name", "")).lower():
-            return True
-    return False
-
-
-def _backfill_arm_work(day: dict, required_muscles: list, max_exercises: int) -> None:
-    """
-    Guarantees every muscle in required_muscles (e.g. ["biceps"] for a Pull
-    day) has at least one exercise present on this day, injecting a default
-    from ARM_FALLBACK_EXERCISES if missing. Runs AFTER trimming, so it also
-    catches arm work that was generated but then cut for exceeding the day's
-    exercise cap — if the day is already full, it swaps out the lowest-
-    priority (last, non-compound) exercise rather than pushing the day over
-    the tier's cap.
-    """
-    exercises = day.setdefault("exercises", [])
-    for muscle in required_muscles:
-        if _has_muscle(exercises, muscle):
-            continue
-        fallback = dict(ARM_FALLBACK_EXERCISES[muscle])
-        if len(exercises) < max_exercises:
-            exercises.append(fallback)
-        else:
-            # Replace the last non-compound exercise (lowest priority under
-            # the muscle-size ordering rule) rather than a compound lift.
-            replace_idx = len(exercises) - 1
-            for i in range(len(exercises) - 1, -1, -1):
-                if not _is_compound_exercise(exercises[i]):
-                    replace_idx = i
-                    break
-            exercises[replace_idx] = fallback
-        day["_arm_backfill_note"] = day.get("_arm_backfill_note", "") + (
-            f"{muscle} exercise was missing for this day and was auto-added. "
-        )
-
-
-def _trim_preserving_compounds(exercises: list, max_n: int) -> list:
-    """
-    Trim an exercise list down to max_n entries WITHOUT dropping compound
-    movements first — compound lifts are kept, isolation work is cut to make
-    room, and original relative ordering (compound → isolation, largest
-    muscle → smallest) is preserved.
-    """
-    if len(exercises) <= max_n:
-        return exercises
-    compound_idx = [i for i, ex in enumerate(exercises) if _is_compound_exercise(ex)]
-    other_idx = [i for i in range(len(exercises)) if i not in compound_idx]
-    keep_idx = set(compound_idx[:max_n])  # if compounds alone exceed max_n, cap there too
-    for i in other_idx:
-        if len(keep_idx) >= max_n:
-            break
-        keep_idx.add(i)
-    return [exercises[i] for i in sorted(keep_idx)]
 
 # ── DIET RESTRICTION TOKENS ───────────────────────────────────────────────────
 # Hard tokens injected into the prompt so the model cannot misread the setting.
@@ -446,7 +223,11 @@ def _calculate_macros(profile: dict) -> dict:
     bmi = weight / (height_m ** 2) if height_m > 0 else 22.0
 
     # Protein multiplier band + dynamic single value within it
-    exp_key = _resolve_exp_key(experience)
+    exp_key = "intermediate"
+    for k in PROTEIN_MULTIPLIER:
+        if experience.startswith(k[:3]):   # beg / int / adv prefix match
+            exp_key = k
+            break
     p_low, p_high = PROTEIN_MULTIPLIER[exp_key]
     p_dynamic = _protein_multiplier(exp_key, profile.get("activity_key", "moderate"), bmi)
     protein_g_low  = math.ceil(weight * p_low)
@@ -507,12 +288,17 @@ ACTIVITY_LABEL = {
 SYSTEM_PROMPT = """
 You are an expert fitness coach and sports dietitian specialising in Indian gym clients.
 
-OUTPUT RULES:
-1. Every required field in the schema below MUST be present — do not skip any key.
-2. If you are unsure of a value, use a sensible default rather than omitting the field.
-(Output is returned via strict JSON mode — you do not need to worry about markdown
-fences, comments, trailing commas, or quote style; the API enforces valid JSON syntax
-automatically. Focus entirely on getting the CONTENT and schema right below.)
+CRITICAL OUTPUT RULES — READ BEFORE GENERATING:
+1. Output ONLY a raw JSON object. Nothing before it, nothing after it.
+2. Do NOT wrap JSON in markdown code fences (no ```json, no ```, no backticks of any kind).
+3. Do NOT add comments inside the JSON (no // or /* */ comments).
+4. Do NOT add trailing commas after the last item in any array or object.
+5. All string values must use straight double-quotes only (no smart/curly quotes).
+6. Boolean values must be lowercase: true or false.
+7. Null values must be written as null (not None/NULL).
+8. Every required field in the schema below MUST be present — do not skip any key.
+9. If you are unsure of a value, use a sensible default rather than omitting the field.
+10. Your response must parse successfully with Python's json.loads() with zero modifications.
 
 SCHEMA (copy key names precisely):
 
@@ -650,6 +436,8 @@ SCHEMA (copy key names precisely):
   }
 }
 
+FINAL REMINDER: Output ONLY the raw JSON object.
+The very first character of your response must be '{' and the very last must be '}'.
 """
 
 
@@ -678,7 +466,12 @@ def build_user_prompt(profile: dict) -> str:
             break
 
     # ── 4. Experience token
-    exp_key = _resolve_exp_key(profile.get("experience", "intermediate"))
+    exp_raw = profile.get("experience", "intermediate").lower()
+    exp_key = "intermediate"
+    for k in PROTEIN_MULTIPLIER:
+        if exp_raw.startswith(k[:3]):
+            exp_key = k
+            break
     protein_mult_str = (
         f"{m['protein_multiplier']} g/kg "
         f"(computed for {exp_key} tier, band {PROTEIN_MULTIPLIER[exp_key][0]}–{PROTEIN_MULTIPLIER[exp_key][1]} g/kg, "
@@ -688,11 +481,6 @@ def build_user_prompt(profile: dict) -> str:
 
     # ── 5. Warmup hints per training days
     training_days_per_week = int(profile.get("days_per_week", 4))
-    split_sequence = _resolve_split_sequence(exp_key, training_days_per_week)
-    split_plan_lines = "\n".join(
-        f"  Training day {i + 1} → {SPLIT_LABELS[s]}"
-        for i, s in enumerate(split_sequence)
-    )
     duration    = profile.get("session_duration", "45–60 min")
     region      = profile.get("region", "India")
     budget      = profile.get("budget", "medium")
@@ -708,6 +496,22 @@ def build_user_prompt(profile: dict) -> str:
         goal_label = "Muscle Gain Plan"
     elif "maintain" in goal.lower():
         goal_label = "Maintenance Plan"
+
+    # ── 7. Profile-aware split recommendation (experience + days + duration +
+    #      goal + BMI + activity — see split_engine.py for the full decision
+    #      tree). This replaces any static experience→template lookup so two
+    #      clients at the same experience/day-count but different goals or
+    #      session lengths can land on genuinely different splits.
+    split = recommend_split({
+        "experience":         exp_raw,
+        "days_per_week":      training_days_per_week,
+        "session_duration":   duration,
+        "goal":               goal,
+        "height_cm":          profile.get("height_cm", 170),
+        "current_weight_kg":  profile.get("current_weight_kg", 70),
+        "activity_key":       activity_key,
+    })
+    split_sequence_str = " → ".join(split["sequence"])
 
     return f"""
 CLIENT PROFILE — read every line carefully; ALL of it must be reflected in the JSON you return.
@@ -775,16 +579,34 @@ The sum of kcal must be within ±80 kcal of {m['target_kcal']}.
 ━━ WORKOUT ━━
 Client experience level: {profile.get('experience', 'Intermediate')} → training rigour MUST match this tier, not a generic plan.
 Design exactly {training_days_per_week} training days and {7 - training_days_per_week} rest day(s) per week.
-
-WORKOUT SPLIT — MANDATORY, ALREADY DECIDED, DO NOT CHANGE IT:
-This exact split was computed for a {exp_key} lifter training {training_days_per_week} day(s)/week.
-Use it in this order for the training days (place rest day(s) wherever makes sense across the week,
-e.g. spaced out or at the end — only the TRAINING-day split order below is fixed):
-{split_plan_lines}
-Do NOT default every training day to Full Body — only use Full Body where this list says so.
-Each day's "type" and "name" fields should reflect the split shown above for that day
-(e.g. "Push Day — Chest · Shoulders · Triceps" for a Push day, "Upper Body — ..." for an Upper day).
 Session duration is {duration} — size the exercise volume accordingly.
+
+AI SPLIT ANALYSIS
+
+Chosen Split:
+{split['split_name']}
+
+Reason:
+{split['reason']}
+
+This split was selected using:
+
+1. Experience level
+2. Days per week
+3. Session duration
+4. Primary goal
+5. BMI
+6. Activity level
+
+Generate workouts strictly following this day-type sequence, repeating/cycling it across the
+{training_days_per_week} training days in the week ({7 - training_days_per_week} rest day(s) placed
+sensibly between blocks, not all bunched at the end):
+
+{split_sequence_str}
+
+Do NOT substitute a different split. Each day's "type" field must clearly name the split
+segment it belongs to (e.g. "Push Day — Chest · Shoulders · Triceps"), consistent with the
+sequence above.
 Avoid free-weight barbell squat, deadlift, barbell bench press, overhead barbell press (injury risk) —
 use the machine/cable/dumbbell compound equivalents listed below instead.
 
@@ -818,20 +640,15 @@ ALLOCATION RULE — when a single training day works MORE THAN ONE muscle group 
   total weekly exercise slots as Arms alone (rank 5) — do not under-train the big muscle groups
   relative to the small ones over the course of the week.
 
-ARM WORK — NON-NEGOTIABLE MINIMUM PER SPLIT TYPE (do not omit these, even under the
-allocation percentages above — treat this as a floor, not a suggestion):
-  - Every Pull / Back day → at least 1 dedicated BICEPS isolation exercise (e.g. curls).
-  - Every Push / Chest day → at least 1 dedicated TRICEPS isolation exercise (e.g. pushdowns,
-    extensions).
-  - Every Upper Body day → at least 1 BICEPS exercise AND at least 1 TRICEPS exercise.
-  - Every Full Body day → at least 1 BICEPS exercise AND at least 1 TRICEPS exercise.
-  - Leg-only days do not require arm work.
-  A plan where biceps or triceps never appear on ANY day of the week is INVALID, even if every
-  individual day looks reasonable in isolation — check the whole week before finalising.
-
 COMPOUND MOVEMENT LIBRARY (machine/cable/dumbbell-safe — use these as the opening 1–2
 exercises for the relevant muscle group instead of banned free-weight lifts):
-{chr(10).join(f"  {group:<10}→ {', '.join(names)}" for group, names in COMPOUND_MOVEMENT_LIBRARY.items())}
+  Legs    → Leg Press, Hack Squat Machine, Smith Machine Squat, Goblet Squat (dumbbell),
+            Walking Lunges (dumbbell), Romanian Deadlift (dumbbell)
+  Back    → Lat Pulldown, Seated Cable Row, Chest-Supported Machine Row, Assisted Pull-up,
+            Single-Arm Dumbbell Row
+  Chest   → Machine Chest Press, Incline Dumbbell Press, Flat Dumbbell Press, Smith Machine
+            Bench Press
+  Shoulders → Machine Shoulder Press, Seated Dumbbell Press, Arnold Press
 Isolation work (lateral raises, curls, triceps extensions, calf raises, core/abs) comes AFTER
 the compound movement(s) for that day, never before.
 
@@ -922,44 +739,6 @@ def parse_llm_json(raw: str) -> dict:
         )
 
 
-# ── WEIGHT FORMATTING HELPERS ─────────────────────────────────────────────────
-# result.html's stat cards hard-code the "kg" unit (e.g. "{{ user.current_weight }} kg").
-# Previously user.current_weight / user.target_weight / plan.weight_to_lose were
-# left entirely to the LLM to fill in, and the LLM would often *also* write "kg"
-# into the value itself (its own schema example for weight_to_lose even shows
-# "~6–8 kg to lose", and the template appended " to lose" again on top of that) —
-# producing visible "kg kg" / "to lose to lose" duplication.
-# Fix: these three fields are deterministic from form input, so compute them in
-# Python and overwrite whatever the LLM returned, instead of trusting its
-# formatting.
-def _clean_weight_label(val) -> str:
-    """Strip any embedded kg unit text so the template's own 'kg' suffix never doubles up."""
-    s = str(val).strip()
-    if not s:
-        return "—"
-    s = re.sub(r"\s*kgs?\b", "", s, flags=re.IGNORECASE).strip()
-    return s if s else "—"
-
-
-def _weight_change_phrase(current_w, target_w) -> str:
-    """
-    Deterministic '~X kg to lose' / '~X kg to gain' / 'Maintain current weight'
-    string. Falls back to '—' if target isn't a single parseable number (e.g.
-    left blank or entered as a range) — never leaves it to the LLM to invent
-    wording, since the template doesn't add a unit/suffix of its own anymore.
-    """
-    try:
-        cur = float(current_w)
-        tgt = float(str(target_w).strip())
-    except (TypeError, ValueError):
-        return "—"
-    diff = cur - tgt
-    if abs(diff) < 0.5:
-        return "Maintain current weight"
-    direction = "to lose" if diff > 0 else "to gain"
-    return f"~{abs(diff):.0f} kg {direction}"
-
-
 # ── SCHEMA ENFORCER ───────────────────────────────────────────────────────────
 _RECOVERY_DEFAULT = {
     "daily_nonneg": [
@@ -997,7 +776,7 @@ _RECOVERY_DEFAULT = {
 }
 
 
-def enforce_schema(data: dict, profile: dict | None = None) -> dict:
+def enforce_schema(data: dict) -> dict:
     data.setdefault("user", {})
     data.setdefault("plan", {})
     data.setdefault("workout", {})
@@ -1026,51 +805,10 @@ def enforce_schema(data: dict, profile: dict | None = None) -> dict:
     for key, val in user_defaults.items():
         data["user"].setdefault(key, val)
 
-    # ── Deterministic overrides ────────────────────────────────────────────
-    # These three are fully determined by the form input — never trust the
-    # LLM's own formatting for them (see _clean_weight_label / _weight_change_phrase
-    # docstrings for why).
-    if profile is not None:
-        data["user"]["current_weight"] = _clean_weight_label(
-            profile.get("current_weight_kg", data["user"]["current_weight"])
-        )
-        data["user"]["target_weight"] = _clean_weight_label(
-            profile.get("target_weight_kg", data["user"]["target_weight"])
-        )
-        data["plan"]["weight_to_lose"] = _weight_change_phrase(
-            profile.get("current_weight_kg"), profile.get("target_weight_kg")
-        )
-    else:
-        # No profile available (e.g. unit-testing this function directly) —
-        # still strip stray "kg" text from whatever the LLM returned so the
-        # template can't double up the unit.
-        data["user"]["current_weight"] = _clean_weight_label(data["user"]["current_weight"])
-        data["user"]["target_weight"] = _clean_weight_label(data["user"]["target_weight"])
-
     data["workout"].setdefault("weekly_schedule", [])
     data["workout"].setdefault("days", [])
 
-    # Experience tier drives the hard exercise-volume ceiling below.
-    exp_key = _resolve_exp_key(profile.get("experience", "intermediate")) if profile else "intermediate"
-    limits = EXERCISE_LIMITS.get(exp_key, EXERCISE_LIMITS["intermediate"])
-
-    # Same deterministic split sequence used to build the prompt (see
-    # build_user_prompt) — recomputed here rather than trusting the LLM's
-    # free-text "type" field, so we know exactly which training day is Push/
-    # Pull/Legs/Upper/Lower/Full regardless of which weekday the LLM placed
-    # it on. Training days are matched to this sequence IN ORDER (1st
-    # non-rest day in "days" = split_sequence[0], etc.), since only the
-    # training-day split ORDER is fixed by the prompt, not which weekday.
-    if profile is not None:
-        training_days_per_week = int(profile.get("days_per_week", 4))
-        split_sequence = _resolve_split_sequence(exp_key, training_days_per_week)
-    else:
-        split_sequence = []
-    training_day_i = 0
-
-    # Ensure warmup_exercises exists on every non-rest day, and enforce the
-    # tier's volume ceiling in code (not just via the prompt) so a beginner
-    # can never end up with an advanced-volume workout.
+    # Ensure warmup_exercises exists on every non-rest day
     for day in data["workout"].get("days", []):
         if not day.get("is_rest", False):
             day.setdefault("warmup_exercises", [])
@@ -1085,26 +823,6 @@ def enforce_schema(data: dict, profile: dict | None = None) -> dict:
                     f"Only {len(day['exercises'])} exercise(s) generated for this day — "
                     f"below the requested minimum. Consider regenerating."
                 )
-            # Hard cap: trim any excess exercises beyond what this tier allows,
-            # so beginners never get overloaded even if the LLM over-generated.
-            # Compound movements are always kept; isolation work is cut first.
-            if len(day["exercises"]) > limits["max_exercises"]:
-                day["exercises"] = _trim_preserving_compounds(day["exercises"], limits["max_exercises"])
-            # Hard cap: clamp each exercise's set count to the tier's ceiling.
-            for ex in day["exercises"]:
-                sets_match = re.search(r"\d+", str(ex.get("sets", "")))
-                if sets_match and int(sets_match.group()) > limits["max_sets"]:
-                    ex["sets"] = str(limits["max_sets"])
-            # Arm back-fill: guarantee biceps/triceps survive on any day whose
-            # split should train them, whether the LLM never generated them
-            # or the trim step above cut them. Matched against the SAME split
-            # sequence order used to build the prompt.
-            if training_day_i < len(split_sequence):
-                split_key = split_sequence[training_day_i]
-                required_muscles = SPLIT_ARM_REQUIREMENTS.get(split_key, [])
-                if required_muscles:
-                    _backfill_arm_work(day, required_muscles, limits["max_exercises"])
-            training_day_i += 1
 
     # Ensure each meal has full macro fields
     for meal in data["diet"].get("meals", []):
@@ -1139,5 +857,5 @@ def generate_dashboard(profile: dict, llm_caller) -> str:
     user_prompt  = build_user_prompt(profile)
     raw_response = llm_caller(SYSTEM_PROMPT, user_prompt)
     data = parse_llm_json(raw_response)
-    data = enforce_schema(data, profile)
+    data = enforce_schema(data)
     return render_dashboard(data)
