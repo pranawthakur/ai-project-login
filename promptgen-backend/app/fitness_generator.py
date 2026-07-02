@@ -835,7 +835,7 @@ _RECOVERY_DEFAULT = {
 }
 
 
-def enforce_schema(data: dict, expected_exercise_count: int | None = None) -> dict:
+def enforce_schema(data: dict, profile: dict | None = None) -> dict:
     data.setdefault("user", {})
     data.setdefault("plan", {})
     data.setdefault("workout", {})
@@ -868,9 +868,12 @@ def enforce_schema(data: dict, expected_exercise_count: int | None = None) -> di
     data["workout"].setdefault("days", [])
 
     # Ensure warmup_exercises exists on every non-rest day
-    # min_expected defaults to 3 (the lowest hard cap, beginner level) so a
-    # beginner day landing exactly on its cap of 3 is never wrongly flagged.
-    min_expected = expected_exercise_count if expected_exercise_count is not None else 3
+    # min_expected is derived from the client's experience tier (beginner=3,
+    # intermediate=5, advanced=6) so a beginner day landing exactly on its
+    # cap of 3 is never wrongly flagged. Falls back to 3 (the lowest/safest
+    # floor) if no profile was supplied.
+    exp_key = _resolve_exp_key(profile) if profile else "beginner"
+    min_expected = MIN_EXERCISES.get(exp_key, 3)
     for day in data["workout"].get("days", []):
         if not day.get("is_rest", False):
             day.setdefault("warmup_exercises", [])
@@ -919,6 +922,5 @@ def generate_dashboard(profile: dict, llm_caller) -> str:
     user_prompt  = build_user_prompt(profile)
     raw_response = llm_caller(SYSTEM_PROMPT, user_prompt)
     data = parse_llm_json(raw_response)
-    exp_key = _resolve_exp_key(profile)
-    data = enforce_schema(data, expected_exercise_count=MIN_EXERCISES.get(exp_key, 3))
+    data = enforce_schema(data, profile)
     return render_dashboard(data)
