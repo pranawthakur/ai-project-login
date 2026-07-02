@@ -1,10 +1,12 @@
 import asyncio
+from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Depends, HTTPException, Request, Form
 from fastapi.responses import JSONResponse, HTMLResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import settings
 from app.auth import get_current_user
 from app.membership import get_or_join_member
+from app.db import supabase
 from app.ollama_client import generate_with_ollama
 from app.schemas import GenerateRequest, GenerateResponse
 from app.fitness_generator import (
@@ -78,6 +80,34 @@ def whoami(user: dict = Depends(get_current_user)):
     return {"sub": user.get("sub"), "email": user.get("email")}
 
 
+def _get_active_plan(member_id: str) -> dict | None:
+    res = (
+        supabase.table("plans")
+        .select("*")
+        .eq("member_id", member_id)
+        .eq("status", "active")
+        .gt("valid_until", datetime.now(timezone.utc).isoformat())
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    return res.data[0] if res.data else None
+
+
+@app.get("/api/my-plan")
+def my_plan(
+    user: dict = Depends(get_current_user),
+    member: dict = Depends(get_or_join_member),
+):
+    """Called by the frontend right after login. If an active plan already
+    exists, the frontend redirects straight to it instead of showing the
+    generate-plan form again."""
+    plan = _get_active_plan(member["id"])
+    if plan:
+        return {"has_plan": True, "html": plan["rendered_html"]}
+    return {"has_plan": False}
+
+
 # ── New: form POST → fitness_generator → Jinja2 dashboard ───────────────────
 @app.post("/result", response_class=HTMLResponse)
 async def result_page(
@@ -108,6 +138,13 @@ async def result_page(
     # ── Health notes ─────────────────────────────────────────────────────────
     notes:      str = Form(""),
 ):
+    # ── Lock check: an active, unexpired plan already exists → serve it,
+    # zero LLM calls. This is what actually prevents API-limit burn on
+    # repeat logins, independent of whatever the frontend does.
+    existing = _get_active_plan(member["id"])
+    if existing:
+        return HTMLResponse(content=existing["rendered_html"])
+
     profile = {
         # Identity
         "name":               name or "User",
@@ -136,13 +173,13 @@ async def result_page(
 
     user_prompt = build_user_prompt(profile)
 
-    async def _run() -> str:
+    async def _run() -> tuple[dict, str]:
         """The actual Gemini call + parse + render, run at most once per user
         no matter how many overlapping /result requests come in for them."""
         raw = await generate_with_ollama(user_prompt, system=SYSTEM_PROMPT)
         data = parse_llm_json(raw)
         data = enforce_schema(data, profile)
-        return render_dashboard(data)
+        return data, render_dashboard(data)
 
     user_key = str(user.get("sub", "anonymous"))
 
@@ -155,7 +192,7 @@ async def result_page(
         _inflight_results[user_key] = task
 
     try:
-        html = await task
+        data, html = await task
     except RuntimeError as e:
         return HTMLResponse(
             content=(
@@ -178,5 +215,16 @@ async def result_page(
         # already been replaced by a newer request from the same user.
         if _inflight_results.get(user_key) is task and task.done():
             _inflight_results.pop(user_key, None)
+
+    # Save so this doesn't get regenerated on the member's next login —
+    # the lock check at the top of this route reads from this table.
+    supabase.table("plans").insert({
+        "member_id": member["id"],
+        "cycle_number": 1,
+        "plan_json": data,
+        "rendered_html": html,
+        "status": "active",
+        "valid_until": (datetime.now(timezone.utc) + timedelta(days=14)).isoformat(),
+    }).execute()
 
     return HTMLResponse(content=html)

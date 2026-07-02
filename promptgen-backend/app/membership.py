@@ -1,15 +1,8 @@
 from fastapi import Depends, HTTPException, status
-from supabase import create_client, Client
 
 from app.config import settings
 from app.auth import get_current_user
-
-# Service-role client: server-side only, bypasses RLS by design.
-# NEVER import this key or client into anything that ships to the browser.
-_supabase: Client = create_client(
-    settings.supabase_url,
-    settings.supabase_service_role_key,
-)
+from app.db import supabase as _supabase
 
 
 def get_or_join_member(user: dict = Depends(get_current_user)) -> dict:

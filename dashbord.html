@@ -90,6 +90,27 @@ pre { white-space: pre-wrap; background: #eef7f1; border-radius: 12px; padding: 
     window.location.href = 'login.html.html'
   }
 
+  // Guard 2: if this member already has an active saved plan, skip the
+  // intake form entirely and go straight to it — no new LLM call, no
+  // re-filling the form, and it keeps their answer consistent instead of
+  // risking a different plan on a second generation.
+  try {
+    const res = await fetch('https://ai-project-login-de6g.onrender.com/api/my-plan', {
+      headers: { Authorization: `Bearer ${session.access_token}` }
+    })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.has_plan) {
+        sessionStorage.setItem('fitforge_plan_html', data.html)
+        window.location.href = 'result.html'
+      }
+    }
+  } catch (e) {
+    // If this check fails (network hiccup etc.), fall through to the
+    // normal form — worst case they see the form, not a broken page.
+    console.warn('my-plan check failed, showing form as fallback', e)
+  }
+
   // Expose what the rest of the page (classic script below) needs
   window.__supabase = supabase
   window.__getAccessToken = async () => {
