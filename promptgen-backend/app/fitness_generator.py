@@ -28,8 +28,35 @@ from .split_engine import recommend_split, SPLIT_LIBRARY
 
 
 # ── TEMPLATE DIR ─────────────────────────────────────────────────────────────
-TEMPLATE_DIR = Path(__file__).parent.parent / "Templates"
+# Render's filesystem is case-sensitive Linux; a local Windows/Mac checkout
+# can silently have a differently-cased or differently-located Templates
+# folder and still work locally. Try every plausible location/casing instead
+# of hard-failing on the first guess — this is a common source of a 500 that
+# reproduces only in production and never locally.
 TEMPLATE_FILE = "result.html"
+
+_CANDIDATE_TEMPLATE_DIRS = [
+    Path(__file__).parent.parent / "Templates",
+    Path(__file__).parent.parent / "templates",
+    Path(__file__).parent / "Templates",
+    Path(__file__).parent / "templates",
+    Path.cwd() / "Templates",
+    Path.cwd() / "templates",
+]
+
+TEMPLATE_DIR = next(
+    (p for p in _CANDIDATE_TEMPLATE_DIRS if (p / TEMPLATE_FILE).is_file()),
+    _CANDIDATE_TEMPLATE_DIRS[0],  # fall back to original guess so the error
+                                   # message below still points somewhere sane
+)
+
+if not (TEMPLATE_DIR / TEMPLATE_FILE).is_file():
+    print(
+        f"[fitness_generator] WARNING: could not find '{TEMPLATE_FILE}' in any "
+        f"of: {[str(p) for p in _CANDIDATE_TEMPLATE_DIRS]}. "
+        f"render_dashboard() will fail until the Templates folder is committed "
+        f"to the repo at one of these paths."
+    )
 
 
 # ── PROTEIN MULTIPLIER TABLE ──────────────────────────────────────────────────
@@ -909,6 +936,13 @@ def enforce_schema(data: dict, profile: dict | None = None) -> dict:
 
 # ── RENDER ────────────────────────────────────────────────────────────────────
 def render_dashboard(data: dict) -> str:
+    if not (TEMPLATE_DIR / TEMPLATE_FILE).is_file():
+        raise FileNotFoundError(
+            f"Template '{TEMPLATE_FILE}' not found at {TEMPLATE_DIR}. "
+            f"Checked: {[str(p) for p in _CANDIDATE_TEMPLATE_DIRS]}. "
+            f"Make sure the Templates folder is committed to the repo and its "
+            f"name/casing matches exactly (Linux/Render is case-sensitive)."
+        )
     env = Environment(
         loader=FileSystemLoader(str(TEMPLATE_DIR)),
         autoescape=False,

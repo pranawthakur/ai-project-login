@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Depends, HTTPException, Request, Form
 from fastapi.responses import JSONResponse, HTMLResponse
@@ -194,6 +195,8 @@ async def result_page(
     try:
         data, html = await task
     except RuntimeError as e:
+        print(f"[/result] LLM error for user={user_key}: {e}")
+        traceback.print_exc()
         return HTMLResponse(
             content=(
                 f"<h2 style='font-family:sans-serif;padding:40px'>⚠️ LLM error: {e}</h2>"
@@ -202,6 +205,8 @@ async def result_page(
             status_code=503,
         )
     except Exception as e:
+        print(f"[/result] Unhandled error for user={user_key}: {e}")
+        traceback.print_exc()
         return HTMLResponse(
             content=(
                 f"<pre style='font-family:monospace;padding:40px;white-space:pre-wrap'>"
