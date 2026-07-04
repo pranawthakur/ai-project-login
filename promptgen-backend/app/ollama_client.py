@@ -5,7 +5,7 @@ import asyncio
 
 GEMINI_MODEL = "gemini-3.1-flash-lite"
 
-MAX_OUTPUT_TOKENS = 16384
+MAX_OUTPUT_TOKENS = 32768
 GEMINI_TIMEOUT_SECONDS = 55
 
 client = genai.Client(api_key=settings.gemini_api_key)

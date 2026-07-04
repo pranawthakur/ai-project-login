@@ -403,6 +403,137 @@ WARMUP_LIBRARY = {
 }
 
 
+# ── DETERMINISTIC WEEKLY SCHEDULE ─────────────────────────────────────────────
+# Everything below removes the LLM's discretion over WHICH weekday is which
+# type, and lets us overwrite the labelling fields after generation so the
+# displayed split is always correct even if the LLM's own output drifted.
+WEEKDAY_NAMES       = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+WEEKDAY_SHORT_UPPER = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]   # matches workout.days[].short
+WEEKDAY_SHORT_TITLE = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]   # matches weekly_schedule[].short
+
+TOKEN_TITLE = {
+    "push":  "Push Day",
+    "pull":  "Pull Day",
+    "legs":  "Legs Day",
+    "upper": "Upper Body",
+    "lower": "Lower Body",
+    "full":  "Full Body",
+    "cardio": "Cardio Day",
+}
+
+TOKEN_MUSCLE_LABEL = {
+    "push":  "Chest · Shoulders · Triceps",
+    "pull":  "Back · Biceps",
+    "legs":  "Quads · Hamstrings · Glutes · Calves",
+    "upper": "Chest · Back · Shoulders · Arms",
+    "lower": "Quads · Hamstrings · Glutes · Calves",
+    "full":  "Full Body",
+    "cardio": "Cardio · Core",
+}
+
+
+def _build_weekly_template(sequence: list, training_days_per_week: int) -> list:
+    """
+    Deterministically decide which of the 7 weekdays are training vs rest,
+    and which split-day token each training slot gets — BEFORE the LLM ever
+    runs. This is what removes "rest day placement" from the model's job
+    entirely; it only has to fill in exercises for a schedule we've already
+    fixed. Rest days are spread as evenly as possible rather than bunched.
+    """
+    training_days_per_week = max(0, min(7, training_days_per_week))
+    rest_days = 7 - training_days_per_week
+
+    rest_positions = set()
+    for i in range(1, rest_days + 1):
+        pos = round(i * 7 / (rest_days + 1)) - 1
+        rest_positions.add(max(0, min(6, pos)))
+    # Rounding can occasionally collide and leave us one rest slot short —
+    # backfill deterministically (first free slot) rather than under-resting.
+    i = 0
+    while len(rest_positions) < rest_days and i < 7:
+        if i not in rest_positions:
+            rest_positions.add(i)
+        i += 1
+
+    template = []
+    seq_i = 0
+    for day_i in range(7):
+        if day_i in rest_positions:
+            template.append("rest")
+        else:
+            template.append(sequence[seq_i % len(sequence)] if sequence else "full")
+            seq_i += 1
+    return template
+
+
+def apply_deterministic_day_labels(data: dict, template: list) -> dict:
+    """
+    Overwrite name/type/short/is_rest for all 7 days (and weekly_schedule)
+    using the SAME template that was injected into the prompt — so the split
+    shown to the member is always correct regardless of what the LLM actually
+    wrote in these fields. Exercise/warmup content from the LLM is preserved
+    as-is (position-matched by weekday); only the labelling is forced.
+    """
+    data.setdefault("workout", {})
+    days = data["workout"].get("days", [])
+
+    fixed_days = []
+    fixed_schedule = []
+    for i, token in enumerate(template):
+        is_rest = token == "rest"
+        source = days[i] if i < len(days) else {}
+        day = dict(source)  # keep whatever exercises/warmup/safety the LLM wrote
+        day["short"] = WEEKDAY_SHORT_UPPER[i]
+        day["is_rest"] = is_rest
+        if is_rest:
+            day["name"] = WEEKDAY_NAMES[i]
+            day["type"] = "Rest Day"
+            day.pop("exercises", None)
+            day.pop("warmup_exercises", None)
+        else:
+            day["name"] = f"{WEEKDAY_NAMES[i]}: {TOKEN_TITLE.get(token, token.title())}"
+            day["type"] = TOKEN_MUSCLE_LABEL.get(token, token.title())
+        fixed_days.append(day)
+
+        fixed_schedule.append({
+            "short": WEEKDAY_SHORT_TITLE[i],
+            "label": "Rest" if is_rest else TOKEN_TITLE.get(token, token.title()).replace(" Day", ""),
+            "is_rest": is_rest,
+            "bar_width": 15 if is_rest else 88,
+        })
+
+    data["workout"]["days"] = fixed_days
+    data["workout"]["weekly_schedule"] = fixed_schedule
+    return data
+
+
+def workout_matches_template(data: dict, template: list) -> bool:
+    """
+    Content-level check (separate from the label override above): for every
+    non-rest day, confirm the LLM's OWN exercise 'muscle' fields mention at
+    least one muscle genuinely expected for that day's token. This is what
+    actually catches "every day came back as generic full-body exercises"
+    before a member ever sees it — the label override alone can't catch this,
+    since it only fixes the text, not whether the exercises underneath match.
+    """
+    days = data.get("workout", {}).get("days", [])
+    if len(days) < len(template):
+        return False
+    for i, token in enumerate(template):
+        if token == "rest":
+            continue
+        expected = TOKEN_MUSCLE_MAP.get(token, [])
+        if not expected:
+            continue
+        exercises = days[i].get("exercises", []) if i < len(days) else []
+        if not exercises:
+            return False
+        muscle_text = " ".join(str(e.get("muscle", "")).lower() for e in exercises)
+        if not any(m in muscle_text for m in expected):
+            return False
+    return True
+
+
 # ── CALORIE & MACRO CALCULATOR ────────────────────────────────────────────────
 def _calculate_macros(profile: dict) -> dict:
     """
@@ -747,11 +878,23 @@ def build_user_prompt(profile: dict) -> str:
     })
     split_sequence_str = " → ".join(split["sequence"])
 
+    # ── 7a. DETERMINISTIC weekly schedule — decides which weekday is which
+    #      type (and where rest days fall) in Python, BEFORE the LLM runs.
+    #      Exposed on `profile` (mutated in place, same pattern as
+    #      activity_level_factor above) so main.py can reuse the exact same
+    #      template after generation to force-correct labels and validate content.
+    weekly_template = _build_weekly_template(split["sequence"], training_days_per_week)
+    profile["_weekly_template"] = weekly_template
+    weekly_schedule_str = "\n".join(
+        f"  {WEEKDAY_NAMES[i]}: {'REST' if tok == 'rest' else tok.upper()}"
+        for i, tok in enumerate(weekly_template)
+    )
+
     # ── 8. PRECOMPUTED per-day exercise checklist — no LLM math required.
     #      This is the authoritative fix for "no squats on Legs day" and
     #      "only 1 chest exercise on Push day": counts + compounds are decided
     #      here in Python and handed to the LLM as a literal fill-in list.
-    day_plan_table = _render_day_plan_table(split["sequence"], vol)
+    day_plan_table = _render_day_plan_table(weekly_template, vol)
 
     return f"""
 CLIENT PROFILE — read every line carefully; ALL of it must be reflected in the JSON you return.
@@ -839,11 +982,11 @@ This split was selected using:
 5. BMI
 6. Activity level
 
-Generate workouts strictly following this day-type sequence, repeating/cycling it across the
-{training_days_per_week} training days in the week ({7 - training_days_per_week} rest day(s) placed
-sensibly between blocks, not all bunched at the end):
+Generate workouts strictly following this FIXED weekly schedule — do not
+rearrange, add, or remove rest days, and do not change which weekday is
+which type. Rest-day placement has already been decided for you:
 
-{split_sequence_str}
+{weekly_schedule_str}
 
 Do NOT substitute a different split. Each day's "type" field must clearly name the split
 segment it belongs to (e.g. "Push Day — Chest · Shoulders · Triceps"), consistent with the

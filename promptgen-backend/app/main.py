@@ -16,6 +16,8 @@ from app.fitness_generator import (
     parse_llm_json,
     enforce_schema,
     render_dashboard,
+    apply_deterministic_day_labels,
+    workout_matches_template,
     ACTIVITY_LABEL,
 )
 
@@ -176,10 +178,33 @@ async def result_page(
 
     async def _run() -> tuple[dict, str]:
         """The actual Gemini call + parse + render, run at most once per user
-        no matter how many overlapping /result requests come in for them."""
+        no matter how many overlapping /result requests come in for them.
+
+        Since the frontend is fully self-serve (no human reviews output
+        before a member sees it), this also validates the LLM's workout
+        content against the deterministic weekly template computed in
+        build_user_prompt(), retries ONCE on a mismatch, and unconditionally
+        force-corrects the day labels afterward — so the displayed split is
+        always right even on the rare case the retry also comes back wrong.
+        """
+        weekly_template = profile.get("_weekly_template", [])
+
         raw = await generate_with_ollama(user_prompt, system=SYSTEM_PROMPT)
         data = parse_llm_json(raw)
         data = enforce_schema(data, profile)
+
+        if weekly_template and not workout_matches_template(data, weekly_template):
+            print(f"[SPLIT VALIDATION] mismatch for user={user.get('sub')} — retrying once")
+            raw = await generate_with_ollama(user_prompt, system=SYSTEM_PROMPT)
+            data = parse_llm_json(raw)
+            data = enforce_schema(data, profile)
+            if not workout_matches_template(data, weekly_template):
+                print(f"[SPLIT VALIDATION] retry still mismatched for user={user.get('sub')} — "
+                      f"serving it anyway with labels force-corrected")
+
+        if weekly_template:
+            data = apply_deterministic_day_labels(data, weekly_template)
+
         return data, render_dashboard(data)
 
     user_key = str(user.get("sub", "anonymous"))
