@@ -29,11 +29,13 @@ Changes vs original:
 
 import json
 import math
+import random
 import re
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
 from .split_engine import recommend_split, SPLIT_LIBRARY
+from .exercise_database import select_day_exercises
 
 
 # ── TEMPLATE DIR ─────────────────────────────────────────────────────────────
@@ -200,27 +202,7 @@ _COMPOUND_HINT = {
     "shoulders": "Machine Shoulder Press / Seated Dumbbell Press / Arnold Press",
 }
 
-# Legs' SECOND compound slot on a dedicated leg day — a lunge or hinge
-# pattern, deliberately distinct from the squat-pattern options above, so a
-# leg day always gets real compound coverage instead of one squat variation
-# plus isolation-only filler.
-_COMPOUND_HINT_SECONDARY = {
-    "legs": "Walking Lunges (Dumbbell) / Bulgarian Split Squat / Romanian Deadlift (Dumbbell) — lunge or hinge pattern, NOT another squat",
-}
-
-ARM_MUSCLES = _ARM_MUSCLES  # (kept for any external references)
-
-# Small curated isolation pools per muscle — same "pick exactly one, don't
-# invent" role as _COMPOUND_HINT above, just for the isolation slots.
-_ISOLATION_HINT = {
-    "chest":     "Cable Fly / Pec Deck Machine / Incline Cable Fly",
-    "shoulders": "Cable Lateral Raise / Dumbbell Lateral Raise / Rear Delt Machine Fly",
-    "triceps":   "Triceps Rope Pushdown / Overhead Cable Extension / EZ Bar Skull Crusher",
-    "back":      "Straight-Arm Pulldown / Single-Arm Cable Row / Reverse Pec Deck Fly",
-    "biceps":    "EZ Barbell Curl / Hammer Curl (Dumbbell) / Cable Curl",
-    "legs":      "Leg Extension Machine / Leg Curl Machine / Walking Lunges (Dumbbell)",
-    "calves":    "Seated Calf Raise / Standing Calf Raise Machine",
-}
+ARM_ISOLATION_FLOOR = 2  # hard minimum isolation exercises per arm muscle trained
 
 
 def _parse_low_int(val, default: int) -> int:
@@ -234,8 +216,7 @@ def _parse_low_int(val, default: int) -> int:
 def _compute_day_plan(token: str, vol: dict) -> dict:
     """
     Precompute the EXACT exercise breakdown for one training day so the LLM
-    never has to do proportional math, and so the tier's exercises_per_day
-    cap is a HARD ceiling, never exceeded. Returns a dict:
+    never has to do proportional math. Returns a dict:
       {
         "muscles":            [ordered largest→smallest],
         "compound_count":     int,
@@ -243,21 +224,10 @@ def _compute_day_plan(token: str, vol: dict) -> dict:
         "total_exercises":    int,
       }
     Rules applied (in Python, not by the LLM):
-      • total_exercises NEVER exceeds vol["exercises_per_day"] (tier's real cap)
-      • compound slots are capped by vol["compound_count"], given to the
-        BIGGEST trained muscles first — excess big muscles fall through to
-        the isolation pool instead of silently getting an extra compound
-      • LEGS gets a second compound slot (squat pattern + lunge/hinge
-        pattern) when it's the day's primary focus, since "legs" covers
-        multiple sub-groups that one movement doesn't cover — still bounded
-        by the total cap
-      • all isolation slots (including any "arm floor" attention) are handed
-        out via a SINGLE rank-ordered round-robin across every trained
-        muscle — this guarantees a bigger muscle can never end up with
-        fewer isolation exercises than a smaller one, since round-robin by
-        construction gives the front of the line (biggest muscles) first
-        every round; arms are in that same line, not a separate guaranteed
-        bucket layered on top of the budget
+      • one compound per BIG muscle group trained that day
+      • arm floor: biceps/triceps each get >= ARM_ISOLATION_FLOOR isolation if trained
+      • remaining isolation slots distributed largest→smallest, never giving a
+        rank 5–6 muscle more isolation than a rank 1–3 muscle trained the same day
     """
     muscles = TOKEN_MUSCLE_MAP.get(token, [])
     if not muscles:  # cardio / rest / unknown
@@ -269,42 +239,31 @@ def _compute_day_plan(token: str, vol: dict) -> dict:
     # order largest → smallest
     muscles = sorted(muscles, key=lambda m: _MUSCLE_RANK.get(m, 5))
 
-    total_cap = _parse_low_int(vol.get("exercises_per_day"), default=3)
-    compound_cap = _parse_low_int(vol.get("compound_count"), default=1)
-
     big_trained = [m for m in muscles if m in _BIG_MUSCLES]
-    is_leg_focus_day = token in ("legs", "lower") and "legs" in big_trained
+    compound_count = len(big_trained)   # one compound per big group
 
-    # LEGS gets a bonus compound slot on a dedicated leg day (squat + lunge/
-    # hinge pattern) — still bounded by whatever's actually left in the cap.
-    leg_bonus = 1 if is_leg_focus_day else 0
-    effective_compound_cap = min(compound_cap + leg_bonus, total_cap)
+    # base isolation budget from the tier (strip ranges like "4–6" → take low end)
+    iso_base = _parse_low_int(vol["isolation_count"], default=4)
 
-    # Assign compounds to the biggest trained muscles first. Any big muscle
-    # beyond the cap doesn't get a compound — it competes for isolation like
-    # everyone else instead of silently inflating the day's total.
-    compound_muscles = []
-    for m in big_trained:
-        slots_for_this_muscle = 2 if (m == "legs" and is_leg_focus_day) else 1
-        if len(compound_muscles) + slots_for_this_muscle > effective_compound_cap:
-            break
-        compound_muscles.extend([m] * slots_for_this_muscle)
-    compound_count = len(compound_muscles)
-
-    remaining_budget = max(0, total_cap - compound_count)
-
-    # Single rank-ordered round-robin for ALL isolation slots — no separate
-    # "arm floor added on top." Muscles are already sorted biggest→smallest,
-    # so round-robin structurally guarantees no smaller muscle can out-rank
-    # a bigger one: after any number of full passes everyone has the same
-    # count, and a partial final pass only ever benefits whoever's earliest
-    # in line (the biggest remaining muscle), never the smallest.
     isolation_by_muscle = {m: 0 for m in muscles}
+
+    # 1) satisfy the arm floor FIRST (hard override)
+    arms_trained = [m for m in muscles if m in _ARM_MUSCLES]
+    for arm in arms_trained:
+        isolation_by_muscle[arm] = ARM_ISOLATION_FLOOR
+
+    arm_floor_used = sum(isolation_by_muscle[m] for m in arms_trained)
+    remaining_iso = max(0, iso_base - arm_floor_used)
+
+    # 2) distribute remaining isolation slots largest → smallest among NON-arm
+    #    muscles (big groups + calves/core), one at a time (round-robin) so the
+    #    largest muscle always ends up with >= any smaller one.
+    non_arm = [m for m in muscles if m not in _ARM_MUSCLES]
     i = 0
-    while remaining_budget > 0 and muscles:
-        m = muscles[i % len(muscles)]
+    while remaining_iso > 0 and non_arm:
+        m = non_arm[i % len(non_arm)]
         isolation_by_muscle[m] += 1
-        remaining_budget -= 1
+        remaining_iso -= 1
         i += 1
 
     total_iso = sum(isolation_by_muscle.values())
@@ -313,51 +272,15 @@ def _compute_day_plan(token: str, vol: dict) -> dict:
     return {
         "muscles": muscles,
         "compound_count": compound_count,
-        "compound_muscles": compound_muscles,  # which muscle each compound slot targets, in order
         "isolation_by_muscle": isolation_by_muscle,
         "total_exercises": total_exercises,
     }
 
 
-def _build_exercise_slots(day_plan: dict) -> list:
-    """
-    Ordered list of exercise 'slots' for one training day:
-      {"kind": "compound"|"isolation", "muscle": str, "options": [str, ...]}
-    Compounds first, in the order _compute_day_plan() already decided
-    (including a second, distinct leg slot on a leg-focus day), then
-    isolation slots per muscle. This EXACT order is used both to render the
-    fill-in-blank prompt and to validate/correct the LLM's actual output
-    afterward — the two must stay in lockstep, which is why this is one
-    shared function, not two.
-    """
-    slots = []
-    seen_count = {}
-    for muscle in day_plan.get("compound_muscles", []):
-        n = seen_count.get(muscle, 0)
-        seen_count[muscle] = n + 1
-        if n == 0:
-            options = [o.strip() for o in _COMPOUND_HINT.get(muscle, muscle).split(" / ")]
-        else:
-            hint = _COMPOUND_HINT_SECONDARY.get(muscle) or _COMPOUND_HINT.get(muscle, muscle)
-            options = [o.strip() for o in hint.split(" / ")]
-        slots.append({"kind": "compound", "muscle": muscle, "options": options})
-    for muscle in day_plan["muscles"]:
-        count = day_plan["isolation_by_muscle"].get(muscle, 0)
-        options = [o.strip() for o in _ISOLATION_HINT.get(muscle, muscle).split(" / ")]
-        for _ in range(count):
-            slots.append({"kind": "isolation", "muscle": muscle, "options": options})
-    return slots
-
-
 def _render_day_plan_table(sequence: list, vol: dict) -> str:
     """
-    Fill-in-the-blank checklist: every exercise slot for every training day is
-    precomputed in Python (kind, target muscle, and a short closed list of
-    allowed exercise names). The LLM's ONLY job per slot is picking one name
-    from the given list and writing a one-line tempo/cue — it cannot invent a
-    different exercise, skip a slot, add an extra slot, or leave a big muscle
-    without its compound. enforce_exercise_choices() double-checks this after
-    generation and corrects anything that still doesn't comply.
+    Turn the split sequence into a literal, per-day fill-in checklist the LLM
+    must obey verbatim — no math left for the model to do.
     """
     lines = []
     for idx, token in enumerate(sequence, start=1):
@@ -372,66 +295,104 @@ def _render_day_plan_table(sequence: list, vol: dict) -> str:
             continue
 
         plan = _compute_day_plan(token, vol)
-        slots = _build_exercise_slots(plan)
+        parts = []
+        # compounds first (largest big group's compound first)
+        for m in plan["muscles"]:
+            if m in _BIG_MUSCLES:
+                parts.append(f"1× COMPOUND for {m.upper()} [{_COMPOUND_HINT[m]}]")
+        # isolation next, largest → smallest
+        for m in plan["muscles"]:
+            n = plan["isolation_by_muscle"].get(m, 0)
+            if n > 0:
+                floor_tag = " (ARM FLOOR — mandatory)" if m in _ARM_MUSCLES else ""
+                parts.append(f"{n}× ISOLATION for {m.upper()}{floor_tag}")
 
-        slot_lines = []
-        for slot_i, slot in enumerate(slots, start=1):
-            kind_label = "COMPOUND" if slot["kind"] == "compound" else "ISOLATION"
-            options_str = " | ".join(slot["options"])
-            slot_lines.append(
-                f"    Slot {slot_i} [{kind_label} — {slot['muscle'].upper()}]: "
-                f"pick EXACTLY ONE from: {options_str}"
-            )
-
-        checklist = "\n".join(slot_lines)
+        checklist = "\n        • ".join(parts)
         lines.append(
             f"  DAY {idx} ({token.upper()} — {' · '.join(m.title() for m in plan['muscles'])}): "
-            f"fill in these {plan['total_exercises']} slots, in this exact order — do not add, "
-            f"skip, reorder, or invent a slot:\n{checklist}"
+            f"EXACTLY {plan['total_exercises']} exercises, in this order:\n"
+            f"        • {checklist}"
         )
     return "\n".join(lines)
 
 
-def enforce_exercise_choices(data: dict, weekly_template: list, vol: dict) -> dict:
+# ── DETERMINISTIC EXERCISE SELECTION (Python owns this, not the LLM) ─────────
+# Reps stay fixed by slot type; sets/rest come from the same experience-tier
+# volume table used everywhere else, so nothing here re-derives numbers that
+# were already formula-driven.
+_REP_RANGE_BY_SLOT = {
+    "compound":  "8–10 reps",
+    "isolation": "12–15 reps",
+}
+
+_SAFETY_DEFAULT_BY_TOKEN = {
+    "push":  "Keep shoulder blades back and down, controlled tempo on every rep — stop a set short of failure if form breaks down.",
+    "pull":  "Drive with the elbows, not the hands — avoid shrugging or using momentum to move the weight.",
+    "legs":  "Keep knees tracking over toes, chest up, controlled descent on every rep.",
+    "upper": "Controlled tempo throughout, full range of motion, stop a rep short of failure if form breaks down.",
+    "lower": "Keep knees tracking over toes, chest up, controlled descent on every rep.",
+    "full":  "Controlled tempo throughout, prioritise form over load on every movement.",
+    "cardio": "Keep effort conversational-to-moderate unless the session specifically calls for intervals.",
+}
+
+
+def build_deterministic_workout_days(profile: dict, weekly_template: list, vol: dict) -> list:
     """
-    Post-generation safety net for the fill-in-blank contract above. For every
-    non-rest, non-cardio day, rebuilds the SAME ordered slot list used in the
-    prompt and checks the LLM's actual exercise name against that slot's
-    allowed options (case-insensitive substring match, since the model may add
-    small formatting like "(machine)"). Anything that doesn't match gets
-    overwritten with that slot's first allowed option — so even if the LLM
-    ignores the fill-in-blank instructions entirely, every exercise in the
-    final output is guaranteed to be a real, correctly-categorized movement
-    for that muscle, never an invented or generic filler exercise.
+    Builds the full workout.days[] content in Python — exercise selection,
+    sets/reps/rest, tempo cues, and warmup — using exercise_database.py.
+    The LLM is not involved in deciding which exercises appear at all;
+    this replaces that entire responsibility.
+
+    Uses a fresh, unseeded random.Random() per call so regenerating the
+    same profile produces variety across the week and across re-runs,
+    while the day's *structure* (counts, compound-vs-isolation, ordering,
+    caps) stays fully deterministic via _compute_day_plan() + the cap/
+    priority logic inside select_day_exercises().
     """
-    days = data.get("workout", {}).get("days", [])
-    for i, token in enumerate(weekly_template):
-        if token in ("rest", "cardio") or i >= len(days):
+    equipment_raw = profile.get("equipment", "full gym")
+    notes_raw = profile.get("medical_notes") or profile.get("notes") or ""
+    experience_raw = profile.get("experience", "Intermediate")
+    rng = random.Random()
+
+    days = []
+    for token in weekly_template:
+        if token == "rest":
+            days.append({"is_rest": True})
             continue
+
+        if token == "cardio":
+            days.append({
+                "is_rest": False,
+                "warmup_exercises": WARMUP_LIBRARY.get("cardio", []),
+                "exercises": [],
+                "safety": _SAFETY_DEFAULT_BY_TOKEN.get("cardio", ""),
+            })
+            continue
+
         plan = _compute_day_plan(token, vol)
-        slots = _build_exercise_slots(plan)
-        exercises = days[i].get("exercises", []) or []
+        picks, _used_fallback = select_day_exercises(
+            plan, equipment_raw, notes_raw, experience_raw, rng,
+        )
 
-        corrected = []
-        for slot_i, slot in enumerate(slots):
-            existing = exercises[slot_i] if slot_i < len(exercises) else {}
-            existing = existing if isinstance(existing, dict) else {}
-            name = str(existing.get("name", "")).strip().lower()
-            matched = bool(name) and any(opt.lower() in name or name in opt.lower() for opt in slot["options"])
-            ex = dict(existing)
-            if not matched:
-                ex["name"] = slot["options"][0]
-            ex.setdefault("muscle", slot["muscle"].title())
-            ex.setdefault("sets", vol.get("sets_per_exercise", "3"))
-            ex.setdefault("rest", vol.get("rest_between_sets", "60-90 sec"))
-            ex.setdefault("reps", "10-12")
-            ex.setdefault("tempo_or_cue", "Controlled tempo, full range of motion")
-            corrected.append(ex)
+        exercises = []
+        for p in picks:
+            exercises.append({
+                "name": p["name"],
+                "muscle": p["muscle"].title(),
+                "sets": vol["sets_per_exercise"],
+                "reps": _REP_RANGE_BY_SLOT[p["slot"]],
+                "rest": vol["rest_between_sets"],
+                "tempo_or_cue": p["cue"],
+            })
 
-        days[i]["exercises"] = corrected
+        days.append({
+            "is_rest": False,
+            "warmup_exercises": WARMUP_LIBRARY.get(token, []),
+            "exercises": exercises,
+            "safety": _SAFETY_DEFAULT_BY_TOKEN.get(token, "Controlled tempo, full range of motion on every rep."),
+        })
 
-    data["workout"]["days"] = days
-    return data
+    return days
 
 
 def _resolve_exp_key(profile: dict) -> str:
@@ -654,80 +615,6 @@ def workout_matches_template(data: dict, template: list) -> bool:
     return True
 
 
-# ── DETERMINISTIC MEAL SLOTS ───────────────────────────────────────────────────
-# Same fix as the workout side: WHICH meal slots exist is decided in Python,
-# not left to the LLM to improvise per request — that's what was letting
-# dinner get swapped out for a pre-workout snack. Breakfast/lunch/dinner are
-# hard-mandatory regardless of the requested meal count; optional slots only
-# fill in the gap between 3 and whatever the client asked for.
-CANONICAL_MEAL_SLOTS = [
-    {"id": "breakfast",      "title": "Breakfast",     "tab_label": "Breakfast", "mandatory": True,  "kcal_weight": 0.25},
-    {"id": "mid_morning",    "title": "Mid-Morning",   "tab_label": "Mid-Meal",  "mandatory": False, "kcal_weight": 0.10},
-    {"id": "lunch",          "title": "Lunch",         "tab_label": "Lunch",     "mandatory": True,  "kcal_weight": 0.30},
-    {"id": "evening_snack",  "title": "Evening Snack", "tab_label": "Evening",   "mandatory": False, "kcal_weight": 0.10},
-    {"id": "post_workout",   "title": "Post-Workout",  "tab_label": "Post-WO",   "mandatory": False, "kcal_weight": 0.10},
-    {"id": "dinner",         "title": "Dinner",        "tab_label": "Dinner",    "mandatory": True,  "kcal_weight": 0.25},
-]
-
-
-def _build_meal_slots(meals_count: int) -> list:
-    """
-    Decide exactly which meal slots exist, in chronological order.
-    Breakfast/lunch/dinner are a hard floor — even if meals_count is
-    requested lower than 3, they're never dropped. Optional slots (mid-
-    morning, evening snack, post-workout) are added, in that priority order,
-    only to reach whatever count is ABOVE 3.
-    """
-    meals_count = max(3, int(meals_count))
-    mandatory = [s for s in CANONICAL_MEAL_SLOTS if s["mandatory"]]
-    optional = [s for s in CANONICAL_MEAL_SLOTS if not s["mandatory"]]
-    extra_needed = meals_count - len(mandatory)
-    chosen_optional_ids = {s["id"] for s in optional[:max(0, extra_needed)]}
-    chosen_ids = {s["id"] for s in mandatory} | chosen_optional_ids
-
-    ordered = [dict(s) for s in CANONICAL_MEAL_SLOTS if s["id"] in chosen_ids]
-    total_w = sum(s["kcal_weight"] for s in ordered) or 1
-    for s in ordered:
-        s["kcal_weight"] = s["kcal_weight"] / total_w
-    return ordered
-
-
-def _render_meal_slot_table(meal_slots: list, daily_kcal: int) -> str:
-    """Literal fill-in-the-blank listing of meal slots, mirroring the
-    workout day_plan_table — the LLM fills in food options per slot, it
-    doesn't decide which slots exist or reorder/rename/drop any of them."""
-    lines = []
-    for idx, slot in enumerate(meal_slots, start=1):
-        target = round(daily_kcal * slot["kcal_weight"] / 10) * 10  # nearest 10 kcal
-        lines.append(
-            f"  Slot {idx} [id=\"{slot['id']}\", title=\"{slot['title']}\", "
-            f"tab_label=\"{slot['tab_label']}\"]: target ≈{target} kcal, EXACTLY 3 food options."
-        )
-    return "\n".join(lines)
-
-
-def diet_matches_meal_slots(data: dict, meal_slots: list) -> bool:
-    """
-    Content-level check, same role as workout_matches_template(): confirms
-    every MANDATORY slot (breakfast/lunch/dinner) is actually present in the
-    LLM's output, by id or title, case-insensitively. Optional slots aren't
-    checked — the LLM has some latitude there, it's the mandatory three that
-    must never silently disappear.
-    """
-    meals = data.get("diet", {}).get("meals", [])
-    present = set()
-    for m in meals:
-        present.add(str(m.get("id", "")).lower())
-        present.add(str(m.get("title", "")).lower())
-
-    for slot in meal_slots:
-        if not slot["mandatory"]:
-            continue
-        if slot["id"].lower() not in present and slot["title"].lower() not in present:
-            return False
-    return True
-
-
 # ── CALORIE & MACRO CALCULATOR ────────────────────────────────────────────────
 def _calculate_macros(profile: dict) -> dict:
     """
@@ -861,63 +748,10 @@ SCHEMA (copy key names precisely):
     "calorie_phase":   "string e.g. Calorie deficit"
   },
   "workout": {
-    "weekly_schedule": [
-      { "short": "Mon", "label": "Push", "is_rest": false, "bar_width": 88 }
-      // 7 entries Mon–Sun; bar_width 15 for rest
-    ],
-    "days": [
-      {
-        "short":   "MON",
-        "name":    "Monday",
-        "type":    "Legs Day — Quads · Hamstrings · Glutes",
-        "is_rest": false,
-        "warmup_exercises": [
-          "5 min stationary bike",
-          "20× bodyweight squats",
-          "15× leg swings each leg (front-back + lateral)",
-          "10× hip circles each side"
-        ],
-        "exercises": [
-          {
-            "name":   "Leg Press",
-            "muscle": "Quads · glutes (largest muscle group → trained first)",
-            "sets":   "4",
-            "reps":   "10–12 reps",
-            "rest":   "90–120 sec",
-            "tempo_or_cue": "Full range, don't lock knees out at top"
-          },
-          {
-            "name":   "Leg Extension",
-            "muscle": "Quads",
-            "sets":   "3",
-            "reps":   "12–15 reps",
-            "rest":   "60 sec",
-            "tempo_or_cue": "Squeeze at the top, controlled descent"
-          },
-          {
-            "name":   "Seated Leg Curl",
-            "muscle": "Hamstrings",
-            "sets":   "3",
-            "reps":   "12 reps",
-            "rest":   "60 sec",
-            "tempo_or_cue": "Controlled, no swinging"
-          },
-          {
-            "name":   "Seated Calf Raise",
-            "muscle": "Calves (smallest muscle group → trained last)",
-            "sets":   "3",
-            "reps":   "15–20 reps",
-            "rest":   "45–60 sec",
-            "tempo_or_cue": "Pause 1 sec at full stretch"
-          }
-          // continue for the EXACT exercise count required — see PER-DAY EXERCISE PLAN below.
-          // Note the ordering: largest muscle group's compound movement FIRST, smallest
-          // isolation movement LAST — apply this same priority on every training day.
-        ],
-        "safety": "Keep chest up, knees tracking over toes, controlled tempo on every rep."
-      }
-      // 7 entries; rest days only need short/name/type/is_rest
-    ]
+    "weekly_schedule": [],
+    "days": []
+    // Both are populated by Python after generation, not by you.
+    // Leave these exactly as empty arrays — do not invent workout content.
   },
   "diet": {
     "meals": [
@@ -1080,10 +914,6 @@ def build_user_prompt(profile: dict) -> str:
     weekly_template = _build_weekly_template(split["sequence"], training_days_per_week)
     profile["_weekly_template"] = weekly_template
     profile["_vol"] = vol
-
-    meal_slots = _build_meal_slots(meals_count)
-    profile["_meal_slots"] = meal_slots
-    meal_slot_table = _render_meal_slot_table(meal_slots, m["target_kcal"])
     weekly_schedule_str = "\n".join(
         f"  {WEEKDAY_NAMES[i]}: {'REST' if tok == 'rest' else tok.upper()}"
         for i, tok in enumerate(weekly_template)
@@ -1134,17 +964,10 @@ Set plan.goal_label      = "{goal_label}"
 
 ━━ DIET — CRITICAL RESTRICTION ━━
 {diet_token}
+Meals per day: {meals_count}  (spread the {m['target_kcal']} kcal across exactly {meals_count} meals)
 Region / cuisine preference: {region} — use locally available kirana/sabzi mandi ingredients
 Food budget: {budget}
 Allergies / intolerances: {allergies}
-
-━━ MEAL SLOTS (AUTHORITATIVE — DO NOT ADD, DROP, RENAME, OR REORDER) ━━
-Generate meals ONLY for the slots listed below, using the EXACT id/title/tab_label
-given for each — breakfast, lunch, and dinner are mandatory and must never be
-replaced by a snack or pre/post-workout slot. Do not add an extra slot, and do
-not omit one of the slots listed here.
-
-{meal_slot_table}
 
 For EVERY meal option supply these EXACT fields:
   "food": "<ingredient list with grams>",
@@ -1154,7 +977,7 @@ For EVERY meal option supply these EXACT fields:
   "fat_g": <integer>
 
 MEAL OPTION RULES (mandatory):
-- Each meal slot listed above MUST contain EXACTLY 3 entries in "options" — no more, no fewer.
+- Each meal slot (breakfast, mid, lunch, post, dinner) MUST contain EXACTLY 3 entries in "options".
 - The 3 options for a given meal must use genuinely different core ingredients/dishes from
   each other (not the same dish with a swapped garnish) — give the client real variety to
   rotate through during the week.
@@ -1166,98 +989,10 @@ The sum of protein_g across the day's meals (best option of each) must hit ~{m['
 The sum of kcal must be within ±80 kcal of {m['target_kcal']}.
 
 ━━ WORKOUT ━━
-Client experience level: {profile.get('experience', 'Intermediate')} → training rigour MUST match this tier, not a generic plan.
-Design exactly {training_days_per_week} training days and {7 - training_days_per_week} rest day(s) per week.
-Session duration is {duration} — size the exercise volume accordingly.
-{"RECOVERY GOAL OVERRIDE: this client's goal is recovery/deload/rehab. Regardless of experience tier, stay well short of failure on every set (leave 3-4 reps in reserve), avoid ALL intensity techniques (no drop sets, no supersets, no rest-pause, no partials) even if the tier's intensity guidance below mentions them, and favour controlled tempo, full range of motion, and lighter loads over heavy loading. Keep the exercise COUNTS in the PER-DAY EXERCISE PLAN unchanged — only reduce intensity/load." if is_recovery_goal else ""}
-
-AI SPLIT ANALYSIS
-
-Chosen Split:
-{split['split_name']}
-
-Reason:
-{split['reason']}
-
-This split was selected using:
-
-1. Experience level
-2. Days per week
-3. Session duration
-4. Primary goal
-5. BMI
-6. Activity level
-
-Generate workouts strictly following this FIXED weekly schedule — do not
-rearrange, add, or remove rest days, and do not change which weekday is
-which type. Rest-day placement has already been decided for you:
-
-{weekly_schedule_str}
-
-Do NOT substitute a different split. Each day's "type" field must clearly name the split
-segment it belongs to (e.g. "Push Day — Chest · Shoulders · Triceps"), consistent with the
-sequence above.
-
-BANNED EXERCISES — high injury-risk or spotter/technique-assistance-required movements. NEVER
-include any of these, in any variant (barbell, dumbbell, or otherwise), under any name:
-  - Any deadlift variant: conventional deadlift, Romanian deadlift (RDL), stiff-leg deadlift,
-    sumo deadlift, single-leg RDL, trap-bar deadlift
-  - Free-weight barbell back squat, barbell front squat
-  - Free-weight barbell bench press, barbell overhead/military press
-  - Olympic lifts: snatch, clean and jerk, power clean
-  - Any movement that ordinarily requires a spotter or a coach physically assisting the lift
-Squat-pattern and press-pattern compounds are still REQUIRED and welcome — just use the
-machine/Smith/dumbbell-safe versions listed in the COMPOUND MOVEMENT LIBRARY below, never the
-free-weight/hinge versions banned above.
-
-━━ PER-DAY EXERCISE PLAN (AUTHORITATIVE — DO NOT RECOMPUTE OR DEVIATE) ━━
-Every exercise slot for every training day is listed below as a literal
-fill-in-the-blank form: each slot tells you exactly what kind it is (compound
-or isolation), which muscle it targets, and a short closed list of exercise
-names to pick from. Your ONLY job per slot is to pick exactly one name from
-its list and write a one-line tempo/cue — nothing else. Do not add a slot,
-skip a slot, reorder slots, merge two slots into one, or invent an exercise
-that isn't in that slot's list. The exact slot count and order below is
-final; if a day shows 3 slots, output exactly 3 exercises for that day.
-
-{day_plan_table}
-
-COMPOUND MOVEMENT LIBRARY (machine/cable/dumbbell-safe — for each big muscle group (rank 1-4)
-trained that day, use exactly ONE of these as that group's opening compound, instead of any
-banned free-weight/hinge lift. NOTE: RDL/deadlift variants have been removed from this library
-entirely per the BANNED EXERCISES list above — Legs compounds are squat-pattern only):
-  Legs    → Leg Press, Hack Squat Machine, Smith Machine Squat, Goblet Squat (dumbbell)
-            [squat-pattern only — NEVER a lunge or hinge as the Legs compound]
-  Back    → Lat Pulldown, Seated Cable Row, Chest-Supported Machine Row, Assisted Pull-up,
-            Single-Arm Dumbbell Row
-  Chest   → Machine Chest Press, Incline Dumbbell Press, Flat Dumbbell Press, Smith Machine
-            Bench Press
-  Shoulders → Machine Shoulder Press, Seated Dumbbell Press, Arnold Press
-Every exercise that isn't one of these per-group compounds MUST be isolation work
-(single-joint: lateral raises, curls, triceps extensions, leg extensions/curls, calf raises,
-core/abs, etc.).
-
-EXERCISE DETAIL RULES (mandatory):
-- Sets per exercise: {vol['sets_per_exercise']}
-- Rest between sets: {vol['rest_between_sets']}
-- Intensity guidance: {vol['intensity_note']}
-- For EVERY exercise object, include "rest" (e.g. "75–90 sec") and "tempo_or_cue" (a short form cue or
-  tempo instruction), in addition to name/muscle/sets/reps — do not omit these fields.
-- Vary exercise selection across the week's training days; do not repeat the exact same exercise list on
-  every day even within the same split type.
-
-WARMUP (warmup_exercises[] array) — THIS FIELD IS MANDATORY, NOT OPTIONAL:
-- EVERY non-rest day's JSON object MUST include a non-empty "warmup_exercises" array with
-  4–5 specific exercises tailored to that day's split. A training day with an empty or
-  missing warmup_exercises array is an INVALID response — never output one.
-- Only rest days (is_rest: true) omit warmup_exercises entirely.
-Example warmup tokens by split type:
-  Push day  → {WARMUP_LIBRARY['push']}
-  Pull day  → {WARMUP_LIBRARY['pull']}
-  Legs day  → {WARMUP_LIBRARY['legs']}
-  Full body → {WARMUP_LIBRARY['full']}
-  Cardio    → {WARMUP_LIBRARY['cardio']}
-  Rest day  → omit warmup_exercises entirely (is_rest: true)
+Workout content (exercise selection, sets/reps/rest, warmups) is generated
+entirely in Python, not by you. Leave workout.weekly_schedule and
+workout.days as empty arrays in your output — do not invent any exercises,
+schedule, or workout content of any kind.
 
 ━━ MEDICAL / OTHER NOTES ━━
 {medical}
@@ -1266,10 +1001,9 @@ Example warmup tokens by split type:
 1. Every value you output must be consistent with the client profile above.
 2. The diet options must strictly respect the diet restriction token — do not add ANY forbidden food.
 3. The macro numbers (kcal, protein_g, carb_g, fat_g) in each meal option must be realistic and add up.
-4. warmup_exercises must be an array of strings for each non-rest day.
-5. Use only the schema defined by the system prompt — no extra keys, no missing keys.
-6. The PER-DAY EXERCISE PLAN counts are authoritative — match them exactly, day by day.
-7. Output the JSON object EXACTLY ONCE. Stop immediately after the final closing brace.
+4. Use only the schema defined by the system prompt — no extra keys, no missing keys.
+5. Leave workout.weekly_schedule and workout.days as empty arrays — that content is Python-generated.
+6. Output the JSON object EXACTLY ONCE. Stop immediately after the final closing brace.
 
 Generate the complete fitness dashboard JSON now.
 """
@@ -1508,5 +1242,29 @@ def generate_dashboard(profile: dict, llm_caller) -> str:
     user_prompt  = build_user_prompt(profile)
     raw_response = llm_caller(SYSTEM_PROMPT, user_prompt)
     data = parse_llm_json(raw_response)
+
+    # Workout content is built entirely in Python — the LLM's own
+    # workout.days output (left as an empty array per the prompt) is
+    # ignored, not merged. build_user_prompt() stashed the weekly
+    # template + volume table on `profile` above so we don't recompute
+    # the split/volume logic a second time here.
+    weekly_template = profile.get("_weekly_template") or _build_weekly_template(
+        recommend_split({
+            "experience": profile.get("experience", "intermediate"),
+            "days_per_week": int(profile.get("days_per_week", 4)),
+            "session_duration": profile.get("session_duration", "45–60 min"),
+            "goal": profile.get("goal", "fat loss"),
+            "height_cm": profile.get("height_cm", 170),
+            "current_weight_kg": profile.get("current_weight_kg", 70),
+            "activity_key": profile.get("activity_key", "moderate"),
+        })["sequence"],
+        int(profile.get("days_per_week", 4)),
+    )
+    vol = profile.get("_vol") or EXERCISE_VOLUME[_resolve_exp_key(profile)]
+
+    data.setdefault("workout", {})
+    data["workout"]["days"] = build_deterministic_workout_days(profile, weekly_template, vol)
+
     data = enforce_schema(data, profile)
+    data = apply_deterministic_day_labels(data, weekly_template)
     return render_dashboard(data)

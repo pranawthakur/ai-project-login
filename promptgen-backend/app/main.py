@@ -17,9 +17,7 @@ from app.fitness_generator import (
     enforce_schema,
     render_dashboard,
     apply_deterministic_day_labels,
-    workout_matches_template,
-    enforce_exercise_choices,
-    diet_matches_meal_slots,
+    build_deterministic_workout_days,
     ACTIVITY_LABEL,
 )
 
@@ -182,39 +180,29 @@ async def result_page(
         """The actual Gemini call + parse + render, run at most once per user
         no matter how many overlapping /result requests come in for them.
 
-        Since the frontend is fully self-serve (no human reviews output
-        before a member sees it), this also validates the LLM's workout
-        content against the deterministic weekly template computed in
-        build_user_prompt(), retries ONCE on a mismatch, and unconditionally
-        force-corrects the day labels afterward — so the displayed split is
-        always right even on the rare case the retry also comes back wrong.
+        Workout content (exercise selection, sets/reps/rest, warmups) is no
+        longer produced by the LLM at all — build_user_prompt() tells it to
+        leave workout.weekly_schedule / workout.days as empty arrays, and
+        build_deterministic_workout_days() fills them in Python using the
+        curated exercise database. That removes the old retry-on-mismatch
+        step entirely: there's nothing left in the LLM's own output to
+        validate against the weekly template, since it never produces any.
+        The LLM is still used for diet content, recovery copy, and macro
+        numbers, which do get parsed from its response as before.
         """
         weekly_template = profile.get("_weekly_template", [])
-        meal_slots = profile.get("_meal_slots", [])
+        vol = profile.get("_vol", {})
 
         raw = await generate_with_ollama(user_prompt, system=SYSTEM_PROMPT)
         data = parse_llm_json(raw)
+
+        data.setdefault("workout", {})
+        data["workout"]["days"] = build_deterministic_workout_days(profile, weekly_template, vol)
+
         data = enforce_schema(data, profile)
-
-        workout_ok = (not weekly_template) or workout_matches_template(data, weekly_template)
-        diet_ok = (not meal_slots) or diet_matches_meal_slots(data, meal_slots)
-
-        if not (workout_ok and diet_ok):
-            print(f"[VALIDATION] mismatch for user={user.get('sub')} "
-                  f"(workout_ok={workout_ok}, diet_ok={diet_ok}) — retrying once")
-            raw = await generate_with_ollama(user_prompt, system=SYSTEM_PROMPT)
-            data = parse_llm_json(raw)
-            data = enforce_schema(data, profile)
-            workout_ok = (not weekly_template) or workout_matches_template(data, weekly_template)
-            diet_ok = (not meal_slots) or diet_matches_meal_slots(data, meal_slots)
-            if not (workout_ok and diet_ok):
-                print(f"[VALIDATION] retry still mismatched for user={user.get('sub')} "
-                      f"(workout_ok={workout_ok}, diet_ok={diet_ok}) — serving it anyway "
-                      f"with workout labels/exercises force-corrected")
 
         if weekly_template:
             data = apply_deterministic_day_labels(data, weekly_template)
-            data = enforce_exercise_choices(data, weekly_template, profile.get("_vol", {}))
 
         return data, render_dashboard(data)
 
