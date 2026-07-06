@@ -202,6 +202,18 @@ _COMPOUND_HINT = {
 
 ARM_ISOLATION_FLOOR = 2  # hard minimum isolation exercises per arm muscle trained
 
+# Small curated isolation pools per muscle — same "pick exactly one, don't
+# invent" role as _COMPOUND_HINT above, just for the isolation slots.
+_ISOLATION_HINT = {
+    "chest":     "Cable Fly / Pec Deck Machine / Incline Cable Fly",
+    "shoulders": "Cable Lateral Raise / Dumbbell Lateral Raise / Rear Delt Machine Fly",
+    "triceps":   "Triceps Rope Pushdown / Overhead Cable Extension / EZ Bar Skull Crusher",
+    "back":      "Straight-Arm Pulldown / Single-Arm Cable Row / Reverse Pec Deck Fly",
+    "biceps":    "EZ Barbell Curl / Hammer Curl (Dumbbell) / Cable Curl",
+    "legs":      "Leg Extension Machine / Leg Curl Machine / Walking Lunges (Dumbbell)",
+    "calves":    "Seated Calf Raise / Standing Calf Raise Machine",
+}
+
 
 def _parse_low_int(val, default: int) -> int:
     """'4–6' → 4, '5' → 5, 5 → 5. Takes the LOW end of any range."""
@@ -275,10 +287,37 @@ def _compute_day_plan(token: str, vol: dict) -> dict:
     }
 
 
+def _build_exercise_slots(day_plan: dict) -> list:
+    """
+    Ordered list of exercise 'slots' for one training day:
+      {"kind": "compound"|"isolation", "muscle": str, "options": [str, ...]}
+    Compounds first (one per big muscle), then isolation slots per muscle.
+    This EXACT order is used both to render the fill-in-blank prompt and to
+    validate/correct the LLM's actual output afterward — the two must stay
+    in lockstep, which is why this is one shared function, not two.
+    """
+    slots = []
+    for muscle in day_plan["muscles"]:
+        if muscle in _BIG_MUSCLES:
+            options = [o.strip() for o in _COMPOUND_HINT.get(muscle, muscle).split(" / ")]
+            slots.append({"kind": "compound", "muscle": muscle, "options": options})
+    for muscle in day_plan["muscles"]:
+        count = day_plan["isolation_by_muscle"].get(muscle, 0)
+        options = [o.strip() for o in _ISOLATION_HINT.get(muscle, muscle).split(" / ")]
+        for _ in range(count):
+            slots.append({"kind": "isolation", "muscle": muscle, "options": options})
+    return slots
+
+
 def _render_day_plan_table(sequence: list, vol: dict) -> str:
     """
-    Turn the split sequence into a literal, per-day fill-in checklist the LLM
-    must obey verbatim — no math left for the model to do.
+    Fill-in-the-blank checklist: every exercise slot for every training day is
+    precomputed in Python (kind, target muscle, and a short closed list of
+    allowed exercise names). The LLM's ONLY job per slot is picking one name
+    from the given list and writing a one-line tempo/cue — it cannot invent a
+    different exercise, skip a slot, add an extra slot, or leave a big muscle
+    without its compound. enforce_exercise_choices() double-checks this after
+    generation and corrects anything that still doesn't comply.
     """
     lines = []
     for idx, token in enumerate(sequence, start=1):
@@ -293,25 +332,70 @@ def _render_day_plan_table(sequence: list, vol: dict) -> str:
             continue
 
         plan = _compute_day_plan(token, vol)
-        parts = []
-        # compounds first (largest big group's compound first)
-        for m in plan["muscles"]:
-            if m in _BIG_MUSCLES:
-                parts.append(f"1× COMPOUND for {m.upper()} [{_COMPOUND_HINT[m]}]")
-        # isolation next, largest → smallest
-        for m in plan["muscles"]:
-            n = plan["isolation_by_muscle"].get(m, 0)
-            if n > 0:
-                floor_tag = " (ARM FLOOR — mandatory)" if m in _ARM_MUSCLES else ""
-                parts.append(f"{n}× ISOLATION for {m.upper()}{floor_tag}")
+        slots = _build_exercise_slots(plan)
 
-        checklist = "\n        • ".join(parts)
+        slot_lines = []
+        for slot_i, slot in enumerate(slots, start=1):
+            kind_label = "COMPOUND" if slot["kind"] == "compound" else "ISOLATION"
+            floor_tag = (
+                " (ARM FLOOR — mandatory)"
+                if slot["muscle"] in _ARM_MUSCLES and slot["kind"] == "isolation" else ""
+            )
+            options_str = " | ".join(slot["options"])
+            slot_lines.append(
+                f"    Slot {slot_i} [{kind_label} — {slot['muscle'].upper()}{floor_tag}]: "
+                f"pick EXACTLY ONE from: {options_str}"
+            )
+
+        checklist = "\n".join(slot_lines)
         lines.append(
             f"  DAY {idx} ({token.upper()} — {' · '.join(m.title() for m in plan['muscles'])}): "
-            f"EXACTLY {plan['total_exercises']} exercises, in this order:\n"
-            f"        • {checklist}"
+            f"fill in these {plan['total_exercises']} slots, in this exact order — do not add, "
+            f"skip, reorder, or invent a slot:\n{checklist}"
         )
     return "\n".join(lines)
+
+
+def enforce_exercise_choices(data: dict, weekly_template: list, vol: dict) -> dict:
+    """
+    Post-generation safety net for the fill-in-blank contract above. For every
+    non-rest, non-cardio day, rebuilds the SAME ordered slot list used in the
+    prompt and checks the LLM's actual exercise name against that slot's
+    allowed options (case-insensitive substring match, since the model may add
+    small formatting like "(machine)"). Anything that doesn't match gets
+    overwritten with that slot's first allowed option — so even if the LLM
+    ignores the fill-in-blank instructions entirely, every exercise in the
+    final output is guaranteed to be a real, correctly-categorized movement
+    for that muscle, never an invented or generic filler exercise.
+    """
+    days = data.get("workout", {}).get("days", [])
+    for i, token in enumerate(weekly_template):
+        if token in ("rest", "cardio") or i >= len(days):
+            continue
+        plan = _compute_day_plan(token, vol)
+        slots = _build_exercise_slots(plan)
+        exercises = days[i].get("exercises", []) or []
+
+        corrected = []
+        for slot_i, slot in enumerate(slots):
+            existing = exercises[slot_i] if slot_i < len(exercises) else {}
+            existing = existing if isinstance(existing, dict) else {}
+            name = str(existing.get("name", "")).strip().lower()
+            matched = bool(name) and any(opt.lower() in name or name in opt.lower() for opt in slot["options"])
+            ex = dict(existing)
+            if not matched:
+                ex["name"] = slot["options"][0]
+            ex.setdefault("muscle", slot["muscle"].title())
+            ex.setdefault("sets", vol.get("sets_per_exercise", "3"))
+            ex.setdefault("rest", vol.get("rest_between_sets", "60-90 sec"))
+            ex.setdefault("reps", "10-12")
+            ex.setdefault("tempo_or_cue", "Controlled tempo, full range of motion")
+            corrected.append(ex)
+
+        days[i]["exercises"] = corrected
+
+    data["workout"]["days"] = days
+    return data
 
 
 def _resolve_exp_key(profile: dict) -> str:
@@ -885,6 +969,7 @@ def build_user_prompt(profile: dict) -> str:
     #      template after generation to force-correct labels and validate content.
     weekly_template = _build_weekly_template(split["sequence"], training_days_per_week)
     profile["_weekly_template"] = weekly_template
+    profile["_vol"] = vol
     weekly_schedule_str = "\n".join(
         f"  {WEEKDAY_NAMES[i]}: {'REST' if tok == 'rest' else tok.upper()}"
         for i, tok in enumerate(weekly_template)

@@ -18,6 +18,7 @@ from app.fitness_generator import (
     render_dashboard,
     apply_deterministic_day_labels,
     workout_matches_template,
+    enforce_exercise_choices,
     ACTIVITY_LABEL,
 )
 
@@ -204,6 +205,7 @@ async def result_page(
 
         if weekly_template:
             data = apply_deterministic_day_labels(data, weekly_template)
+            data = enforce_exercise_choices(data, weekly_template, profile.get("_vol", {}))
 
         return data, render_dashboard(data)
 
