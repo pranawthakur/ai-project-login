@@ -200,7 +200,15 @@ _COMPOUND_HINT = {
     "shoulders": "Machine Shoulder Press / Seated Dumbbell Press / Arnold Press",
 }
 
-ARM_ISOLATION_FLOOR = 2  # hard minimum isolation exercises per arm muscle trained
+# Legs' SECOND compound slot on a dedicated leg day — a lunge or hinge
+# pattern, deliberately distinct from the squat-pattern options above, so a
+# leg day always gets real compound coverage instead of one squat variation
+# plus isolation-only filler.
+_COMPOUND_HINT_SECONDARY = {
+    "legs": "Walking Lunges (Dumbbell) / Bulgarian Split Squat / Romanian Deadlift (Dumbbell) — lunge or hinge pattern, NOT another squat",
+}
+
+ARM_MUSCLES = _ARM_MUSCLES  # (kept for any external references)
 
 # Small curated isolation pools per muscle — same "pick exactly one, don't
 # invent" role as _COMPOUND_HINT above, just for the isolation slots.
@@ -226,7 +234,8 @@ def _parse_low_int(val, default: int) -> int:
 def _compute_day_plan(token: str, vol: dict) -> dict:
     """
     Precompute the EXACT exercise breakdown for one training day so the LLM
-    never has to do proportional math. Returns a dict:
+    never has to do proportional math, and so the tier's exercises_per_day
+    cap is a HARD ceiling, never exceeded. Returns a dict:
       {
         "muscles":            [ordered largest→smallest],
         "compound_count":     int,
@@ -234,10 +243,21 @@ def _compute_day_plan(token: str, vol: dict) -> dict:
         "total_exercises":    int,
       }
     Rules applied (in Python, not by the LLM):
-      • one compound per BIG muscle group trained that day
-      • arm floor: biceps/triceps each get >= ARM_ISOLATION_FLOOR isolation if trained
-      • remaining isolation slots distributed largest→smallest, never giving a
-        rank 5–6 muscle more isolation than a rank 1–3 muscle trained the same day
+      • total_exercises NEVER exceeds vol["exercises_per_day"] (tier's real cap)
+      • compound slots are capped by vol["compound_count"], given to the
+        BIGGEST trained muscles first — excess big muscles fall through to
+        the isolation pool instead of silently getting an extra compound
+      • LEGS gets a second compound slot (squat pattern + lunge/hinge
+        pattern) when it's the day's primary focus, since "legs" covers
+        multiple sub-groups that one movement doesn't cover — still bounded
+        by the total cap
+      • all isolation slots (including any "arm floor" attention) are handed
+        out via a SINGLE rank-ordered round-robin across every trained
+        muscle — this guarantees a bigger muscle can never end up with
+        fewer isolation exercises than a smaller one, since round-robin by
+        construction gives the front of the line (biggest muscles) first
+        every round; arms are in that same line, not a separate guaranteed
+        bucket layered on top of the budget
     """
     muscles = TOKEN_MUSCLE_MAP.get(token, [])
     if not muscles:  # cardio / rest / unknown
@@ -249,31 +269,42 @@ def _compute_day_plan(token: str, vol: dict) -> dict:
     # order largest → smallest
     muscles = sorted(muscles, key=lambda m: _MUSCLE_RANK.get(m, 5))
 
+    total_cap = _parse_low_int(vol.get("exercises_per_day"), default=3)
+    compound_cap = _parse_low_int(vol.get("compound_count"), default=1)
+
     big_trained = [m for m in muscles if m in _BIG_MUSCLES]
-    compound_count = len(big_trained)   # one compound per big group
+    is_leg_focus_day = token in ("legs", "lower") and "legs" in big_trained
 
-    # base isolation budget from the tier (strip ranges like "4–6" → take low end)
-    iso_base = _parse_low_int(vol["isolation_count"], default=4)
+    # LEGS gets a bonus compound slot on a dedicated leg day (squat + lunge/
+    # hinge pattern) — still bounded by whatever's actually left in the cap.
+    leg_bonus = 1 if is_leg_focus_day else 0
+    effective_compound_cap = min(compound_cap + leg_bonus, total_cap)
 
+    # Assign compounds to the biggest trained muscles first. Any big muscle
+    # beyond the cap doesn't get a compound — it competes for isolation like
+    # everyone else instead of silently inflating the day's total.
+    compound_muscles = []
+    for m in big_trained:
+        slots_for_this_muscle = 2 if (m == "legs" and is_leg_focus_day) else 1
+        if len(compound_muscles) + slots_for_this_muscle > effective_compound_cap:
+            break
+        compound_muscles.extend([m] * slots_for_this_muscle)
+    compound_count = len(compound_muscles)
+
+    remaining_budget = max(0, total_cap - compound_count)
+
+    # Single rank-ordered round-robin for ALL isolation slots — no separate
+    # "arm floor added on top." Muscles are already sorted biggest→smallest,
+    # so round-robin structurally guarantees no smaller muscle can out-rank
+    # a bigger one: after any number of full passes everyone has the same
+    # count, and a partial final pass only ever benefits whoever's earliest
+    # in line (the biggest remaining muscle), never the smallest.
     isolation_by_muscle = {m: 0 for m in muscles}
-
-    # 1) satisfy the arm floor FIRST (hard override)
-    arms_trained = [m for m in muscles if m in _ARM_MUSCLES]
-    for arm in arms_trained:
-        isolation_by_muscle[arm] = ARM_ISOLATION_FLOOR
-
-    arm_floor_used = sum(isolation_by_muscle[m] for m in arms_trained)
-    remaining_iso = max(0, iso_base - arm_floor_used)
-
-    # 2) distribute remaining isolation slots largest → smallest among NON-arm
-    #    muscles (big groups + calves/core), one at a time (round-robin) so the
-    #    largest muscle always ends up with >= any smaller one.
-    non_arm = [m for m in muscles if m not in _ARM_MUSCLES]
     i = 0
-    while remaining_iso > 0 and non_arm:
-        m = non_arm[i % len(non_arm)]
+    while remaining_budget > 0 and muscles:
+        m = muscles[i % len(muscles)]
         isolation_by_muscle[m] += 1
-        remaining_iso -= 1
+        remaining_budget -= 1
         i += 1
 
     total_iso = sum(isolation_by_muscle.values())
@@ -282,6 +313,7 @@ def _compute_day_plan(token: str, vol: dict) -> dict:
     return {
         "muscles": muscles,
         "compound_count": compound_count,
+        "compound_muscles": compound_muscles,  # which muscle each compound slot targets, in order
         "isolation_by_muscle": isolation_by_muscle,
         "total_exercises": total_exercises,
     }
@@ -291,16 +323,24 @@ def _build_exercise_slots(day_plan: dict) -> list:
     """
     Ordered list of exercise 'slots' for one training day:
       {"kind": "compound"|"isolation", "muscle": str, "options": [str, ...]}
-    Compounds first (one per big muscle), then isolation slots per muscle.
-    This EXACT order is used both to render the fill-in-blank prompt and to
-    validate/correct the LLM's actual output afterward — the two must stay
-    in lockstep, which is why this is one shared function, not two.
+    Compounds first, in the order _compute_day_plan() already decided
+    (including a second, distinct leg slot on a leg-focus day), then
+    isolation slots per muscle. This EXACT order is used both to render the
+    fill-in-blank prompt and to validate/correct the LLM's actual output
+    afterward — the two must stay in lockstep, which is why this is one
+    shared function, not two.
     """
     slots = []
-    for muscle in day_plan["muscles"]:
-        if muscle in _BIG_MUSCLES:
+    seen_count = {}
+    for muscle in day_plan.get("compound_muscles", []):
+        n = seen_count.get(muscle, 0)
+        seen_count[muscle] = n + 1
+        if n == 0:
             options = [o.strip() for o in _COMPOUND_HINT.get(muscle, muscle).split(" / ")]
-            slots.append({"kind": "compound", "muscle": muscle, "options": options})
+        else:
+            hint = _COMPOUND_HINT_SECONDARY.get(muscle) or _COMPOUND_HINT.get(muscle, muscle)
+            options = [o.strip() for o in hint.split(" / ")]
+        slots.append({"kind": "compound", "muscle": muscle, "options": options})
     for muscle in day_plan["muscles"]:
         count = day_plan["isolation_by_muscle"].get(muscle, 0)
         options = [o.strip() for o in _ISOLATION_HINT.get(muscle, muscle).split(" / ")]
@@ -337,13 +377,9 @@ def _render_day_plan_table(sequence: list, vol: dict) -> str:
         slot_lines = []
         for slot_i, slot in enumerate(slots, start=1):
             kind_label = "COMPOUND" if slot["kind"] == "compound" else "ISOLATION"
-            floor_tag = (
-                " (ARM FLOOR — mandatory)"
-                if slot["muscle"] in _ARM_MUSCLES and slot["kind"] == "isolation" else ""
-            )
             options_str = " | ".join(slot["options"])
             slot_lines.append(
-                f"    Slot {slot_i} [{kind_label} — {slot['muscle'].upper()}{floor_tag}]: "
+                f"    Slot {slot_i} [{kind_label} — {slot['muscle'].upper()}]: "
                 f"pick EXACTLY ONE from: {options_str}"
             )
 
@@ -614,6 +650,80 @@ def workout_matches_template(data: dict, template: list) -> bool:
             return False
         muscle_text = " ".join(str(e.get("muscle", "")).lower() for e in exercises)
         if not any(m in muscle_text for m in expected):
+            return False
+    return True
+
+
+# ── DETERMINISTIC MEAL SLOTS ───────────────────────────────────────────────────
+# Same fix as the workout side: WHICH meal slots exist is decided in Python,
+# not left to the LLM to improvise per request — that's what was letting
+# dinner get swapped out for a pre-workout snack. Breakfast/lunch/dinner are
+# hard-mandatory regardless of the requested meal count; optional slots only
+# fill in the gap between 3 and whatever the client asked for.
+CANONICAL_MEAL_SLOTS = [
+    {"id": "breakfast",      "title": "Breakfast",     "tab_label": "Breakfast", "mandatory": True,  "kcal_weight": 0.25},
+    {"id": "mid_morning",    "title": "Mid-Morning",   "tab_label": "Mid-Meal",  "mandatory": False, "kcal_weight": 0.10},
+    {"id": "lunch",          "title": "Lunch",         "tab_label": "Lunch",     "mandatory": True,  "kcal_weight": 0.30},
+    {"id": "evening_snack",  "title": "Evening Snack", "tab_label": "Evening",   "mandatory": False, "kcal_weight": 0.10},
+    {"id": "post_workout",   "title": "Post-Workout",  "tab_label": "Post-WO",   "mandatory": False, "kcal_weight": 0.10},
+    {"id": "dinner",         "title": "Dinner",        "tab_label": "Dinner",    "mandatory": True,  "kcal_weight": 0.25},
+]
+
+
+def _build_meal_slots(meals_count: int) -> list:
+    """
+    Decide exactly which meal slots exist, in chronological order.
+    Breakfast/lunch/dinner are a hard floor — even if meals_count is
+    requested lower than 3, they're never dropped. Optional slots (mid-
+    morning, evening snack, post-workout) are added, in that priority order,
+    only to reach whatever count is ABOVE 3.
+    """
+    meals_count = max(3, int(meals_count))
+    mandatory = [s for s in CANONICAL_MEAL_SLOTS if s["mandatory"]]
+    optional = [s for s in CANONICAL_MEAL_SLOTS if not s["mandatory"]]
+    extra_needed = meals_count - len(mandatory)
+    chosen_optional_ids = {s["id"] for s in optional[:max(0, extra_needed)]}
+    chosen_ids = {s["id"] for s in mandatory} | chosen_optional_ids
+
+    ordered = [dict(s) for s in CANONICAL_MEAL_SLOTS if s["id"] in chosen_ids]
+    total_w = sum(s["kcal_weight"] for s in ordered) or 1
+    for s in ordered:
+        s["kcal_weight"] = s["kcal_weight"] / total_w
+    return ordered
+
+
+def _render_meal_slot_table(meal_slots: list, daily_kcal: int) -> str:
+    """Literal fill-in-the-blank listing of meal slots, mirroring the
+    workout day_plan_table — the LLM fills in food options per slot, it
+    doesn't decide which slots exist or reorder/rename/drop any of them."""
+    lines = []
+    for idx, slot in enumerate(meal_slots, start=1):
+        target = round(daily_kcal * slot["kcal_weight"] / 10) * 10  # nearest 10 kcal
+        lines.append(
+            f"  Slot {idx} [id=\"{slot['id']}\", title=\"{slot['title']}\", "
+            f"tab_label=\"{slot['tab_label']}\"]: target ≈{target} kcal, EXACTLY 3 food options."
+        )
+    return "\n".join(lines)
+
+
+def diet_matches_meal_slots(data: dict, meal_slots: list) -> bool:
+    """
+    Content-level check, same role as workout_matches_template(): confirms
+    every MANDATORY slot (breakfast/lunch/dinner) is actually present in the
+    LLM's output, by id or title, case-insensitively. Optional slots aren't
+    checked — the LLM has some latitude there, it's the mandatory three that
+    must never silently disappear.
+    """
+    meals = data.get("diet", {}).get("meals", [])
+    present = set()
+    for m in meals:
+        present.add(str(m.get("id", "")).lower())
+        present.add(str(m.get("title", "")).lower())
+
+    for slot in meal_slots:
+        if not slot["mandatory"]:
+            continue
+        if slot["id"].lower() not in present and slot["title"].lower() not in present:
             return False
     return True
 
@@ -970,6 +1080,10 @@ def build_user_prompt(profile: dict) -> str:
     weekly_template = _build_weekly_template(split["sequence"], training_days_per_week)
     profile["_weekly_template"] = weekly_template
     profile["_vol"] = vol
+
+    meal_slots = _build_meal_slots(meals_count)
+    profile["_meal_slots"] = meal_slots
+    meal_slot_table = _render_meal_slot_table(meal_slots, m["target_kcal"])
     weekly_schedule_str = "\n".join(
         f"  {WEEKDAY_NAMES[i]}: {'REST' if tok == 'rest' else tok.upper()}"
         for i, tok in enumerate(weekly_template)
@@ -1020,10 +1134,17 @@ Set plan.goal_label      = "{goal_label}"
 
 ━━ DIET — CRITICAL RESTRICTION ━━
 {diet_token}
-Meals per day: {meals_count}  (spread the {m['target_kcal']} kcal across exactly {meals_count} meals)
 Region / cuisine preference: {region} — use locally available kirana/sabzi mandi ingredients
 Food budget: {budget}
 Allergies / intolerances: {allergies}
+
+━━ MEAL SLOTS (AUTHORITATIVE — DO NOT ADD, DROP, RENAME, OR REORDER) ━━
+Generate meals ONLY for the slots listed below, using the EXACT id/title/tab_label
+given for each — breakfast, lunch, and dinner are mandatory and must never be
+replaced by a snack or pre/post-workout slot. Do not add an extra slot, and do
+not omit one of the slots listed here.
+
+{meal_slot_table}
 
 For EVERY meal option supply these EXACT fields:
   "food": "<ingredient list with grams>",
@@ -1033,7 +1154,7 @@ For EVERY meal option supply these EXACT fields:
   "fat_g": <integer>
 
 MEAL OPTION RULES (mandatory):
-- Each meal slot (breakfast, mid, lunch, post, dinner) MUST contain EXACTLY 3 entries in "options".
+- Each meal slot listed above MUST contain EXACTLY 3 entries in "options" — no more, no fewer.
 - The 3 options for a given meal must use genuinely different core ingredients/dishes from
   each other (not the same dish with a swapped garnish) — give the client real variety to
   rotate through during the week.
@@ -1090,24 +1211,16 @@ machine/Smith/dumbbell-safe versions listed in the COMPOUND MOVEMENT LIBRARY bel
 free-weight/hinge versions banned above.
 
 ━━ PER-DAY EXERCISE PLAN (AUTHORITATIVE — DO NOT RECOMPUTE OR DEVIATE) ━━
-The exact number of compound and isolation exercises for EVERY training day has
-already been calculated for you below. You MUST produce exactly this many
-exercises per day, of exactly these types, in exactly this order. Do NOT add,
-drop, merge, or re-proportion anything. Do NOT do your own math.
+Every exercise slot for every training day is listed below as a literal
+fill-in-the-blank form: each slot tells you exactly what kind it is (compound
+or isolation), which muscle it targets, and a short closed list of exercise
+names to pick from. Your ONLY job per slot is to pick exactly one name from
+its list and write a one-line tempo/cue — nothing else. Do not add a slot,
+skip a slot, reorder slots, merge two slots into one, or invent an exercise
+that isn't in that slot's list. The exact slot count and order below is
+final; if a day shows 3 slots, output exactly 3 exercises for that day.
 
 {day_plan_table}
-
-HARD RULES that the checklist above already encodes (stated so you can self-check):
-- Every big muscle group (Legs/Back/Chest/Shoulders) trained on a day opens with
-  its OWN compound movement. A Push day (Chest + Shoulders) therefore has TWO
-  compounds (one chest, one shoulder) before ANY isolation work — never one.
-- LEGS compound is ALWAYS a squat-pattern movement (Leg Press / Hack Squat /
-  Smith Machine Squat / Goblet Squat). NEVER a lunge, NEVER a deadlift/RDL/hinge.
-- Any muscle marked "(ARM FLOOR — mandatory)" gets that exact isolation count, no fewer.
-- Order every day's "exercises" array to match the checklist: compounds first
-  (largest trained group's compound first), then isolation largest → smallest muscle.
-- The count shown per day is EXACT. If the checklist says 7 exercises, output 7 —
-  not 5, not 6. A single exercise per day is NEVER acceptable.
 
 COMPOUND MOVEMENT LIBRARY (machine/cable/dumbbell-safe — for each big muscle group (rank 1-4)
 trained that day, use exactly ONE of these as that group's opening compound, instead of any

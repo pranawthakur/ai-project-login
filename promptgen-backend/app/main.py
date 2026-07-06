@@ -19,6 +19,7 @@ from app.fitness_generator import (
     apply_deterministic_day_labels,
     workout_matches_template,
     enforce_exercise_choices,
+    diet_matches_meal_slots,
     ACTIVITY_LABEL,
 )
 
@@ -189,19 +190,27 @@ async def result_page(
         always right even on the rare case the retry also comes back wrong.
         """
         weekly_template = profile.get("_weekly_template", [])
+        meal_slots = profile.get("_meal_slots", [])
 
         raw = await generate_with_ollama(user_prompt, system=SYSTEM_PROMPT)
         data = parse_llm_json(raw)
         data = enforce_schema(data, profile)
 
-        if weekly_template and not workout_matches_template(data, weekly_template):
-            print(f"[SPLIT VALIDATION] mismatch for user={user.get('sub')} — retrying once")
+        workout_ok = (not weekly_template) or workout_matches_template(data, weekly_template)
+        diet_ok = (not meal_slots) or diet_matches_meal_slots(data, meal_slots)
+
+        if not (workout_ok and diet_ok):
+            print(f"[VALIDATION] mismatch for user={user.get('sub')} "
+                  f"(workout_ok={workout_ok}, diet_ok={diet_ok}) — retrying once")
             raw = await generate_with_ollama(user_prompt, system=SYSTEM_PROMPT)
             data = parse_llm_json(raw)
             data = enforce_schema(data, profile)
-            if not workout_matches_template(data, weekly_template):
-                print(f"[SPLIT VALIDATION] retry still mismatched for user={user.get('sub')} — "
-                      f"serving it anyway with labels force-corrected")
+            workout_ok = (not weekly_template) or workout_matches_template(data, weekly_template)
+            diet_ok = (not meal_slots) or diet_matches_meal_slots(data, meal_slots)
+            if not (workout_ok and diet_ok):
+                print(f"[VALIDATION] retry still mismatched for user={user.get('sub')} "
+                      f"(workout_ok={workout_ok}, diet_ok={diet_ok}) — serving it anyway "
+                      f"with workout labels/exercises force-corrected")
 
         if weekly_template:
             data = apply_deterministic_day_labels(data, weekly_template)
