@@ -35,7 +35,11 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
 from .split_engine import recommend_split, SPLIT_LIBRARY
-from .exercise_database import select_day_exercises
+from .exercise_database import (
+    select_day_exercises,
+    MUSCLE_PRIORITY,
+    BEGINNER_CAP_LEG_DAY as BEGINNER_LEG_DAY_TARGET_TOTAL,
+)
 
 
 # ── TEMPLATE DIR ─────────────────────────────────────────────────────────────
@@ -185,13 +189,10 @@ TOKEN_MUSCLE_MAP = {
     "rest":  [],
 }
 
-# Muscle size rank (1 = largest). Rank <= 4 = "big" (gets a compound).
-_MUSCLE_RANK = {
-    "legs": 1, "back": 2, "chest": 3, "shoulders": 4,
-    "biceps": 5, "triceps": 5, "arms": 5,
-    "traps": 6,
-    "calves": 6, "core": 6,
-}
+# Muscle size classification. "Big" muscles (rank <= 4 conceptually) each get
+# a compound; ordering/priority itself now comes from the shared
+# MUSCLE_PRIORITY table (imported from exercise_database.py) so this file and
+# exercise_database.py can never disagree on relative priority again.
 _BIG_MUSCLES = {"legs", "back", "chest", "shoulders"}
 _ARM_MUSCLES = {"biceps", "triceps"}
 
@@ -219,19 +220,30 @@ def _compute_day_plan(token: str, vol: dict, exp_key: str = "intermediate") -> d
     Precompute the EXACT exercise breakdown for one training day so the LLM
     never has to do proportional math. Returns a dict:
       {
-        "muscles":            [ordered largest→smallest],
+        "muscles":            [ordered highest→lowest priority],
         "compound_count":     int,
         "isolation_by_muscle": {muscle: int, ...},
         "total_exercises":    int,
       }
     Rules applied (in Python, not by the LLM):
       • one compound per BIG muscle group trained that day
-      • arm floor: biceps/triceps each get >= ARM_ISOLATION_FLOOR isolation if trained
-      • remaining isolation slots distributed largest→smallest, never giving a
-        rank 5–6 muscle more isolation than a rank 1–3 muscle trained the same day
+      • isolation budget is distributed round-robin IN PRIORITY ORDER
+        (MUSCLE_PRIORITY, shared with exercise_database.py) across every
+        trained muscle — this is what guarantees chest > triceps > shoulders
+        on push day and back > biceps > traps on pull day in total exercise
+        count, since the highest-priority muscle always gets first pick.
+      • arm floor (biceps/triceps >= ARM_ISOLATION_FLOOR isolation) is then
+        topped up ONLY by borrowing from a LOWER-priority muscle's existing
+        allocation — never from anything ranked above the arm — so the arm
+        floor can't silently starve chest/back the way a pre-allocated floor
+        used to.
       • pull day gets a trailing traps slot, but ONLY for intermediate/advanced
         (exp_key is the same beginner/intermediate/advanced tier used everywhere
         else — see _resolve_exp_key()); beginners never see traps at all.
+      • beginner leg day gets a boosted isolation budget so it can actually
+        reach BEGINNER_CAP_LEG_DAY (6) total exercises — the tier's generic
+        isolation_count (2) is too low to ever hit that cap on its own, since
+        caps only trim excess, they never manufacture additional exercises.
     """
     muscles = list(TOKEN_MUSCLE_MAP.get(token, []))
     if token == "pull" and exp_key in ("intermediate", "advanced"):
@@ -242,35 +254,55 @@ def _compute_day_plan(token: str, vol: dict, exp_key: str = "intermediate") -> d
             "isolation_by_muscle": {}, "total_exercises": 0,
         }
 
-    # order largest → smallest
-    muscles = sorted(muscles, key=lambda m: _MUSCLE_RANK.get(m, 5))
+    # order highest → lowest priority, using the SAME table exercise_database.py
+    # uses for display/trimming, so count-allocation and display never disagree.
+    muscles = sorted(muscles, key=lambda m: MUSCLE_PRIORITY.get(m, 9))
 
     big_trained = [m for m in muscles if m in _BIG_MUSCLES]
     compound_count = len(big_trained)   # one compound per big group
 
     # base isolation budget from the tier (strip ranges like "4–6" → take low end)
     iso_base = _parse_low_int(vol["isolation_count"], default=4)
+    if token == "legs" and exp_key == "beginner":
+        iso_base = max(iso_base, BEGINNER_LEG_DAY_TARGET_TOTAL - compound_count)
+    if token == "pull" and "traps" in muscles:
+        # Without this, the biceps arm-floor top-up below deterministically
+        # donates traps down to 0 on every single pull day for every
+        # intermediate/advanced client — traps would exist in the data but
+        # never actually appear. One extra slot is enough to cover the floor
+        # without cannibalizing traps entirely.
+        iso_base += 1
 
     isolation_by_muscle = {m: 0 for m in muscles}
 
-    # 1) satisfy the arm floor FIRST (hard override)
-    arms_trained = [m for m in muscles if m in _ARM_MUSCLES]
-    for arm in arms_trained:
-        isolation_by_muscle[arm] = ARM_ISOLATION_FLOOR
-
-    arm_floor_used = sum(isolation_by_muscle[m] for m in arms_trained)
-    remaining_iso = max(0, iso_base - arm_floor_used)
-
-    # 2) distribute remaining isolation slots largest → smallest among NON-arm
-    #    muscles (big groups + calves/core), one at a time (round-robin) so the
-    #    largest muscle always ends up with >= any smaller one.
-    non_arm = [m for m in muscles if m not in _ARM_MUSCLES]
+    # 1) distribute the isolation budget round-robin in priority order across
+    #    EVERY trained muscle (big and arm alike) — highest priority gets
+    #    first pick each round, so this alone produces the right ordering.
+    remaining_iso = iso_base
     i = 0
-    while remaining_iso > 0 and non_arm:
-        m = non_arm[i % len(non_arm)]
+    while remaining_iso > 0 and muscles:
+        m = muscles[i % len(muscles)]
         isolation_by_muscle[m] += 1
         remaining_iso -= 1
         i += 1
+
+    # 2) top up any arm muscle below its mandatory floor — but only by
+    #    borrowing from a muscle ranked LOWER in priority than that arm,
+    #    never from anything ranked above it. This protects arm volume
+    #    without letting the floor silently outrank chest/back again.
+    arms_trained = [m for m in muscles if m in _ARM_MUSCLES]
+    for arm in arms_trained:
+        idx_arm = muscles.index(arm)
+        deficit = ARM_ISOLATION_FLOOR - isolation_by_muscle[arm]
+        donor_idx = len(muscles) - 1
+        while deficit > 0 and donor_idx > idx_arm:
+            donor = muscles[donor_idx]
+            if isolation_by_muscle[donor] > 0:
+                isolation_by_muscle[donor] -= 1
+                isolation_by_muscle[arm] += 1
+                deficit -= 1
+            else:
+                donor_idx -= 1
 
     total_iso = sum(isolation_by_muscle.values())
     total_exercises = compound_count + total_iso
