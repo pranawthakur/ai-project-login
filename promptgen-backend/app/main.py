@@ -20,6 +20,12 @@ from app.fitness_generator import (
     build_deterministic_workout_days,
     ACTIVITY_LABEL,
 )
+from app.safety_engine import (
+    safety_gate,
+    emergency_block_html,
+    DEFAULT_SAFE_SEQUENCE,
+    DEFAULT_SAFE_VOL,
+)
 
 
 class ManualCORS(BaseHTTPMiddleware):
@@ -174,7 +180,28 @@ async def result_page(
         "medical_notes":      notes or "none",
     }
 
+    # ── SAFETY GATE (KB File 12) — runs unconditionally, before anything else.
+    # This must be the very first thing that happens with the intake data:
+    # no LLM call, no exercise selection, no DB write until this clears.
+    gate = safety_gate(profile)
+    print(f"[/result] safety_gate for user={user.get('sub')}: {gate}")
+
+    if gate["action"] == "block":
+        # Emergency symptom or under-13. Never generate a workout, never
+        # call the LLM, never save a plan. Just the referral message.
+        return HTMLResponse(content=emergency_block_html(gate["messages"]))
+
     user_prompt = build_user_prompt(profile)
+
+    if gate["action"] == "default_template":
+        # High-risk condition or acute/sharp pain disclosed, no clearance on
+        # file. Override the computed split/volume with KB File 14's fixed
+        # conservative template — applied AFTER build_user_prompt() so the
+        # diet/macro text it generated is unaffected, but the actual workout
+        # structure _run() reads below is now the safe template, not the
+        # normal formula-driven one.
+        profile["_weekly_template"] = DEFAULT_SAFE_SEQUENCE
+        profile["_vol"] = DEFAULT_SAFE_VOL
 
     async def _run() -> tuple[dict, str]:
         """The actual Gemini call + parse + render, run at most once per user
@@ -244,6 +271,21 @@ async def result_page(
         # already been replaced by a newer request from the same user.
         if _inflight_results.get(user_key) is task and task.done():
             _inflight_results.pop(user_key, None)
+
+    if gate["action"] == "default_template":
+        # Make sure the client actually SEES why their plan is conservative
+        # rather than this being a silent, unexplained downgrade.
+        notes_html = "".join(f"<li>{m}</li>" for m in gate["messages"])
+        banner = (
+            "<div style='font-family:sans-serif;max-width:640px;margin:20px auto;"
+            "padding:20px;border:2px solid #d99;border-radius:10px;background:#fffaf5;'>"
+            "<strong>⚠️ You've been given a conservative starter template</strong>"
+            f"<ul>{notes_html}</ul>"
+            "<p>This isn't your full personalized plan — it's a safe, low-intensity "
+            "default until the item(s) above are reviewed. Update your intake or "
+            "check with a coach/doctor to unlock full programming.</p></div>"
+        )
+        html = banner + html
 
     # Save so this doesn't get regenerated on the member's next login —
     # the lock check at the top of this route reads from this table.

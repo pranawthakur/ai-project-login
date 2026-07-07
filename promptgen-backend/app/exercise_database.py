@@ -250,23 +250,41 @@ def _blocked_by_injury(ex: dict, injury_keywords: set) -> bool:
 
 def _filter_pool(pool: list, available_lower: set, injury_keywords: set) -> tuple:
     """Return (filtered_pool, used_fallback).
-    Filtering happens in two passes:
-      1) equipment match AND not injury-contraindicated (preferred)
-      2) if that's empty, drop the injury filter but keep equipment match
-         (used_fallback=True) — a client's own equipment ticks should never
-         get silently overridden, but if a genuinely equipment-appropriate
-         pick doesn't exist without also touching a flagged injury area,
-         that's surfaced rather than silently producing an empty day.
-    Equipment fallback (ignoring ticked equipment entirely) remains the
-    last resort, same as before.
+
+    FAIL-CONSERVATIVE, PER KB FILE 12: the injury filter is NEVER relaxed,
+    under any circumstance. Only the equipment filter is allowed to relax,
+    as a last resort, because an equipment mismatch is an inconvenience
+    ("you don't have this machine") while an injury mismatch is a safety
+    issue ("you told us this hurts").
+
+    Previous behaviour (the bug this replaces): if the safe+equipment pool
+    was empty, the injury filter was dropped and an injury-contraindicated
+    exercise was returned anyway, with only a silent `used_fallback=True`
+    flag that nothing downstream ever read. A client who disclosed a knee
+    injury could still be handed Leg Extension / Bulgarian Split Squat /
+    Walking Lunge if those were their only equipment-matched options.
+
+    New behaviour: if NOTHING in the pool is both equipment-matched and
+    injury-safe, return an empty list. The caller (select_day_exercises)
+    is responsible for skipping that slot entirely rather than filling it
+    with something unsafe — fewer exercises that day is always preferable
+    to an injury-contraindicated one.
     """
-    equipment_ok = [ex for ex in pool if _requirement_met(ex["requires"], available_lower)]
-    safe_and_equipment_ok = [ex for ex in equipment_ok if not _blocked_by_injury(ex, injury_keywords)]
-    if safe_and_equipment_ok:
-        return safe_and_equipment_ok, False
+    injury_safe_pool = [ex for ex in pool if not _blocked_by_injury(ex, injury_keywords)]
+    if not injury_safe_pool:
+        # Every exercise for this muscle/slot is contraindicated for a
+        # disclosed injury area. Nothing here is safe to hand back —
+        # the caller must skip this slot, not substitute.
+        return [], True
+
+    equipment_ok = [ex for ex in injury_safe_pool if _requirement_met(ex["requires"], available_lower)]
     if equipment_ok:
-        return equipment_ok, True
-    return pool, True
+        return equipment_ok, False
+
+    # Equipment-limited only (not injury-limited): relax equipment matching
+    # as a last resort, but the injury-safe filter still applies to what's
+    # returned — this fallback can never reintroduce an unsafe exercise.
+    return injury_safe_pool, True
 
 
 # Bigger muscle groups first — used both to order compounds/isolation and,
@@ -354,9 +372,11 @@ def select_day_exercises(
         full formula-driven exercise count from `plan` is used as-is —
         but isolation slots still fill biggest-muscle-first.
 
-    Returns (exercises, used_fallback). used_fallback is True if any slot
-    had to relax an equipment or injury filter because the strict filter
-    left zero options for that muscle/slot.
+    Returns (exercises, used_fallback, injury_keywords). used_fallback is
+    True if any slot had to relax equipment matching, or had to be skipped
+    entirely because every option was injury-contraindicated. injury_keywords
+    is the set of disclosed-injury terms actually matched, for surfacing to
+    the client (e.g. "knee" → some leg exercises were excluded/skipped).
     """
     available_lower = _parse_available_equipment(equipment_raw)
     injury_keywords = _parse_injury_keywords(notes_raw)
@@ -388,6 +408,13 @@ def select_day_exercises(
             continue
         filtered, fb = _filter_pool(pool, available_lower, injury_keywords)
         used_fallback = used_fallback or fb
+        if not filtered:
+            # Every compound option for this muscle is contraindicated for a
+            # disclosed injury (e.g. every leg compound touches a flagged
+            # knee). Skip the compound for this muscle rather than force an
+            # unsafe pick — the day comes back with one fewer exercise, and
+            # that gap is surfaced via _low_volume_warning downstream.
+            continue
         choice = rng.choice(filtered)
         compounds.append({
             "name": choice["name"],
@@ -414,6 +441,11 @@ def select_day_exercises(
             continue
         filtered, fb = _filter_pool(pool, available_lower, injury_keywords)
         used_fallback = used_fallback or fb
+
+        if not filtered:
+            # Nothing safe available for this muscle at all — skip it
+            # entirely rather than forcing an injury-contraindicated pick.
+            continue
 
         if n <= len(filtered):
             picks = rng.sample(filtered, n)
@@ -454,4 +486,4 @@ def select_day_exercises(
         # no cap, full formula-driven (or fixed) count from plan
         isolation_final = isolation_wishlist
 
-    return compounds + isolation_final, used_fallback
+    return compounds + isolation_final, used_fallback, injury_keywords

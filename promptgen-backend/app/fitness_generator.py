@@ -681,7 +681,7 @@ def build_deterministic_workout_days(profile: dict, weekly_template: list, vol: 
             token, vol, exp_key,
             goal=goal, muscle_frequency=muscle_frequency, session_minutes=session_minutes,
         )
-        picks, _used_fallback = select_day_exercises(
+        picks, _used_fallback, _injury_kw = select_day_exercises(
             plan, equipment_raw, notes_raw, experience_raw, rng,
         )
 
@@ -701,12 +701,20 @@ def build_deterministic_workout_days(profile: dict, weekly_template: list, vol: 
                 "tempo_or_cue": p["cue"],
             })
 
-        days.append({
+        day_entry = {
             "is_rest": False,
             "warmup_exercises": WARMUP_LIBRARY.get(token, WARMUP_LIBRARY.get(_nearest_warmup_category(token), [])),
             "exercises": exercises,
             "safety": _SAFETY_DEFAULT_BY_TOKEN.get(token, "Controlled tempo, full range of motion on every rep."),
-        })
+        }
+        if _injury_kw:
+            day_entry["_injury_safety_note"] = (
+                f"Some exercises were excluded or reduced today because you flagged: "
+                f"{', '.join(sorted(_injury_kw))}. If this is inaccurate, update your "
+                f"intake notes; if the area is still symptomatic, check with a "
+                f"coach or doctor before pushing load through it."
+            )
+        days.append(day_entry)
 
     return days
 
@@ -1592,7 +1600,25 @@ def render_dashboard(data: dict) -> str:
 
 # ── MAIN PIPELINE ─────────────────────────────────────────────────────────────
 def generate_dashboard(profile: dict, llm_caller) -> str:
+    from .safety_engine import (
+        safety_gate, emergency_block_html,
+        DEFAULT_SAFE_SEQUENCE, DEFAULT_SAFE_VOL,
+    )
+
+    # KB File 12: runs before anything else — no LLM call, no exercise
+    # selection, until this clears. See main.py's /result for the primary
+    # entry point; this mirrors the same gate for any other caller of
+    # generate_dashboard().
+    gate = safety_gate(profile)
+    if gate["action"] == "block":
+        return emergency_block_html(gate["messages"])
+
     user_prompt  = build_user_prompt(profile)
+
+    if gate["action"] == "default_template":
+        profile["_weekly_template"] = DEFAULT_SAFE_SEQUENCE
+        profile["_vol"] = DEFAULT_SAFE_VOL
+
     raw_response = llm_caller(SYSTEM_PROMPT, user_prompt)
     data = parse_llm_json(raw_response)
 
