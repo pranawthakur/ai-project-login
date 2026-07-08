@@ -117,6 +117,8 @@ html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;
 /* mobile overlay */
 .sb-overlay{display:none;position:fixed;inset:0;background:#050308cc;backdrop-filter:blur(3px);z-index:290}
 .sb-overlay.show{display:block;animation:fadeIn .2s ease}
+/* body scroll lock while mobile drawer is open */
+html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior:contain}
 
 /* ── MAIN ── */
 .main{flex:1;min-width:0;display:flex;flex-direction:column;margin-left:var(--sidebar-w);transition:margin-left .28s var(--ease)}
@@ -211,38 +213,70 @@ html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;
 .day-card.open .day-name{color:var(--lime2)}
 .day-toggle{font-size:18px;color:var(--dim);transition:transform .25s var(--ease),color .2s;flex-shrink:0}
 .day-card.open .day-toggle{transform:rotate(45deg);color:var(--lime2)}
-.day-body{max-height:0;overflow:hidden;padding:0 18px;transition:max-height .4s var(--ease),padding .4s var(--ease),opacity .3s var(--ease);opacity:0}
-.day-card.open .day-body{padding:0 18px 18px;opacity:1}
+/* Grid-row height animation: no JS scrollHeight math, no measurement drift,
+   no jump when fonts/content change size. 0fr<->1fr is the modern
+   accordion technique and stays in sync with content automatically. */
+.day-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s var(--ease)}
+.day-card.open .day-body{grid-template-rows:1fr}
+.day-body-inner{overflow:hidden;min-height:0}
+.day-body-content{padding:0 18px 18px;opacity:0;transition:opacity .3s var(--ease) .05s}
+.day-card.open .day-body-content{opacity:1}
 
 .warmup-pill{display:inline-block;background:var(--bg3);border:1px solid var(--border-hi);border-radius:8px;padding:9px 13px;font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.5;width:100%}
 .warmup-pill strong{color:#bbb;font-weight:600}
 
-/* ── EXERCISE ROWS (with sets/weight/difficulty like the reference UI) ── */
-.ex-row{padding:13px 0;border-bottom:1px solid var(--border)}
-.ex-row:last-child{border-bottom:none;padding-bottom:0}
-.ex-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+/* ── EXERCISE ROWS (collapsible: name/sets/reps/muscle/status always visible,
+   weight/reps/RPE/notes/difficulty tucked behind an expand arrow) ── */
+.ex-row{border-bottom:1px solid var(--border)}
+.ex-row:last-child{border-bottom:none}
+.ex-head{display:flex;align-items:center;gap:10px;padding:13px 0;cursor:pointer;user-select:none}
+.ex-head:focus-visible{outline:2px solid var(--lime2);outline-offset:2px;border-radius:8px}
+.ex-head-main{flex:1;min-width:0}
 .ex-name{font-size:14px;font-weight:700;color:#e8e8e8}
-.ex-muscle{font-size:11.5px;color:var(--muted);font-weight:500}
-.ex-sets-total{background:var(--lime-glow);border:1px solid var(--lime);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--lime);white-space:nowrap;flex-shrink:0}
-.set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
-.set-cell{background:var(--glass-hi);border:1px solid var(--border-hi);border-radius:12px;padding:9px 11px;transition:border-color .2s,background .2s,transform .2s}
+.ex-muscle{font-size:11.5px;color:var(--muted);font-weight:500;margin-top:1px}
+.ex-meta-right{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:nowrap}
+.ex-sets-total{background:var(--lime-glow);border:1px solid var(--lime);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--lime);white-space:nowrap}
+.ex-status{font-size:9.5px;font-weight:700;color:var(--muted);white-space:nowrap;letter-spacing:.3px}
+.ex-status.done{color:#4ade80}
+.ex-chevron{width:26px;height:26px;border-radius:8px;background:var(--bg3);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--muted);transition:color .2s,background .2s,border-color .2s}
+.ex-chevron svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform .3s var(--ease)}
+.ex-row.ex-open .ex-chevron{background:var(--lime-glow);border-color:var(--lime);color:var(--lime2)}
+.ex-row.ex-open .ex-chevron svg{transform:rotate(180deg)}
+
+.ex-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s var(--ease)}
+.ex-row.ex-open .ex-body{grid-template-rows:1fr}
+.ex-body-inner{overflow:hidden;min-height:0}
+.ex-body-content{padding:2px 0 16px;opacity:0;transition:opacity .25s var(--ease) .05s}
+.ex-row.ex-open .ex-body-content{opacity:1}
+
+.set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.set-cell{background:var(--glass-hi);border:1px solid var(--border-hi);border-radius:12px;padding:10px 12px;transition:border-color .2s,background .2s,transform .2s}
 .set-cell:hover{border-color:#a855f755;background:#a855f70a;transform:translateY(-1px)}
-.set-cell-label{font-size:9.5px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
-.set-reps{font-size:12px;font-weight:600;color:#ddd;margin-bottom:6px}
-.set-weight{display:flex;align-items:center;gap:6px;margin-bottom:7px}
-.set-weight input{
-  width:56px;background:var(--bg4);border:1px solid var(--border-hi);border-radius:7px;
-  color:#fff;font-size:12px;font-weight:600;padding:4px 6px;text-align:center;
+.set-cell-label{font-size:9.5px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.set-field-row{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.set-field-row label{font-size:9.5px;color:var(--muted);font-weight:700;width:34px;flex-shrink:0;text-transform:uppercase;letter-spacing:.3px}
+.set-field-row input{
+  width:100%;min-width:0;background:var(--bg4);border:1px solid var(--border-hi);border-radius:7px;
+  color:#fff;font-size:12px;font-weight:600;padding:5px 6px;text-align:center;
   font-family:inherit;-moz-appearance:textfield;transition:border-color .15s,box-shadow .15s;
 }
-.set-weight input::-webkit-outer-spin-button,.set-weight input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-.set-weight input:focus{outline:none;border-color:var(--lime);box-shadow:0 0 0 3px #a855f733}
-.set-weight span{font-size:10px;color:var(--muted);font-weight:600}
+.set-field-row input::-webkit-outer-spin-button,.set-field-row input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.set-field-row input:focus{outline:none;border-color:var(--lime);box-shadow:0 0 0 3px #a855f733}
+.set-stars-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.set-stars-row .set-cell-hint{font-size:9px;color:var(--dim);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
 .set-stars{font-size:15px;letter-spacing:2px;user-select:none;display:flex;gap:1px}
 .set-stars .star{color:var(--dim);cursor:pointer;transition:color .12s,transform .12s}
 .set-stars .star.filled{color:var(--lime2);text-shadow:0 0 8px #a855f766}
 .set-stars .star:hover{transform:scale(1.2)}
-.set-cell-hint{font-size:9px;color:var(--dim);margin-top:5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+
+.ex-notes{margin-top:12px}
+.ex-notes label{display:block;font-size:9.5px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.ex-notes textarea{
+  width:100%;min-height:52px;resize:vertical;background:var(--glass-hi);border:1px solid var(--border-hi);
+  border-radius:10px;color:#eee;font-size:12.5px;font-family:inherit;padding:9px 11px;line-height:1.5;
+  transition:border-color .15s,box-shadow .15s;
+}
+.ex-notes textarea:focus{outline:none;border-color:var(--lime);box-shadow:0 0 0 3px #a855f733}
 
 .feedback-bar{
   position:sticky;bottom:12px;margin-top:18px;background:rgba(21,15,36,.78);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);
@@ -324,12 +358,12 @@ html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;
   .rec-grid{grid-template-columns:repeat(2,1fr)}
 }
 
-/* Phone — sidebar becomes a full slide-in drawer, hamburger appears */
+/* Phone — sidebar becomes a full slide-in drawer, hamburger always visible */
 @media (max-width:768px){
   .app-shell{padding-left:0}
   .main{margin-left:0 !important}
   .hamburger{display:flex}
-  .sidebar{position:fixed;left:0;top:0;height:100vh;transform:translateX(-100%);width:250px !important}
+  .sidebar{position:fixed;left:0;top:0;height:100vh;height:100dvh;transform:translateX(-100%);width:250px !important;z-index:300}
   .sidebar.mobile-open{transform:translateX(0)}
   .sidebar.collapsed{width:250px}
   .sidebar.collapsed .sb-label,.sidebar.collapsed .sb-brand span,.sidebar.collapsed .sb-progress-wrap,
@@ -344,11 +378,17 @@ html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;
   .dt{width:clamp(80px,26vw,104px)}
   .stats{grid-template-columns:repeat(2,1fr);gap:8px}
   .rec-grid{grid-template-columns:repeat(2,1fr);gap:8px}
-  .set-grid{grid-template-columns:1fr 1fr}
+  .set-grid{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+  .ex-head{flex-wrap:wrap;row-gap:6px}
+  .ex-meta-right{flex-basis:100%;justify-content:flex-start;padding-left:0}
 }
-@media (max-width:420px){
+@media (max-width:480px){
   .stats{grid-template-columns:repeat(2,1fr)}
+  .set-grid{grid-template-columns:1fr 1fr;gap:8px}
+}
+@media (max-width:340px){
   .set-grid{grid-template-columns:1fr}
+  .dt{width:clamp(72px,30vw,92px)}
 }
 </style>
 </head>
@@ -514,39 +554,71 @@ html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;
               <div class="day-toggle">+</div>
             </div>
             <div class="day-body">
-              <div class="warmup-pill"><strong>Warmup:</strong> {{ day.warmup_exercises | join(' · ') }}</div>
-              {% for ex in day.exercises %}
-              <div class="ex-row">
-                <div class="ex-head">
-                  <div>
-                    <div class="ex-name">{{ ex.name }}</div>
-                    <div class="ex-muscle">{{ ex.muscle }}</div>
-                  </div>
-                  <span class="ex-sets-total">{{ ex.sets }} sets</span>
-                </div>
-                <div class="set-grid">
-                  {% for i in range(ex.sets) %}
-                  <div class="set-cell"
-                       data-day-index="{{ day_idx }}"
-                       data-day-name="{{ day.name }}"
-                       data-exercise="{{ ex.name }}"
-                       data-set-number="{{ i + 1 }}">
-                    <div class="set-cell-label">Set {{ i + 1 }}</div>
-                    <div class="set-reps">{{ ex.reps }}</div>
-                    <div class="set-weight">
-                      <input type="number" inputmode="decimal" step="0.5" min="0" class="weight-input" placeholder="0" onclick="event.stopPropagation()">
-                      <span>kg used</span>
+              <div class="day-body-inner">
+                <div class="day-body-content">
+                  <div class="warmup-pill"><strong>Warmup:</strong> {{ day.warmup_exercises | join(' · ') }}</div>
+                  {% for ex in day.exercises %}
+                  {% set ex_idx = loop.index0 %}
+                  <div class="ex-row">
+                    <div class="ex-head" role="button" tabindex="0" aria-expanded="false"
+                         onclick="toggleExercise(this.closest('.ex-row'))"
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleExercise(this.closest('.ex-row'));}">
+                      <div class="ex-head-main">
+                        <div class="ex-name">{{ ex.name }}</div>
+                        <div class="ex-muscle">{{ ex.muscle }}</div>
+                      </div>
+                      <div class="ex-meta-right">
+                        <span class="ex-sets-total">{{ ex.sets }} × {{ ex.reps }}</span>
+                        <span class="ex-status" data-ex-status>0/{{ ex.sets }} logged</span>
+                        <span class="ex-chevron" aria-hidden="true">
+                          <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                        </span>
+                      </div>
                     </div>
-                    <div class="set-stars" data-rating="0" onclick="event.stopPropagation()">
-                      {% for s in range(5) %}<span class="star" data-value="{{ s + 1 }}">★</span>{% endfor %}
+                    <div class="ex-body">
+                      <div class="ex-body-inner">
+                        <div class="ex-body-content">
+                          <div class="set-grid">
+                            {% for i in range(ex.sets) %}
+                            <div class="set-cell"
+                                 data-day-index="{{ day_idx }}"
+                                 data-day-name="{{ day.name }}"
+                                 data-exercise="{{ ex.name }}"
+                                 data-set-number="{{ i + 1 }}">
+                              <div class="set-cell-label">Set {{ i + 1 }}</div>
+                              <div class="set-field-row">
+                                <label>Kg</label>
+                                <input type="number" inputmode="decimal" step="0.5" min="0" class="weight-input" placeholder="0" oninput="updateExerciseStatus(this)">
+                              </div>
+                              <div class="set-field-row">
+                                <label>Reps</label>
+                                <input type="text" inputmode="numeric" class="reps-input" placeholder="{{ ex.reps }}" oninput="updateExerciseStatus(this)">
+                              </div>
+                              <div class="set-field-row">
+                                <label>RPE</label>
+                                <input type="number" inputmode="decimal" step="0.5" min="1" max="10" class="rpe-input" placeholder="–" oninput="updateExerciseStatus(this)">
+                              </div>
+                              <div class="set-stars-row">
+                                <span class="set-cell-hint">Difficulty</span>
+                                <div class="set-stars" data-rating="0">
+                                  {% for s in range(5) %}<span class="star" data-value="{{ s + 1 }}">★</span>{% endfor %}
+                                </div>
+                              </div>
+                            </div>
+                            {% endfor %}
+                          </div>
+                          <div class="ex-notes">
+                            <label for="notes-{{ day_idx }}-{{ ex_idx }}">Notes / comments</label>
+                            <textarea id="notes-{{ day_idx }}-{{ ex_idx }}" class="exercise-notes" placeholder="Optional — form cues, pain, how it felt…"></textarea>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div class="set-cell-hint">Rate difficulty</div>
                   </div>
                   {% endfor %}
+                  <div class="safety-note"><strong>Safety:</strong> {{ day.safety }}</div>
                 </div>
               </div>
-              {% endfor %}
-              <div class="safety-note"><strong>Safety:</strong> {{ day.safety }}</div>
             </div>
           </div>
           {% endif %}
@@ -630,25 +702,34 @@ const sidebar = document.getElementById('sidebar');
 const overlay = document.getElementById('sbOverlay');
 const collapseBtn = document.getElementById('collapseBtn');
 const hamburgerBtn = document.getElementById('hamburgerBtn');
+const docEl = document.documentElement;
 
 // Desktop/tablet: collapse to icon rail
 collapseBtn.addEventListener('click', () => {
   sidebar.classList.toggle('collapsed');
 });
 
-// Mobile: slide-in drawer
+// ── Mobile: slide-in drawer (body-scroll-locked while open, closes on
+// outside click, Escape, menu selection, or resizing past the breakpoint) ──
 function openMobileNav() {
   sidebar.classList.add('mobile-open');
   overlay.classList.add('show');
+  docEl.classList.add('nav-open');
+  hamburgerBtn.setAttribute('aria-expanded', 'true');
 }
 function closeMobileNav() {
   sidebar.classList.remove('mobile-open');
   overlay.classList.remove('show');
+  docEl.classList.remove('nav-open');
+  hamburgerBtn.setAttribute('aria-expanded', 'false');
 }
 hamburgerBtn.addEventListener('click', () => {
   sidebar.classList.contains('mobile-open') ? closeMobileNav() : openMobileNav();
 });
 overlay.addEventListener('click', closeMobileNav);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && sidebar.classList.contains('mobile-open')) closeMobileNav();
+});
 
 // Auto-collapse to icon rail on tablet widths, and always expand on real desktop width.
 // Only acts on genuine band transitions so a manual collapse/expand click within
@@ -681,30 +762,8 @@ document.querySelectorAll('.sb-item').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('sec-' + sec).classList.add('active');
     window.scrollTo({top:0,behavior:'smooth'});
-    if (window.innerWidth <= 768) closeMobileNav();
+    closeMobileNav();
   });
-});
-
-// ── Day strip → jump to Workout tab and open that day ──
-document.getElementById('dayStrip').addEventListener('click', e => {
-  const dt = e.target.closest('.dt');
-  if (!dt) return;
-  document.querySelectorAll('.dt').forEach(d => d.classList.remove('active'));
-  dt.classList.add('active');
-
-  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
-  document.querySelector('.sb-item[data-sec="workout"]').classList.add('active');
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById('sec-workout').classList.add('active');
-
-  const idx = dt.dataset.dayIndex;
-  const card = document.querySelector('.day-card[data-day-index="' + idx + '"]');
-  if (card && !card.classList.contains('rest-day')) {
-    document.querySelectorAll('.day-card.open').forEach(c => { c.classList.remove('open'); setDayBodyHeight(c); });
-    card.classList.add('open');
-    setDayBodyHeight(card);
-    card.scrollIntoView({block:'center',behavior:'smooth'});
-  }
 });
 
 // ── Meal tabs (Diet) ──
@@ -717,21 +776,98 @@ document.getElementById('mealTabs').addEventListener('click', e => {
   document.getElementById('meal-' + tab.dataset.meal).classList.add('active');
 });
 
-// ── Expand/collapse a workout day (precise height for a truly smooth accordion) ──
-function setDayBodyHeight(card) {
-  const body = card.querySelector('.day-body');
-  if (body) body.style.maxHeight = card.classList.contains('open') ? body.scrollHeight + 'px' : '0px';
+/* ══════════ DAY STRIP ⇄ WORKOUT ACCORDION — single source of truth ══════════
+   Both the top day-strip and the accordion below read/write through this one
+   function, so they can never drift out of sync in either direction. */
+function highlightDayStrip(idx, opts) {
+  opts = opts || {};
+  document.querySelectorAll('.dt').forEach(d => {
+    d.classList.toggle('active', d.dataset.dayIndex === String(idx));
+  });
+  if (opts.center !== false) {
+    const activeDt = document.querySelector('.dt[data-day-index="' + idx + '"]');
+    if (activeDt) activeDt.scrollIntoView({ behavior: opts.smooth === false ? 'auto' : 'smooth', inline: 'center', block: 'nearest' });
+  }
 }
+function openDayCard(idx, opts) {
+  opts = opts || {};
+  const card = document.querySelector('.day-card[data-day-index="' + idx + '"]');
+  if (!card || card.classList.contains('rest-day')) return;
+  document.querySelectorAll('.day-card.open').forEach(c => { if (c !== card) c.classList.remove('open'); });
+  card.classList.add('open');
+  highlightDayStrip(idx, { smooth: opts.smooth });
+  if (opts.scrollToCard) card.scrollIntoView({ block: 'center', behavior: opts.smooth === false ? 'auto' : 'smooth' });
+}
+function goToWorkoutTab() {
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.querySelector('.sb-item[data-sec="workout"]').classList.add('active');
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-workout').classList.add('active');
+}
+
+// Top day-strip → jump to Workout tab, open + center that day
+document.getElementById('dayStrip').addEventListener('click', e => {
+  const dt = e.target.closest('.dt');
+  if (!dt) return;
+  const idx = dt.dataset.dayIndex;
+  goToWorkoutTab();
+  openDayCard(idx, { scrollToCard: true });
+});
+
+// Mouse-wheel: let vertical wheel scroll the day-strip horizontally (touch already
+// scrolls natively; this just adds desktop trackpad/wheel support).
+(function () {
+  const strip = document.getElementById('dayStrip');
+  if (!strip) return;
+  strip.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // let native horizontal wheel/trackpad through
+    e.preventDefault();
+    strip.scrollLeft += e.deltaY;
+  }, { passive: false });
+})();
+
+// Accordion below: click a day-card header → toggle it open/closed, and keep
+// the top day-strip's active state (and centering) synced to whichever day is open.
 function toggleDay(card) {
   if (card.classList.contains('rest-day')) return;
+  const idx = card.dataset.dayIndex;
   const isOpen = card.classList.contains('open');
-  document.querySelectorAll('.day-card.open').forEach(c => { c.classList.remove('open'); setDayBodyHeight(c); });
-  if (!isOpen) { card.classList.add('open'); setDayBodyHeight(card); }
+  if (isOpen) {
+    card.classList.remove('open');
+  } else {
+    openDayCard(idx, { scrollToCard: false });
+  }
 }
-window.addEventListener('resize', () => {
-  const openCard = document.querySelector('.day-card.open');
-  if (openCard) setDayBodyHeight(openCard);
-});
+
+// ── Exercise rows: independent expand/collapse (multiple can be open) ──
+function toggleExercise(row) {
+  const open = row.classList.toggle('ex-open');
+  const head = row.querySelector('.ex-head');
+  if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+// Live "X/N logged" completion status per exercise, recalculated from its own set-cells.
+function updateExerciseStatus(fieldEl) {
+  const row = fieldEl.closest('.ex-row');
+  if (row) refreshExerciseStatus(row);
+}
+function refreshExerciseStatus(row) {
+  const statusEl = row.querySelector('[data-ex-status]');
+  if (!statusEl) return;
+  const cells = row.querySelectorAll('.set-cell');
+  let logged = 0;
+  cells.forEach(cell => {
+    const weight = cell.querySelector('.weight-input');
+    const reps = cell.querySelector('.reps-input');
+    const rpe = cell.querySelector('.rpe-input');
+    const stars = cell.querySelector('.set-stars');
+    const rating = stars ? parseInt(stars.dataset.rating || '0', 10) : 0;
+    const touched = (weight && weight.value !== '') || (reps && reps.value !== '') || (rpe && rpe.value !== '') || rating > 0;
+    if (touched) logged++;
+  });
+  statusEl.textContent = logged + '/' + cells.length + ' logged';
+  statusEl.classList.toggle('done', cells.length > 0 && logged === cells.length);
+}
 
 // ── Interactive difficulty stars (per set) ──
 document.querySelectorAll('.set-stars').forEach(group => {
@@ -743,6 +879,7 @@ document.querySelectorAll('.set-stars').forEach(group => {
     group.querySelectorAll('.star').forEach(s => {
       s.classList.toggle('filled', parseInt(s.dataset.value, 10) <= value);
     });
+    updateExerciseStatus(group);
   });
 });
 
@@ -761,10 +898,22 @@ document.querySelectorAll('.set-stars').forEach(group => {
     const entries = [];
     document.querySelectorAll('.set-cell').forEach(cell => {
       const weightInput = cell.querySelector('.weight-input');
+      const repsInput = cell.querySelector('.reps-input');
+      const rpeInput = cell.querySelector('.rpe-input');
       const starsEl = cell.querySelector('.set-stars');
+      const exRow = cell.closest('.ex-row');
+      const notesEl = exRow ? exRow.querySelector('.exercise-notes') : null;
+
       const weight = weightInput && weightInput.value !== '' ? parseFloat(weightInput.value) : null;
+      const repsUsed = repsInput && repsInput.value !== '' ? repsInput.value.trim() : null;
+      const rpe = rpeInput && rpeInput.value !== '' ? parseFloat(rpeInput.value) : null;
       const rating = starsEl ? parseInt(starsEl.dataset.rating || '0', 10) : 0;
-      if (weight === null && rating === 0) return; // skip untouched sets
+      const notes = notesEl && notesEl.value.trim() !== '' ? notesEl.value.trim() : null;
+
+      if (weight === null && repsUsed === null && rpe === null && rating === 0 && notes === null) return; // skip untouched sets
+
+      // Core fields match the existing /api/submit-feedback contract; reps_used/rpe/notes
+      // are additive and safe for the backend to ignore until it's extended to store them.
       entries.push({
         day_index: parseInt(cell.dataset.dayIndex, 10),
         day_name: cell.dataset.dayName,
@@ -772,6 +921,9 @@ document.querySelectorAll('.set-stars').forEach(group => {
         set_number: parseInt(cell.dataset.setNumber, 10),
         weight_kg: weight,
         difficulty: rating || null,
+        reps_used: repsUsed,
+        rpe: rpe,
+        notes: notes,
       });
     });
 
@@ -828,8 +980,8 @@ document.querySelectorAll('.set-stars').forEach(group => {
   if (!card) return;
   card.classList.add('today-card');
   if (!card.classList.contains('rest-day')) {
-    card.classList.add('open');
-    setDayBodyHeight(card);
+    // No scroll/centering on initial load — just open it and mark the strip in sync.
+    openDayCard(idx, { smooth: false, scrollToCard: false });
   }
 })();
 
