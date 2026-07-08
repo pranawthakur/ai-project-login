@@ -650,14 +650,25 @@ hamburgerBtn.addEventListener('click', () => {
 });
 overlay.addEventListener('click', closeMobileNav);
 
-// Auto-collapse sidebar to icon rail on tablet widths on first load
+// Auto-collapse to icon rail on tablet widths, and always expand on real desktop width.
+// Only acts on genuine band transitions so a manual collapse/expand click within
+// the same band (e.g. a deliberate desktop collapse) isn't fought on every resize tick.
+function viewportBand() {
+  const w = window.innerWidth;
+  if (w <= 768) return 'mobile';
+  if (w <= 1024) return 'tablet';
+  return 'desktop';
+}
 function autoCollapseForViewport() {
-  if (window.innerWidth <= 1024 && window.innerWidth > 768) {
-    sidebar.classList.add('collapsed');
-  }
+  const band = viewportBand();
+  if (band === 'tablet') sidebar.classList.add('collapsed');
+  else if (band === 'desktop') sidebar.classList.remove('collapsed');
 }
 autoCollapseForViewport();
+let lastBand = viewportBand();
 window.addEventListener('resize', () => {
+  const band = viewportBand();
+  if (band !== lastBand) { autoCollapseForViewport(); lastBand = band; }
   if (window.innerWidth > 768) closeMobileNav();
 });
 
