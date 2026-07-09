@@ -259,9 +259,11 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
 .set-stars-row{display:flex;align-items:center;gap:8px;margin-top:8px}
 .set-stars-row .set-cell-hint{font-size:9px;color:var(--dim);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
 .set-stars{font-size:15px;letter-spacing:2px;user-select:none;display:flex;gap:1px}
-.set-stars .star{color:var(--dim);cursor:pointer;transition:color .12s,transform .12s}
-.set-stars .star.filled{color:var(--lime2);text-shadow:0 0 8px #a855f766}
-.set-stars .star:hover{transform:scale(1.2)}
+.set-stars .star,.ex-stars .star{color:var(--dim);cursor:pointer;transition:color .12s,transform .12s}
+.set-stars .star.filled,.ex-stars .star.filled{color:var(--lime2);text-shadow:0 0 8px #a855f766}
+.set-stars .star:hover,.ex-stars .star:hover{transform:scale(1.2)}
+.ex-stars{font-size:15px;letter-spacing:2px;user-select:none;display:flex;gap:1px}
+.ex-stars-row{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
 
 .ex-notes{margin-top:12px}
 .ex-notes label{display:block;font-size:9.5px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
@@ -583,18 +585,14 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
                           <label>Reps</label>
                           <input type="text" inputmode="numeric" class="reps-input" placeholder="{{ ex.reps }}" oninput="updateExerciseStatus(this)">
                         </div>
-                        <div class="set-field-row">
-                          <label>RPE</label>
-                          <input type="number" inputmode="decimal" step="0.5" min="1" max="10" class="rpe-input" placeholder="–" oninput="updateExerciseStatus(this)">
-                        </div>
-                        <div class="set-stars-row">
-                          <span class="set-cell-hint">Difficulty</span>
-                          <div class="set-stars" data-rating="0">
-                            {% for s in range(5) %}<span class="star" data-value="{{ s + 1 }}">★</span>{% endfor %}
-                          </div>
-                        </div>
                       </div>
                       {% endfor %}
+                    </div>
+                    <div class="set-stars-row ex-stars-row">
+                      <span class="set-cell-hint">Difficulty (whole exercise)</span>
+                      <div class="ex-stars" data-rating="0">
+                        {% for s in range(5) %}<span class="star" data-value="{{ s + 1 }}">★</span>{% endfor %}
+                      </div>
                     </div>
                     <div class="ex-notes">
                       <label for="notes-{{ day_idx }}-{{ ex_idx }}">Notes / comments</label>
@@ -613,7 +611,7 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
 
         <div class="feedback-bar">
           <div class="feedback-copy">
-            <strong>Done with this week?</strong> Fill in the weight you actually used and rate how hard each set felt, then submit — your next plan gets tuned off this instead of starting from scratch.
+            <strong>Done with this week?</strong> Fill in the weight and reps you actually used, then rate how hard the exercise felt overall — submit, and your next plan gets tuned off this instead of starting from scratch.
           </div>
           <span class="feedback-status" id="feedbackStatus"></span>
           <button class="feedback-submit" id="submitFeedbackBtn">Submit Weekly Feedback</button>
@@ -829,18 +827,15 @@ function refreshExerciseStatus(row) {
   cells.forEach(cell => {
     const weight = cell.querySelector('.weight-input');
     const reps = cell.querySelector('.reps-input');
-    const rpe = cell.querySelector('.rpe-input');
-    const stars = cell.querySelector('.set-stars');
-    const rating = stars ? parseInt(stars.dataset.rating || '0', 10) : 0;
-    const touched = (weight && weight.value !== '') || (reps && reps.value !== '') || (rpe && rpe.value !== '') || rating > 0;
+    const touched = (weight && weight.value !== '') || (reps && reps.value !== '');
     if (touched) logged++;
   });
   statusEl.textContent = logged + '/' + cells.length + ' logged';
   statusEl.classList.toggle('done', cells.length > 0 && logged === cells.length);
 }
 
-// ── Interactive difficulty stars (per set) ──
-document.querySelectorAll('.set-stars').forEach(group => {
+// ── Interactive difficulty stars (one rating per exercise, not per set) ──
+document.querySelectorAll('.ex-stars').forEach(group => {
   group.addEventListener('click', e => {
     const star = e.target.closest('.star');
     if (!star) return;
@@ -849,7 +844,6 @@ document.querySelectorAll('.set-stars').forEach(group => {
     group.querySelectorAll('.star').forEach(s => {
       s.classList.toggle('filled', parseInt(s.dataset.value, 10) <= value);
     });
-    updateExerciseStatus(group);
   });
 });
 
@@ -865,46 +859,54 @@ document.querySelectorAll('.set-stars').forEach(group => {
   if (!btn) return;
 
   btn.addEventListener('click', async () => {
-    const entries = [];
+    // Set-level rows: just weight + reps, one row per set actually filled in.
+    const setEntries = [];
     document.querySelectorAll('.set-cell').forEach(cell => {
       const weightInput = cell.querySelector('.weight-input');
       const repsInput = cell.querySelector('.reps-input');
-      const rpeInput = cell.querySelector('.rpe-input');
-      const starsEl = cell.querySelector('.set-stars');
-      const exRow = cell.closest('.ex-row');
-      const notesEl = exRow ? exRow.querySelector('.exercise-notes') : null;
-
       const weight = weightInput && weightInput.value !== '' ? parseFloat(weightInput.value) : null;
       const repsUsed = repsInput && repsInput.value !== '' ? repsInput.value.trim() : null;
-      const rpe = rpeInput && rpeInput.value !== '' ? parseFloat(rpeInput.value) : null;
-      const rating = starsEl ? parseInt(starsEl.dataset.rating || '0', 10) : 0;
-      const notes = notesEl && notesEl.value.trim() !== '' ? notesEl.value.trim() : null;
+      if (weight === null && repsUsed === null) return; // skip untouched sets
 
-      if (weight === null && repsUsed === null && rpe === null && rating === 0 && notes === null) return; // skip untouched sets
-
-      // Core fields match the existing /api/submit-feedback contract; reps_used/rpe/notes
-      // are additive and safe for the backend to ignore until it's extended to store them.
-      entries.push({
+      setEntries.push({
         day_index: parseInt(cell.dataset.dayIndex, 10),
         day_name: cell.dataset.dayName,
         exercise: cell.dataset.exercise,
         set_number: parseInt(cell.dataset.setNumber, 10),
         weight_kg: weight,
-        difficulty: rating || null,
         reps_used: repsUsed,
-        rpe: rpe,
+      });
+    });
+
+    // Exercise-level rows: one difficulty rating + one notes field per exercise (not per set).
+    const exerciseEntries = [];
+    document.querySelectorAll('.ex-row').forEach(row => {
+      const starsEl = row.querySelector('.ex-stars');
+      const notesEl = row.querySelector('.exercise-notes');
+      const anySetCell = row.querySelector('.set-cell');
+      if (!anySetCell) return;
+
+      const rating = starsEl ? parseInt(starsEl.dataset.rating || '0', 10) : 0;
+      const notes = notesEl && notesEl.value.trim() !== '' ? notesEl.value.trim() : null;
+      if (rating === 0 && notes === null) return; // skip untouched exercises
+
+      exerciseEntries.push({
+        day_index: parseInt(anySetCell.dataset.dayIndex, 10),
+        day_name: anySetCell.dataset.dayName,
+        exercise: anySetCell.dataset.exercise,
+        difficulty: rating || null,
         notes: notes,
       });
     });
 
-    if (entries.length === 0) {
+    if (setEntries.length === 0 && exerciseEntries.length === 0) {
       status.textContent = 'Fill in at least one set first';
       status.className = 'feedback-status err';
       return;
     }
 
     btn.disabled = true;
-    status.textContent = '';
+    status.textContent = 'Saving…';
     status.className = 'feedback-status';
 
     try {
@@ -915,22 +917,36 @@ document.querySelectorAll('.set-stars').forEach(group => {
       );
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Session expired — go back and log in again.');
+      const memberId = session.user.id;
 
-      const res = await fetch('https://ai-project-login-de6g.onrender.com/api/submit-feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ entries }),
-      });
+      // Two tables (see accompanying SQL): workout_set_feedback for per-set
+      // weight/reps, workout_exercise_feedback for the one difficulty rating
+      // + notes per exercise. Both are upserts keyed to this member's id, so
+      // resubmitting the same week just overwrites rather than duplicating.
+      if (setEntries.length > 0) {
+        const { error: setErr } = await supabase
+          .from('workout_set_feedback')
+          .upsert(
+            setEntries.map(e => ({ ...e, member_id: memberId })),
+            { onConflict: 'member_id,day_index,exercise,set_number' }
+          );
+        if (setErr) throw setErr;
+      }
 
-      if (!res.ok) throw new Error('Server returned ' + res.status);
-      const data = await res.json();
-      status.textContent = `✓ Saved ${data.saved} sets`;
+      if (exerciseEntries.length > 0) {
+        const { error: exErr } = await supabase
+          .from('workout_exercise_feedback')
+          .upsert(
+            exerciseEntries.map(e => ({ ...e, member_id: memberId })),
+            { onConflict: 'member_id,day_index,exercise' }
+          );
+        if (exErr) throw exErr;
+      }
+
+      status.textContent = `✓ Saved ${setEntries.length} sets, ${exerciseEntries.length} exercise ratings`;
       status.className = 'feedback-status ok';
     } catch (err) {
-      status.textContent = '✗ ' + err.message;
+      status.textContent = '✗ ' + (err.message || 'Something went wrong');
       status.className = 'feedback-status err';
     } finally {
       btn.disabled = false;
