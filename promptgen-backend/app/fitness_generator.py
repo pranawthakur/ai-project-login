@@ -282,7 +282,7 @@ _ARM_MUSCLES = {"biceps", "triceps"}
 
 # Which compound-library entry heads each big muscle group (squat-pattern only for legs).
 _COMPOUND_HINT = {
-    "legs":      "Leg Press / Hack Squat / Smith Machine Squat / Goblet Squat (squat-pattern ONLY — never a lunge or hinge)",
+    "legs":      "A squat variant ONLY — Hack Squat / Smith Machine Squat / Goblet Squat / Bodyweight Squat / Barbell Back Squat (never a lunge, hinge, or leg press)",
     "back":      "Lat Pulldown / Seated Cable Row / Chest-Supported Machine Row / Assisted Pull-up",
     "chest":     "Machine Chest Press / Incline Dumbbell Press / Flat Dumbbell Press / Smith Machine Bench Press",
     "shoulders": "Machine Shoulder Press / Seated Dumbbell Press / Arnold Press",
@@ -317,6 +317,20 @@ BEGINNER_FIXED_DAY_PLANS = {
     },
 }
 BEGINNER_FIXED_DAY_PLANS["lower"] = BEGINNER_FIXED_DAY_PLANS["legs"]  # "lower" is legs day under some splits
+
+
+# ── Client hard-rule: combined "upper" day exact exercise breakdown ────────
+# Every upper-body day (back + chest + shoulders + biceps + triceps trained
+# together, e.g. the Upper/Lower split used for 4 days/week) must contain
+# EXACTLY: 2 back, 2 chest, 1 shoulder, 1 bicep, 1 triceps — mandatory,
+# for every experience tier (not beginner-only like BEGINNER_FIXED_DAY_PLANS
+# above), so back/chest never get out-prioritized by arm volume the way the
+# old formula-driven/volume-override logic could do.
+UPPER_FIXED_DAY_PLAN = {
+    "muscles": ["back", "chest", "shoulders", "biceps", "triceps"],
+    "compound_muscles": ["back", "chest"],
+    "isolation_by_muscle": {"back": 1, "chest": 1, "shoulders": 1, "biceps": 1, "triceps": 1},
+}
 
 
 def _parse_low_int(val, default: int) -> int:
@@ -399,6 +413,26 @@ def _compute_day_plan(
         tier-independent isolation floors (back 3, chest 3, shoulders 2,
         biceps 2, triceps 2) so no muscle group can silently vanish.
     """
+    # ── Combined "upper" day uses a fixed, explicit distribution per client
+    # hard-rule (see UPPER_FIXED_DAY_PLAN above) — applies to EVERY
+    # experience tier, unlike BEGINNER_FIXED_DAY_PLANS below, and takes
+    # priority over both the beginner fixed plans and the generic
+    # formula-driven/volume-override logic further down (including the
+    # muscle_frequency override), so back/chest counts can never be
+    # squeezed out by arm-floor borrowing or weekly-volume math.
+    if token == "upper":
+        fixed = UPPER_FIXED_DAY_PLAN
+        isolation_by_muscle = dict(fixed["isolation_by_muscle"])
+        total = len(fixed["compound_muscles"]) + sum(isolation_by_muscle.values())
+        return {
+            "muscles": list(fixed["muscles"]),
+            "compound_count": len(fixed["compound_muscles"]),
+            "compound_muscles": list(fixed["compound_muscles"]),
+            "isolation_by_muscle": isolation_by_muscle,
+            "total_exercises": total,
+            "no_trim": True,  # exact by design — session-duration cap must not touch this
+        }
+
     # ── Beginner Push/Pull/Legs (and "lower" alias) use a fixed, explicit
     # distribution per client hard-rule (see BEGINNER_FIXED_DAY_PLANS above)
     # instead of any of the generic logic below — no round-robin, no
@@ -576,20 +610,6 @@ def _render_day_plan_table(
     must obey verbatim — no math left for the model to do.
     """
     muscle_frequency = _muscle_frequency(sequence, exp_key)
-
-    # ── MANDATORY SQUAT-PATTERN FALLBACK ────────────────────────────────────
-    # Even a split that never dedicates a day to "legs"/"lower" (e.g. an
-    # all-"upper" 4x/week template) must still include ONE squat-pattern lift
-    # somewhere in the week. Detect that case up front and inject the squat
-    # compound into the FIRST non-rest, non-cardio lifting day only.
-    trained_muscles_this_week = set()
-    for tok in sequence:
-        if tok == "rest" or tok in NO_LIFTING_TOKENS:
-            continue
-        trained_muscles_this_week.update(TOKEN_MUSCLE_MAP.get(tok, []))
-    needs_squat_fallback = "legs" not in trained_muscles_this_week
-    squat_already_inserted = False
-
     lines = []
     for idx, token in enumerate(sequence, start=1):
         if token == "rest":
@@ -606,18 +626,7 @@ def _render_day_plan_table(
             token, vol, exp_key,
             goal=goal, muscle_frequency=muscle_frequency, session_minutes=session_minutes,
         )
-        insert_squat_here = needs_squat_fallback and not squat_already_inserted
-        if insert_squat_here:
-            squat_already_inserted = True
-            plan = dict(plan)
-            plan["total_exercises"] = plan["total_exercises"] + 1
         parts = []
-        if insert_squat_here:
-            parts.append(
-                "1× COMPOUND for LEGS [Leg Press / Hack Squat / Smith Machine Squat / "
-                "Goblet Squat (squat-pattern ONLY — never a lunge or hinge)] "
-                "(MANDATORY — no dedicated leg day this week, this is the client's only squat-pattern work)"
-            )
         # compounds first (largest big group's compound first). Some day
         # types (e.g. beginner push/pull/legs) specify EXACTLY which
         # muscle(s) get a compound via plan["compound_muscles"] rather than

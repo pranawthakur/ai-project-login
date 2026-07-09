@@ -634,25 +634,26 @@ def _decide_master(training_age_yrs: float, days: int, goals: dict) -> dict:
     if days <= 2:
         return _cycle_split("full_body", max(days, 1))          # §2: Minimalist 2-Day Full Body
 
+    # Client hard-rule: exactly 3 training days/week always gets PPL,
+    # regardless of training age or goal signals (overrides the doc's
+    # Full-Body-A/B/C-for-<1yr and Full-Body-if-strength-focused branches).
     if days == 3:
-        if training_age_yrs < 1:
-            return _cycle_split("full_body", 3)                  # Full Body A/B/C
-        if goals["strength"]:
-            return _cycle_split("full_body", 3)                  # "Full Body (if strength-focused)"
-        return _cycle_split("ppl", 3)                             # PPL (3-day)
+        return _cycle_split("ppl", 3)                             # PPL (3-day) — mandatory per client rule
 
     if days == 4:
         if goals["strength"]:
             return _cycle_split("compound_strength", 4)          # Squat/Bench/Deadlift 4-day
-        return _cycle_split("upper_lower", 4)                     # Upper/Lower (hypertrophy default)
+        return _cycle_split("upper_lower", 4)                     # Upper/Lower ("bro split", hypertrophy default)
 
     if days == 5:
         if training_age_yrs >= 5 and goals["priority"]:
             return _cycle_split("bro_split", 5)                   # explicit specialization signal only
         return _cycle_split("ppl_upper_lower_hybrid", 5)          # default for <2yr and >=2yr hypertrophy alike
 
+    # Client hard-rule: exactly 6 training days/week always gets PPL
+    # (push/pull/legs cycled twice), not the PPL x2 heavy/volume variant.
     if days == 6:
-        return _cycle_split("ppl_x2", 6)                          # PPL x2 (6-day) — standard int-adv
+        return _cycle_split("ppl", 6)                              # PPL (6-day) — mandatory per client rule
 
     # days >= 7 — hardwired: never program 7 hard days for a natural lifter.
     six_day = _cycle_split("ppl_x2", 6)

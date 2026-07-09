@@ -97,8 +97,15 @@ def _parse_available_equipment(equipment_raw: str) -> set:
 
 EXERCISE_DB = {
     "legs": {
+        # Every entry here is a literal squat variant BY NAME (not just
+        # squat-pattern) per client hard-rule: "one kind of squat is
+        # mandatory on leg day". select_day_exercises() always draws the
+        # day's one mandatory legs compound from this pool, so whichever
+        # option equipment/injury filtering leaves standing is guaranteed
+        # to be a squat. "Leg Press" is squat-pattern but not squat-named,
+        # so it lives in isolation below instead — it can still appear as
+        # bonus leg volume, just never as the ONLY compound movement.
         "compound": [
-            {"name": "Leg Press",                 "requires": "Leg press",                 "cue": "Full range, don't lock knees out at top"},
             {"name": "Hack Squat Machine",         "requires": "Hack squat machine",         "cue": "Controlled descent, drive through heels"},
             {"name": "Smith Machine Squat",        "requires": "Smith machine",              "cue": "Bar path vertical, brace core throughout"},
             {"name": "Goblet Squat",               "requires": "Dumbbells",                  "cue": "Elbows inside knees at bottom, chest tall"},
@@ -106,6 +113,7 @@ EXERCISE_DB = {
             {"name": "Barbell Back Squat",         "requires": ("Squat rack", "Power rack / cage"), "cue": "Brace core, hips and knees break together, use safety pins/spotter if available", "contraindicated_for": ("knee", "lower back", "hip", "spine")},
         ],
         "isolation": [
+            {"name": "Leg Press",                 "requires": "Leg press",                 "cue": "Full range, don't lock knees out at top"},
             {"name": "Leg Extension",              "requires": "Leg extension machine",      "cue": "Squeeze quads 1 sec at top", "contraindicated_for": ("knee",)},
             {"name": "Seated Leg Curl",             "requires": "Leg curl machine",           "cue": "Controlled negative, no swinging"},
             {"name": "Lying Leg Curl",              "requires": "Leg curl machine",           "cue": "Full stretch at bottom"},
