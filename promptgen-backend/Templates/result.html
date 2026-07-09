@@ -1026,7 +1026,17 @@ window.addEventListener('load', () => {
     .from('.topbar', { y: -12, opacity: 0, duration: .4 }, '-=.35')
     .from('.day-strip .dt', { y: 10, opacity: 0, duration: .4, stagger: .04 }, '-=.25')
     .from('#sec-overview .sc', { y: 14, opacity: 0, duration: .45, stagger: .06 }, '-=.2')
-    .from('#sec-overview .card', { y: 14, opacity: 0, duration: .45 }, '-=.25');
+    .from('#sec-overview .card', { y: 14, opacity: 0, duration: .45 }, '-=.25')
+    .eventCallback('onComplete', () => {
+      // GSAP's .from() leaves inline transform/opacity on these elements after
+      // the tween finishes. Inline styles beat CSS class selectors, so on mobile
+      // that leftover inline transform can fight the .mobile-open drawer class
+      // (and the .collapsed rail class) and make the sidebar appear stuck /
+      // not actually visible even though its overlay shows. Clear GSAP's own
+      // inline styles once the intro is done so the CSS classes fully control
+      // the sidebar again for the rest of the page's life.
+      gsap.set('.sidebar', { clearProps: 'transform,opacity' });
+    });
 });
 
 // Lucide icon set init (safe no-op if the CDN script hasn't attached yet)
