@@ -836,10 +836,14 @@ function toggleExercise(row) {
 }
 
 // Live "X/N logged" completion status per exercise, recalculated from its own set-cells.
+// Note: this only refreshes the small logged-count badge as you type. The
+// reps-vs-target progress bars (sidebar, day-strip, weekly split) are
+// intentionally NOT recalculated here anymore — they only update when you
+// click "Submit Weekly Feedback", so the bar reflects your last submitted
+// state rather than jumping around mid-typing.
 function updateExerciseStatus(fieldEl) {
   const row = fieldEl.closest('.ex-row');
   if (row) refreshExerciseStatus(row);
-  computeAndRenderProgress();
 }
 function refreshExerciseStatus(row) {
   const statusEl = row.querySelector('[data-ex-status]');
@@ -870,31 +874,39 @@ function parseReps(val) {
   return single ? parseFloat(single[1]) : null;
 }
 
-// Overall progress: for every set with an actual reps value entered AND a
-// numeric recommended-reps target, sum both sides and compare — this shows
-// whether the user is under or over the plan's target, not just "did they
-// type something in". Sidebar bar = whole plan; each day-strip pill's own
-// bar = just that day. Recalculated on every keystroke in a reps field (via
-// updateExerciseStatus above) and once on load after saved data is pulled
-// in from Supabase.
+// Overall progress: for every set with a numeric recommended-reps target,
+// sum the WHOLE DAY's target reps (every set, touched or not) vs whatever
+// has actually been logged — this shows real progress through the day's
+// full workout, not just whichever single set happens to have a value.
+// Sidebar bar = whole plan; each day-strip pill's own bar = just that day.
+// Recalculated once on load (after saved data is pulled in from Supabase)
+// and again only after a successful "Submit Weekly Feedback" — not on
+// every keystroke — so the bar reflects your last submitted state.
 function computeAndRenderProgress() {
   const perDay = {};
   let recAll = 0, actAll = 0, anyAll = false;
 
   document.querySelectorAll('.set-cell').forEach(cell => {
-    const repsInput = cell.querySelector('.reps-input');
-    const actual = repsInput ? parseReps(repsInput.value) : null;
     const recommended = parseReps(cell.dataset.recommendedReps);
-    if (actual === null || recommended === null || recommended <= 0) return;
+    if (recommended === null || recommended <= 0) return; // no valid target for this set at all
+
+    // Every set in the day counts toward the day's total target, whether or
+    // not the user has logged it yet. Only the ACTUAL side is 0 for
+    // untouched sets. This is what makes the bar reflect the whole day's
+    // workout instead of just whichever single set happens to be filled in.
+    const repsInput = cell.querySelector('.reps-input');
+    const rawVal = repsInput ? repsInput.value.trim() : '';
+    const touched = rawVal !== '';
+    const actual = touched ? (parseReps(rawVal) || 0) : 0;
 
     const di = cell.dataset.dayIndex;
     if (!perDay[di]) perDay[di] = { rec: 0, act: 0, any: false };
     perDay[di].rec += recommended;
     perDay[di].act += actual;
-    perDay[di].any = true;
+    if (touched) perDay[di].any = true;
     recAll += recommended;
     actAll += actual;
-    anyAll = true;
+    if (touched) anyAll = true;
   });
 
   renderProgressBar(
@@ -1144,6 +1156,7 @@ document.querySelectorAll('.ex-stars').forEach(group => {
 
       status.textContent = `✓ Saved ${setEntries.length} sets, ${exerciseEntries.length} exercise ratings`;
       status.className = 'feedback-status ok';
+      computeAndRenderProgress(); // bars only refresh on a successful submit, not while typing
     } catch (err) {
       status.textContent = '✗ ' + (err.message || 'Something went wrong');
       status.className = 'feedback-status err';
