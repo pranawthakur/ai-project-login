@@ -576,6 +576,20 @@ def _render_day_plan_table(
     must obey verbatim — no math left for the model to do.
     """
     muscle_frequency = _muscle_frequency(sequence, exp_key)
+
+    # ── MANDATORY SQUAT-PATTERN FALLBACK ────────────────────────────────────
+    # Even a split that never dedicates a day to "legs"/"lower" (e.g. an
+    # all-"upper" 4x/week template) must still include ONE squat-pattern lift
+    # somewhere in the week. Detect that case up front and inject the squat
+    # compound into the FIRST non-rest, non-cardio lifting day only.
+    trained_muscles_this_week = set()
+    for tok in sequence:
+        if tok == "rest" or tok in NO_LIFTING_TOKENS:
+            continue
+        trained_muscles_this_week.update(TOKEN_MUSCLE_MAP.get(tok, []))
+    needs_squat_fallback = "legs" not in trained_muscles_this_week
+    squat_already_inserted = False
+
     lines = []
     for idx, token in enumerate(sequence, start=1):
         if token == "rest":
@@ -592,7 +606,18 @@ def _render_day_plan_table(
             token, vol, exp_key,
             goal=goal, muscle_frequency=muscle_frequency, session_minutes=session_minutes,
         )
+        insert_squat_here = needs_squat_fallback and not squat_already_inserted
+        if insert_squat_here:
+            squat_already_inserted = True
+            plan = dict(plan)
+            plan["total_exercises"] = plan["total_exercises"] + 1
         parts = []
+        if insert_squat_here:
+            parts.append(
+                "1× COMPOUND for LEGS [Leg Press / Hack Squat / Smith Machine Squat / "
+                "Goblet Squat (squat-pattern ONLY — never a lunge or hinge)] "
+                "(MANDATORY — no dedicated leg day this week, this is the client's only squat-pattern work)"
+            )
         # compounds first (largest big group's compound first). Some day
         # types (e.g. beginner push/pull/legs) specify EXACTLY which
         # muscle(s) get a compound via plan["compound_muscles"] rather than
