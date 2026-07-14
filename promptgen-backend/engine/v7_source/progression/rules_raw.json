@@ -1,0 +1,27 @@
+{
+  "17_Periodization_and_AI_Decision_Engine.md": [
+    "**What:** Volume high/intensity low at start of block, inverse trend across weeks toward a peak.",
+    "**Who:** Beginners-intermediates; single-goal blocks (e.g., pure strength peak).",
+    "**When to use:** Contest prep, off-season base building, clients needing simple-to-follow progression logic.",
+    "**When not:** Multi-goal concurrent training, elite athletes needing simultaneous quality maintenance across qualities.",
+    "**AI Rule:** `IF training_age < 12 months THEN default to linear periodization within each mesocycle (simpler autoregulation burden).`",
+    "**What:** Rep ranges/intensity vary session-to-session or week-to-week rather than block-to-block.",
+    "**Who:** Intermediate-advanced lifters, hypertrophy+strength concurrent goals.",
+    "**When to use:** 3+ sessions/week for same pattern, plateau-breaking, variety-driven adherence.",
+    "**When not:** True beginners (too much simultaneous variable management), fatigue-management-priority clients (orange/yellow tier).",
+    "**AI Rule:** `IF confidence_tier == \"green\" AND training_age >= 12 months AND frequency_per_pattern >= 2 THEN prefer daily undulating over linear.`",
+    "**What:** Sequential blocks each targeting one quality (accumulation \u2192 intensification \u2192 realization/peak).",
+    "**Who:** Advanced lifters, competitive powerlifters/Olympic lifters.",
+    "**When to use:** Pre-competition cycles, advanced trainees with well-established base.",
+    "**When not:** General fitness clients, beginners, clients without a competition/peaking date driving the plan.",
+    "**AI Rule:** `IF client.goals.primary in [\"powerlifting\",\"olympic_lifting\"] AND client.goals.target_date is not null AND training_age >= 24 months THEN offer block periodization option.`",
+    "**What:** Rotating exercise variation on \"max-effort\" day while maintaining volume on \"dynamic/repetition effort\" days.",
+    "**Who:** Advanced lifters seeking to manage staleness on primary lifts without abandoning specificity entirely.",
+    "**AI Rule:** `IF client.training_age >= 36 months AND client.goals.primary == \"powerlifting\" AND client reports staleness/plateau on main lift THEN offer max-effort-variant rotation for that lift only, not full conjugate system overhaul.`",
+    "**Caution:** True conjugate (Westside-style) programming requires dense coaching oversight; the AI should offer a simplified variant-rotation version, not a full autoregulated conjugate system, unless coach override (file 14 Section 2.3) explicitly requests it.",
+    "**What:** Using bar-speed thresholds to autoregulate load/set termination instead of fixed %1RM.",
+    "**Who:** Advanced lifters with velocity-tracking equipment access.",
+    "**AI Rule:** `IF client.equipment.available contains \"velocity_tracker\" AND training_age >= 24 months THEN offer VBT autoregulation option, else default to RPE/RIR-based autoregulation (file 2).`",
+    "**Velocity Loss Cutoffs (general guidance):** Stop set at 20-25% velocity loss for hypertrophy-biased work, 10-15% for strength/power-biased work to preserve bar speed qualities."
+  ]
+}

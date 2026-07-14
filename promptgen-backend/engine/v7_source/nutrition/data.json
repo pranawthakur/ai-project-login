@@ -1,0 +1,177 @@
+{
+  "15_Supplement_Safety_and_Interaction_Engine.md": [
+    {
+      "columns": [
+        "Supplement",
+        "Typical Evidence-Based Range",
+        "Notes for System Output"
+      ],
+      "rows": [
+        {
+          "Supplement": "Whey/casein/plant protein powder",
+          "Typical Evidence-Based Range": "Contributes to daily protein target (file 2/7 Morton et al. 2018 ranges)",
+          "Notes for System Output": "Position as food-gap filler, not mandatory; flag lactose intolerance before recommending whey"
+        },
+        {
+          "Supplement": "Creatine monohydrate",
+          "Typical Evidence-Based Range": "3\u20135g/day, ongoing (loading phase optional, not required)",
+          "Notes for System Output": "Recommend consistent daily timing; note mild water retention is expected/benign; contraindicated if `medical_conditions` includes kidney disease \u2014 route to `medical_clearance_required` first"
+        },
+        {
+          "Supplement": "Caffeine (via coffee or standalone)",
+          "Typical Evidence-Based Range": "Pre-training only, general population range",
+          "Notes for System Output": "Flag if client reports anxiety/sleep issues or hypertension (file 12 Sec 4) \u2014 reduce/avoid; never stack with other stimulant pre-workouts without disclosure"
+        },
+        {
+          "Supplement": "Electrolytes (sodium/potassium/magnesium blends)",
+          "Typical Evidence-Based Range": "As needed with heat/heavy sweat loss or fasted training",
+          "Notes for System Output": "Straightforward, low risk"
+        },
+        {
+          "Supplement": "Vitamin D",
+          "Typical Evidence-Based Range": "Only with disclosed deficiency or limited sun exposure",
+          "Notes for System Output": "System should recommend testing/physician guidance rather than blind supplementation"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Supplement",
+        "Condition for Recommendation",
+        "Flag/Caution"
+      ],
+      "rows": [
+        {
+          "Supplement": "Multi-ingredient pre-workout",
+          "Condition for Recommendation": "Only if client has no cardiovascular/anxiety/sleep flags",
+          "Flag/Caution": "Contains stacked stimulants \u2014 never recommend alongside separate caffeine intake without total-dose awareness note"
+        },
+        {
+          "Supplement": "Beta-alanine",
+          "Condition for Recommendation": "Endurance/high-rep hypertrophy goals",
+          "Flag/Caution": "Harmless paresthesia (tingling) \u2014 inform client this is expected, not a reaction requiring stopping"
+        },
+        {
+          "Supplement": "Omega-3 (fish oil)",
+          "Condition for Recommendation": "General health, joint support goals",
+          "Flag/Caution": "Flag if on blood thinners (file 12 Section 5) \u2014 `bruising_bleeding_risk` overlaps, recommend physician check"
+        },
+        {
+          "Supplement": "ZMA / Magnesium-heavy blends",
+          "Condition for Recommendation": "Sleep-support goals only",
+          "Flag/Caution": "Avoid stacking with other magnesium sources to prevent GI distress"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Category",
+        "System Behavior"
+      ],
+      "rows": [
+        {
+          "Category": "Fat-burner/thermogenic stacks (unregulated stimulant blends)",
+          "System Behavior": "Do not recommend; if client asks, provide general caution about unregulated stimulant content and unverified label accuracy, redirect to Tier 1 approach (protein + deficit + activity)"
+        },
+        {
+          "Category": "SARMs, prohormones, unregulated \"research chemicals\"",
+          "System Behavior": "Do not recommend, do not provide dosing information under any framing; state these are unregulated/unapproved for general use and carry unstudied risk; recommend physician consultation if client is already using them"
+        },
+        {
+          "Category": "Anabolic-androgenic steroids",
+          "System Behavior": "System does not provide dosing, cycling, or PCT (post-cycle therapy) protocols under any framing, including \"harm reduction.\" If client discloses current use, system should: (a) not judge or refuse basic training/nutrition support, (b) flag for coach awareness (`anabolic_use_disclosed`), (c) recommend physician-supervised bloodwork monitoring, (d) not adjust programming to assume enhanced recovery without explicit coach override"
+        },
+        {
+          "Category": "Injectable peptides (GH secretagogues, BPC-157, etc.)",
+          "System Behavior": "Same treatment as steroids \u2014 no dosing/protocol guidance, flag and recommend physician oversight"
+        },
+        {
+          "Category": "Ayurvedic/\"proprietary blend\" mass gainers with undisclosed ingredient amounts",
+          "System Behavior": "Caution that undisclosed proprietary blends prevent safe interaction checking; recommend products with full label transparency instead"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Supplement",
+        "Conflicting Medication/Condition",
+        "Flag"
+      ],
+      "rows": [
+        {
+          "Supplement": "Creatine",
+          "Conflicting Medication/Condition": "Kidney disease (disclosed)",
+          "Flag": "`medical_clearance_required` before recommending"
+        },
+        {
+          "Supplement": "Caffeine/stimulant pre-workout",
+          "Conflicting Medication/Condition": "Hypertension, anxiety disorder, beta-blockers",
+          "Flag": "Reduce/avoid, `stimulant_caution`"
+        },
+        {
+          "Supplement": "Omega-3 (high dose)",
+          "Conflicting Medication/Condition": "Blood thinners",
+          "Flag": "`bruising_bleeding_risk` \u2014 physician check before starting"
+        },
+        {
+          "Supplement": "High-dose magnesium",
+          "Conflicting Medication/Condition": "Kidney disease",
+          "Flag": "Avoid without physician guidance"
+        },
+        {
+          "Supplement": "Any stimulant-containing product",
+          "Conflicting Medication/Condition": "Pregnancy",
+          "Flag": "Avoid entirely per file 12 Section 4 pregnancy constraints"
+        },
+        {
+          "Supplement": "Beta-alanine / niacin-containing products",
+          "Conflicting Medication/Condition": "None significant",
+          "Flag": "Informational flushing/tingling note only"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Edge Case",
+        "Rule"
+      ],
+      "rows": [
+        {
+          "Edge Case": "Client asks for steroid cycle/PCT advice directly",
+          "Rule": "Decline to provide protocol; give the Section 3 physician-referral response; do not lecture repeatedly if client persists, restate once and redirect to what the system can help with"
+        },
+        {
+          "Edge Case": "Client already mid-cycle and wants training adjusted \"to match\"",
+          "Rule": "Do not proactively adjust volume/intensity assumptions for assumed enhanced recovery; log `anabolic_use_disclosed`, offer standard evidence-based programming, flag for coach awareness"
+        },
+        {
+          "Edge Case": "Client under 18 asks about any Tier 2/3 supplement",
+          "Rule": "Default to Tier 1 only recommendations; Tier 2/3 requires guardian/coach involvement given age overlay (file 12 Section 8)"
+        },
+        {
+          "Edge Case": "Pregnant client asks about supplements",
+          "Rule": "Route entirely through file 12 Section 4 pregnancy constraints first; only Tier 1 electrolytes/vitamin D (with physician guidance) are ever considered, everything else deferred to physician"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Symptom",
+        "Cause",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Symptom": "System recommending pre-workout to flagged hypertensive client",
+          "Cause": "Interaction matrix not queried before Tier 1/2 recommendation",
+          "Fix": "Enforce Section 4 lookup before any stimulant-containing suggestion"
+        },
+        {
+          "Symptom": "Client stacking 4+ new supplements at once with unclear symptom source",
+          "Cause": "No staggered-introduction guidance given",
+          "Fix": "Apply Section 5 reintroduction logic"
+        }
+      ]
+    }
+  ]
+}

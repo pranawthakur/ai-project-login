@@ -1,0 +1,273 @@
+[
+  {
+    "_injury_safety_note": "Some exercises were excluded or reduced today because you flagged: shoulder. If this is inaccurate, update your intake notes; if the area is still symptomatic, check with a coach or doctor before pushing load through it.",
+    "exercises": [
+      {
+        "muscle": "Back",
+        "name": "Assisted Pull-up",
+        "reps": "6\u201312 reps",
+        "rest": "60\u2013120s",
+        "sets": 4,
+        "tempo_or_cue": "Full hang at bottom, chin over bar"
+      },
+      {
+        "muscle": "Chest",
+        "name": "Smith Machine Bench Press",
+        "reps": "6\u201312 reps",
+        "rest": "60\u2013120s",
+        "sets": 4,
+        "tempo_or_cue": "Controlled tempo, bar path straight"
+      },
+      {
+        "muscle": "Back",
+        "name": "Machine Rear Delt Fly (targets upper back)",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Squeeze shoulder blades together"
+      },
+      {
+        "muscle": "Chest",
+        "name": "Incline Dumbbell Fly",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Slow negative, don't overstretch shoulders"
+      },
+      {
+        "muscle": "Triceps",
+        "name": "Overhead Cable Triceps Extension",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Elbows stay close to head"
+      },
+      {
+        "muscle": "Shoulders",
+        "name": "Reverse Pec Deck (rear delt)",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Squeeze rear delts, controlled tempo"
+      },
+      {
+        "muscle": "Biceps",
+        "name": "Cable Bicep Curl",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Controlled, no swinging"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Controlled tempo throughout, full range of motion, stop a rep short of failure if form breaks down.",
+    "warmup_exercises": [
+      "5 min incline treadmill walk",
+      "20\u00d7 arm circles",
+      "15\u00d7 shoulder rotations each side",
+      "10\u00d7 band pull-aparts",
+      "10\u00d7 cat-cow neck rolls"
+    ]
+  },
+  {
+    "is_rest": true
+  },
+  {
+    "_injury_safety_note": "Some exercises were excluded or reduced today because you flagged: shoulder. If this is inaccurate, update your intake notes; if the area is still symptomatic, check with a coach or doctor before pushing load through it.",
+    "_validation": {
+      "rejected": [],
+      "repairs": [],
+      "warnings": [
+        "calves: duplicate 'calf_raise' pattern on Bodyweight Calf Raise \u2014 no alternative pattern available in pool, kept as-is"
+      ]
+    },
+    "exercises": [
+      {
+        "muscle": "Legs",
+        "name": "Hack Squat Machine",
+        "reps": "6\u201312 reps",
+        "rest": "60\u2013120s",
+        "sets": 4,
+        "tempo_or_cue": "Controlled descent, drive through heels"
+      },
+      {
+        "muscle": "Legs",
+        "name": "Seated Leg Curl",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Controlled negative, no swinging"
+      },
+      {
+        "muscle": "Legs",
+        "name": "Leg Extension",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Squeeze quads 1 sec at top"
+      },
+      {
+        "muscle": "Calves",
+        "name": "Leg Press Calf Raise",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Toes on platform edge, full stretch"
+      },
+      {
+        "muscle": "Calves",
+        "name": "Bodyweight Calf Raise",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Full range each rep, no bouncing"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Keep knees tracking over toes, chest up, controlled descent on every rep.",
+    "warmup_exercises": [
+      "5 min stationary bike",
+      "20\u00d7 bodyweight squats",
+      "15\u00d7 leg swings each leg",
+      "10\u00d7 hip circles each side",
+      "10\u00d7 ankle circles each side"
+    ]
+  },
+  {
+    "is_rest": true
+  },
+  {
+    "is_rest": true
+  },
+  {
+    "_injury_safety_note": "Some exercises were excluded or reduced today because you flagged: shoulder. If this is inaccurate, update your intake notes; if the area is still symptomatic, check with a coach or doctor before pushing load through it.",
+    "exercises": [
+      {
+        "muscle": "Back",
+        "name": "Assisted Pull-up",
+        "reps": "6\u201312 reps",
+        "rest": "60\u2013120s",
+        "sets": 4,
+        "tempo_or_cue": "Full hang at bottom, chin over bar"
+      },
+      {
+        "muscle": "Chest",
+        "name": "Smith Machine Bench Press",
+        "reps": "6\u201312 reps",
+        "rest": "60\u2013120s",
+        "sets": 4,
+        "tempo_or_cue": "Controlled tempo, bar path straight"
+      },
+      {
+        "muscle": "Back",
+        "name": "Straight-Arm Cable Pulldown",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Slight elbow bend, squeeze lats"
+      },
+      {
+        "muscle": "Chest",
+        "name": "Cable Chest Fly",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Slight bend in elbow, squeeze at center"
+      },
+      {
+        "muscle": "Triceps",
+        "name": "Cable Triceps Pushdown",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Elbows pinned, full extension"
+      },
+      {
+        "muscle": "Shoulders",
+        "name": "Cable Lateral Raise",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Lead with elbow, no swinging"
+      },
+      {
+        "muscle": "Biceps",
+        "name": "Band Bicep Curl",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Constant tension throughout"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Controlled tempo throughout, full range of motion, stop a rep short of failure if form breaks down.",
+    "warmup_exercises": [
+      "5 min incline treadmill walk",
+      "20\u00d7 arm circles",
+      "15\u00d7 shoulder rotations each side",
+      "10\u00d7 band pull-aparts",
+      "10\u00d7 cat-cow neck rolls"
+    ]
+  },
+  {
+    "_injury_safety_note": "Some exercises were excluded or reduced today because you flagged: shoulder. If this is inaccurate, update your intake notes; if the area is still symptomatic, check with a coach or doctor before pushing load through it.",
+    "_validation": {
+      "rejected": [],
+      "repairs": [],
+      "warnings": [
+        "calves: duplicate 'calf_raise' pattern on Single-Leg Calf Raise (dumbbell) \u2014 no alternative pattern available in pool, kept as-is"
+      ]
+    },
+    "exercises": [
+      {
+        "muscle": "Legs",
+        "name": "Barbell Back Squat",
+        "reps": "6\u201312 reps",
+        "rest": "60\u2013120s",
+        "sets": 4,
+        "tempo_or_cue": "Brace core, hips and knees break together, use safety pins/spotter if available"
+      },
+      {
+        "muscle": "Legs",
+        "name": "Leg Press",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Full range, don't lock knees out at top"
+      },
+      {
+        "muscle": "Legs",
+        "name": "Walking Lunge (bodyweight)",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Controlled tempo, knee tracks over toes"
+      },
+      {
+        "muscle": "Calves",
+        "name": "Leg Press Calf Raise",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Toes on platform edge, full stretch"
+      },
+      {
+        "muscle": "Calves",
+        "name": "Single-Leg Calf Raise (dumbbell)",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Slow negative, hold top 1 sec"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Keep knees tracking over toes, chest up, controlled descent on every rep.",
+    "warmup_exercises": [
+      "5 min stationary bike",
+      "20\u00d7 bodyweight squats",
+      "15\u00d7 leg swings each leg",
+      "10\u00d7 hip circles each side",
+      "10\u00d7 ankle circles each side"
+    ]
+  }
+]

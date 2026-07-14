@@ -1,0 +1,269 @@
+[
+  {
+    "exercises": [
+      {
+        "muscle": "Back",
+        "name": "Single-Arm Dumbbell Row",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Flat back, pull elbow past torso"
+      },
+      {
+        "muscle": "Chest",
+        "name": "Incline Dumbbell Press",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Elbows ~45\u00b0, control the negative"
+      },
+      {
+        "muscle": "Back",
+        "name": "Dumbbell Pullover",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Controlled stretch overhead, ribcage down"
+      },
+      {
+        "muscle": "Chest",
+        "name": "Push-Up (feet elevated)",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Full range, controlled tempo"
+      },
+      {
+        "muscle": "Triceps",
+        "name": "Band Triceps Pushdown",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Constant tension, controlled negative"
+      },
+      {
+        "muscle": "Shoulders",
+        "name": "Band Lateral Raise",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Constant tension, no jerking"
+      },
+      {
+        "muscle": "Biceps",
+        "name": "Hammer Curl (dumbbell)",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Neutral grip, controlled tempo"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Controlled tempo throughout, full range of motion, stop a rep short of failure if form breaks down.",
+    "warmup_exercises": [
+      "5 min incline treadmill walk",
+      "20\u00d7 arm circles",
+      "15\u00d7 shoulder rotations each side",
+      "10\u00d7 band pull-aparts",
+      "10\u00d7 cat-cow neck rolls"
+    ]
+  },
+  {
+    "is_rest": true
+  },
+  {
+    "_validation": {
+      "rejected": [],
+      "repairs": [],
+      "warnings": [
+        "calves: duplicate 'calf_raise' pattern on Bodyweight Calf Raise \u2014 no alternative pattern available in pool, kept as-is"
+      ]
+    },
+    "exercises": [
+      {
+        "muscle": "Legs",
+        "name": "Goblet Squat",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Elbows inside knees at bottom, chest tall"
+      },
+      {
+        "muscle": "Legs",
+        "name": "Glute Bridge (loaded)",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Squeeze glutes hard at top, 1-sec pause"
+      },
+      {
+        "muscle": "Legs",
+        "name": "Walking Lunge (bodyweight)",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Controlled tempo, knee tracks over toes"
+      },
+      {
+        "muscle": "Calves",
+        "name": "Single-Leg Calf Raise (dumbbell)",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Slow negative, hold top 1 sec"
+      },
+      {
+        "muscle": "Calves",
+        "name": "Bodyweight Calf Raise",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Full range each rep, no bouncing"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Keep knees tracking over toes, chest up, controlled descent on every rep.",
+    "warmup_exercises": [
+      "5 min stationary bike",
+      "20\u00d7 bodyweight squats",
+      "15\u00d7 leg swings each leg",
+      "10\u00d7 hip circles each side",
+      "10\u00d7 ankle circles each side"
+    ]
+  },
+  {
+    "is_rest": true
+  },
+  {
+    "is_rest": true
+  },
+  {
+    "exercises": [
+      {
+        "muscle": "Back",
+        "name": "Single-Arm Dumbbell Row",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Flat back, pull elbow past torso"
+      },
+      {
+        "muscle": "Chest",
+        "name": "Incline Dumbbell Press",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Elbows ~45\u00b0, control the negative"
+      },
+      {
+        "muscle": "Back",
+        "name": "Band Pull-Apart",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Slow and controlled, squeeze at end range"
+      },
+      {
+        "muscle": "Chest",
+        "name": "Push-Up (feet elevated)",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Full range, controlled tempo"
+      },
+      {
+        "muscle": "Triceps",
+        "name": "Band Triceps Pushdown",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Constant tension, controlled negative"
+      },
+      {
+        "muscle": "Shoulders",
+        "name": "Dumbbell Lateral Raise",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Slight bend in elbow, controlled tempo"
+      },
+      {
+        "muscle": "Biceps",
+        "name": "Dumbbell Bicep Curl",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Elbows pinned to sides"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Controlled tempo throughout, full range of motion, stop a rep short of failure if form breaks down.",
+    "warmup_exercises": [
+      "5 min incline treadmill walk",
+      "20\u00d7 arm circles",
+      "15\u00d7 shoulder rotations each side",
+      "10\u00d7 band pull-aparts",
+      "10\u00d7 cat-cow neck rolls"
+    ]
+  },
+  {
+    "_validation": {
+      "rejected": [],
+      "repairs": [],
+      "warnings": [
+        "calves: duplicate 'calf_raise' pattern on Bodyweight Calf Raise \u2014 no alternative pattern available in pool, kept as-is"
+      ]
+    },
+    "exercises": [
+      {
+        "muscle": "Legs",
+        "name": "Goblet Squat",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Elbows inside knees at bottom, chest tall"
+      },
+      {
+        "muscle": "Legs",
+        "name": "Glute Bridge (loaded)",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Squeeze glutes hard at top, 1-sec pause"
+      },
+      {
+        "muscle": "Legs",
+        "name": "Dumbbell Step-Up",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Drive through front heel, control the step down"
+      },
+      {
+        "muscle": "Calves",
+        "name": "Single-Leg Calf Raise (dumbbell)",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Slow negative, hold top 1 sec"
+      },
+      {
+        "muscle": "Calves",
+        "name": "Bodyweight Calf Raise",
+        "reps": "8\u201315 reps",
+        "rest": "45\u201390s",
+        "sets": 3,
+        "tempo_or_cue": "Full range each rep, no bouncing"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Keep knees tracking over toes, chest up, controlled descent on every rep.",
+    "warmup_exercises": [
+      "5 min stationary bike",
+      "20\u00d7 bodyweight squats",
+      "15\u00d7 leg swings each leg",
+      "10\u00d7 hip circles each side",
+      "10\u00d7 ankle circles each side"
+    ]
+  }
+]

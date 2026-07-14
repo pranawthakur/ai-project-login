@@ -1,0 +1,497 @@
+{
+  "0_Master_Index_Versioning_and_Localization.md": [
+    {
+      "columns": [
+        "File",
+        "Role",
+        "Depends On (reads)",
+        "Produces (writes to client_state)"
+      ],
+      "rows": [
+        {
+          "File": "1. Master Workout Split Table",
+          "Role": "Split selection",
+          "Depends On (reads)": "11 (goals, schedule, tier), 8 (volume)",
+          "Produces (writes to client_state)": "`active_split`"
+        },
+        {
+          "File": "2. Programming Rules",
+          "Role": "Sets/reps/RIR/progression",
+          "Depends On (reads)": "11 (baseline, tier), 10 (recovery)",
+          "Produces (writes to client_state)": "`prescription_variables`"
+        },
+        {
+          "File": "3. Beginner Programming",
+          "Role": "Beginner-specific rules",
+          "Depends On (reads)": "11 (training age)",
+          "Produces (writes to client_state)": "Beginner program overlay"
+        },
+        {
+          "File": "4. Intermediate Programming",
+          "Role": "Intermediate rules",
+          "Depends On (reads)": "11, 2",
+          "Produces (writes to client_state)": "Intermediate program overlay"
+        },
+        {
+          "File": "5. Advanced Programming",
+          "Role": "Advanced rules",
+          "Depends On (reads)": "11, 2, 6",
+          "Produces (writes to client_state)": "Advanced program overlay"
+        },
+        {
+          "File": "6. Intensity Techniques",
+          "Role": "Advanced techniques",
+          "Depends On (reads)": "11 (tier gate: green only)",
+          "Produces (writes to client_state)": "Technique injection into session"
+        },
+        {
+          "File": "7. Goal-Based Modifications",
+          "Role": "Nutrition/training goal skew",
+          "Depends On (reads)": "11 (goals), 12 (ED flags block numeric targets)",
+          "Produces (writes to client_state)": "`nutrition_targets`, goal-specific volume skew"
+        },
+        {
+          "File": "8. Weekly Muscle Volume",
+          "Role": "Volume landmarks",
+          "Depends On (reads)": "11 (training age), 10 (recovery)",
+          "Produces (writes to client_state)": "`volume_targets`"
+        },
+        {
+          "File": "9. Exercise Selection Rules",
+          "Role": "Exercise picking/substitution",
+          "Depends On (reads)": "11 (equipment, mobility flags), 12 (pain triage)",
+          "Produces (writes to client_state)": "`exercise_list`"
+        },
+        {
+          "File": "10. Recovery & Deload",
+          "Role": "Fatigue/deload logic",
+          "Depends On (reads)": "11 (check-ins)",
+          "Produces (writes to client_state)": "`recovery_score`, deload triggers"
+        },
+        {
+          "File": "11. Assessment & Intake Engine",
+          "Role": "Entry point, tiering",
+          "Depends On (reads)": "(raw client input)",
+          "Produces (writes to client_state)": "`client_state` root object, `confidence_tier`, `flags[]`"
+        },
+        {
+          "File": "12. Safety & Medical Red-Flag Engine",
+          "Role": "Cross-cutting safety gate",
+          "Depends On (reads)": "11 (health data)",
+          "Produces (writes to client_state)": "`safety_gate_result`, hard blocks/restrictions"
+        },
+        {
+          "File": "13. Cardio & Conditioning",
+          "Role": "Cardio prescription",
+          "Depends On (reads)": "11, 12 (flags), 10 (recovery)",
+          "Produces (writes to client_state)": "`cardio_prescription`"
+        },
+        {
+          "File": "14. Default Safe Template & Coach Override",
+          "Role": "Fallback program + human override",
+          "Depends On (reads)": "11, 12",
+          "Produces (writes to client_state)": "`DEFAULT_SAFE_TEMPLATE` object, `override_log[]`"
+        },
+        {
+          "File": "15. Supplement Safety & Interaction Engine",
+          "Role": "Supplement guidance",
+          "Depends On (reads)": "11 (health/meds), 12 (interaction flags)",
+          "Produces (writes to client_state)": "`supplement_guidance`"
+        },
+        {
+          "File": "16. Exercise Intelligence Database",
+          "Role": "Per-exercise data model + selection engine",
+          "Depends On (reads)": "11 (equipment, mobility flags, tier), 12 (pain flags)",
+          "Produces (writes to client_state)": "`exercise_id` objects, selection confidence scores"
+        },
+        {
+          "File": "17. Periodization & AI Decision Engine",
+          "Role": "Split/periodization selection, advanced set-structure definitions, shared confidence formula",
+          "Depends On (reads)": "1, 2, 8, 10, 11, 16",
+          "Produces (writes to client_state)": "`active_split` (scored), periodization model, confidence scores used across files"
+        },
+        {
+          "File": "18. Injury-Specific Rehabilitation & Return-to-Training",
+          "Role": "Per-injury (acute/soft-tissue) protocols and phased return-to-load",
+          "Depends On (reads)": "11, 12 (gate precedence)",
+          "Produces (writes to client_state)": "Injury phase, session modifications, reintroduction schedule"
+        },
+        {
+          "File": "19. Chronic Health Condition Management Engine",
+          "Role": "Per-condition (diabetes, hypertension, asthma, OA, PCOS, thyroid) ongoing programming rules",
+          "Depends On (reads)": "11, 12 (gate precedence), 13, 10",
+          "Produces (writes to client_state)": "Condition-specific modifications, stability monitoring flags"
+        },
+        {
+          "File": "20. Acute Symptom & First-Response Triage Engine",
+          "Role": "Front-door classification/dispatch for any newly reported health issue",
+          "Depends On (reads)": "12, 18, 19",
+          "Produces (writes to client_state)": "Classification + handoff target + today's-session decision"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Field",
+        "Canonical Storage Unit",
+        "Display Adaptable?"
+      ],
+      "rows": [
+        {
+          "Field": "Weight",
+          "Canonical Storage Unit": "kg",
+          "Display Adaptable?": "Yes (lb toggle for display only)"
+        },
+        {
+          "Field": "Height",
+          "Canonical Storage Unit": "cm",
+          "Display Adaptable?": "Yes (ft/in toggle for display only)"
+        },
+        {
+          "Field": "Distance (cardio)",
+          "Canonical Storage Unit": "km",
+          "Display Adaptable?": "Yes (mi toggle for display only)"
+        },
+        {
+          "Field": "Temperature (heat-risk flag, file 13 Sec 9)",
+          "Canonical Storage Unit": "Celsius",
+          "Display Adaptable?": "Yes (F toggle for display only)"
+        }
+      ]
+    }
+  ],
+  "11_Assessment_and_Intake_Engine.md": [
+    {
+      "columns": [
+        "Condition",
+        "Why Flagged"
+      ],
+      "rows": [
+        {
+          "Condition": "Uncontrolled hypertension",
+          "Why Flagged": "Risk with heavy/Valsalva lifting"
+        },
+        {
+          "Condition": "Cardiovascular disease/recent cardiac event",
+          "Why Flagged": "Exercise intensity risk"
+        },
+        {
+          "Condition": "Recent surgery (<12 weeks)",
+          "Why Flagged": "Tissue healing constraints"
+        },
+        {
+          "Condition": "Uncontrolled diabetes",
+          "Why Flagged": "Blood sugar management during exercise"
+        },
+        {
+          "Condition": "Joint replacement (<6 months)",
+          "Why Flagged": "Loading/ROM constraints"
+        },
+        {
+          "Condition": "Diagnosed eating disorder (active)",
+          "Why Flagged": "Deficit/volume prescriptions contraindicated \u2014 route to supportive, non-diet-focused programming and professional referral"
+        },
+        {
+          "Condition": "Pregnancy",
+          "Why Flagged": "Trimester-specific contraindications apply"
+        },
+        {
+          "Condition": "Uncontrolled asthma/respiratory condition",
+          "Why Flagged": "Intensity/conditioning constraints"
+        },
+        {
+          "Condition": "Osteoporosis/osteopenia (significant)",
+          "Why Flagged": "High-impact/spinal-flexion-under-load contraindications"
+        },
+        {
+          "Condition": "Seizure disorder (uncontrolled)",
+          "Why Flagged": "Risk with unsupervised free-weight/overhead loading"
+        },
+        {
+          "Condition": "Untreated cardiac arrhythmia",
+          "Why Flagged": "Risk with high-intensity/max-effort work"
+        },
+        {
+          "Condition": "Current DVT/blood clot history (unmanaged)",
+          "Why Flagged": "Risk with Valsalva and prolonged static positions"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Tier",
+        "Trigger",
+        "Behavior"
+      ],
+      "rows": [
+        {
+          "Tier": "green",
+          "Trigger": "Full intake, cleared, \u22658 weeks consistent check-ins",
+          "Behavior": "Full autoregulation, advanced techniques allowed (file 6) permitted"
+        },
+        {
+          "Tier": "yellow",
+          "Trigger": "Partial intake OR <8 weeks history OR 1 missed check-in cycle",
+          "Behavior": "Conservative progression, cap intensity techniques, re-request missing data"
+        },
+        {
+          "Tier": "orange",
+          "Trigger": "`pending_clearance`, `medical_disclosure_refused`, or 2 missed check-in cycles",
+          "Behavior": "DEFAULT_SAFE_TEMPLATE only, no advanced techniques, no aggressive deficits, repeat clearance/disclosure request each session"
+        },
+        {
+          "Tier": "red",
+          "Trigger": "`below_minimum_age_reject`, active safety flag from file 12 unresolved",
+          "Behavior": "No program generation; human/professional referral message only"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Assessment",
+        "Protocol",
+        "Output Use"
+      ],
+      "rows": [
+        {
+          "Assessment": "Overhead squat assessment",
+          "Protocol": "Bodyweight squat, arms overhead, observe from front/side",
+          "Output Use": "Feeds mobility flag table (Section 4)"
+        },
+        {
+          "Assessment": "Single-leg stance",
+          "Protocol": "10s hold each leg, eyes open",
+          "Output Use": "Feeds unilateral/balance-work prioritization"
+        },
+        {
+          "Assessment": "Push/pull baseline",
+          "Protocol": "Max unbroken push-ups; max unbroken rows (band or bodyweight)",
+          "Output Use": "Establishes starting point for beginners without load-based 1RM"
+        },
+        {
+          "Assessment": "Submaximal load test (3\u20135RM)",
+          "Protocol": "For clients with some barbell experience only",
+          "Output Use": "Feeds `estimated_1RM` used in file 2 Section 18"
+        },
+        {
+          "Assessment": "Grip/core endurance",
+          "Protocol": "Plank hold to failure (cap test at 120s)",
+          "Output Use": "Baseline for core programming, not a competitive metric"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Observed Limitation",
+        "Flag",
+        "Programming Response"
+      ],
+      "rows": [
+        {
+          "Observed Limitation": "Heels rise during squat",
+          "Flag": "`ankle_mobility_limited`",
+          "Programming Response": "Elevate heels (wedge/plates) initially, add ankle dorsiflexion mobility work, prefer box squat/goblet squat"
+        },
+        {
+          "Observed Limitation": "Excessive forward lean during squat",
+          "Flag": "`hip_ankle_mobility_limited`",
+          "Programming Response": "Prefer front-loaded squat variants (goblet, front squat), add thoracic/hip mobility work"
+        },
+        {
+          "Observed Limitation": "Arms can't reach overhead without lower back arching",
+          "Flag": "`thoracic_mobility_limited`",
+          "Programming Response": "Cap OHP range temporarily, use landmine press, add thoracic extension mobility work"
+        },
+        {
+          "Observed Limitation": "Rounded shoulders/forward head at rest",
+          "Flag": "`postural_imbalance`",
+          "Programming Response": "Increase horizontal pull:push ratio to 1.5:1, add face pulls/rear delt work"
+        },
+        {
+          "Observed Limitation": "Can't maintain neutral spine in hinge",
+          "Flag": "`hinge_pattern_incompetent`",
+          "Programming Response": "Delay loaded hinge work, use hinge drills (dowel, wall-tap RDL) for 2\u20134 weeks first"
+        },
+        {
+          "Observed Limitation": "Knees cave inward under load (valgus)",
+          "Flag": "`hip_stability_limited`",
+          "Programming Response": "Add banded lateral walks/clamshells, cue \"knees out,\" reduce load until pattern clean"
+        },
+        {
+          "Observed Limitation": "Asymmetric single-leg stance hold (>3s difference)",
+          "Flag": "`unilateral_imbalance`",
+          "Programming Response": "Prioritize unilateral work at higher frequency on weaker side, screen for injury history"
+        },
+        {
+          "Observed Limitation": "Pain (not just limitation) during any screen",
+          "Flag": "`pain_provoking_movement`",
+          "Programming Response": "Do NOT program that pattern; route to file 12 Section on pain-vs-limitation triage"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Item",
+        "Frequency"
+      ],
+      "rows": [
+        {
+          "Item": "Bodyweight",
+          "Frequency": "Weekly (same conditions: morning, post-bathroom, pre-food)"
+        },
+        {
+          "Item": "Circumference measurements / photos",
+          "Frequency": "Every 4 weeks"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Item",
+        "Frequency"
+      ],
+      "rows": [
+        {
+          "Item": "Strength baseline (submaximal test)",
+          "Frequency": "Every 8\u201312 weeks, or at mesocycle boundary"
+        },
+        {
+          "Item": "Full movement screen re-run",
+          "Frequency": "Every 12 weeks, or after any new injury flag resolves"
+        },
+        {
+          "Item": "Goal/intake schema full review",
+          "Frequency": "Every 12 weeks or on major life-change disclosure"
+        },
+        {
+          "Item": "Medical clearance re-confirmation",
+          "Frequency": "Every 6 months if `pending_clearance` unresolved, or immediately on new condition disclosure"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Tier",
+        "System Response"
+      ],
+      "rows": [
+        {
+          "Tier": "low_risk",
+          "System Response": "Continue standard progression"
+        },
+        {
+          "Tier": "moderate_risk",
+          "System Response": "Reduce weekly volume 10\u201315%, send barrier-check prompt, offer schedule flexibility"
+        },
+        {
+          "Tier": "high_risk",
+          "System Response": "Downgrade to 2\u20133 day minimum-effective-dose template, shorten mesocycle to 2 weeks, emphasize habit consistency over performance metrics"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Edge Case",
+        "Rule"
+      ],
+      "rows": [
+        {
+          "Edge Case": "Client refuses to disclose medical history",
+          "Rule": "Do not proceed to full program generation; provide only general, low-intensity guidance and repeat the clearance request; document refusal"
+        },
+        {
+          "Edge Case": "Client under 13",
+          "Rule": "Reject onboarding entirely; recommend youth-specific in-person coaching/physical education programs, not this system"
+        },
+        {
+          "Edge Case": "Intake data internally inconsistent (e.g., claims \"5 years experience\" but fails all movement screens)",
+          "Rule": "Weight movement screen results over self-report (see file 9 Section on troubleshooting); flag discrepancy"
+        },
+        {
+          "Edge Case": "Client stops submitting check-ins entirely",
+          "Rule": "After 2 missed check-in cycles, downgrade confidence in all readiness-based algorithms system-wide; default to conservative (yellow/orange tier) assumptions until data resumes"
+        },
+        {
+          "Edge Case": "Body fat % provided is wildly inconsistent with other data",
+          "Rule": "Flag `body_fat_estimate_unreliable`, fall back to sex+activity-based default ranges (file 7) rather than trusting the specific number"
+        },
+        {
+          "Edge Case": "Client discloses new medical condition mid-program",
+          "Rule": "Immediately re-run `processIntake` routing logic; do not wait for scheduled re-assessment"
+        },
+        {
+          "Edge Case": "Client provides contradictory pregnancy status over time",
+          "Rule": "Always trust most recent disclosure; re-flag `medical_clearance_required` immediately, do not require re-onboarding delay"
+        },
+        {
+          "Edge Case": "Minor's guardian has not co-signed waiver",
+          "Rule": "Block program generation until guardian consent recorded; status = `blocked_no_consent`"
+        },
+        {
+          "Edge Case": "Client requests deletion of health data",
+          "Rule": "Purge `health` object per data policy; downgrade to orange tier (no medical context = conservative default) until re-supplied"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Field Populated",
+        "Consumed By"
+      ],
+      "rows": [
+        {
+          "Field Populated": "`flags[]`, `confidence_tier`",
+          "Consumed By": "All files (gating logic)"
+        },
+        {
+          "Field Populated": "`baseline_performance.*_1rm_est`",
+          "Consumed By": "File 2 Section 18, File 4/5 load prescriptions"
+        },
+        {
+          "Field Populated": "mobility flags (Section 4)",
+          "Consumed By": "File 9 Section 5 (injury/limitation substitution)"
+        },
+        {
+          "Field Populated": "`equipment.available`",
+          "Consumed By": "File 9 Section 4"
+        },
+        {
+          "Field Populated": "`goals.primary`, `target_date`",
+          "Consumed By": "File 7 (goal-based modification), File 1 (split selection)"
+        },
+        {
+          "Field Populated": "`adherence_risk` tier",
+          "Consumed By": "File 10 (recovery/deload triggers), File 1 (split simplification)"
+        },
+        {
+          "Field Populated": "`medical_conditions`, `pregnancy_status`",
+          "Consumed By": "File 12 (safety/red-flag engine) \u2014 authoritative source"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Symptom",
+        "Likely Cause",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Symptom": "Program stuck at `pending_clearance` indefinitely",
+          "Likely Cause": "No re-prompt loop implemented",
+          "Fix": "Trigger clearance re-request every session per Section 8"
+        },
+        {
+          "Symptom": "Movement screen contradicts self-reported training age",
+          "Likely Cause": "Self-report bias/overestimation",
+          "Fix": "Default to screen results, flag discrepancy, do not block program"
+        },
+        {
+          "Symptom": "Repeated `incomplete_intake_low_confidence`",
+          "Likely Cause": "Intake form abandonment",
+          "Fix": "Shorten form, allow progressive disclosure over first 2 weeks, keep orange tier until complete"
+        }
+      ]
+    }
+  ]
+}

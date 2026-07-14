@@ -1,0 +1,332 @@
+[
+  {
+    "_injury_safety_note": "Some exercises were excluded or reduced today because you flagged: knee. If this is inaccurate, update your intake notes; if the area is still symptomatic, check with a coach or doctor before pushing load through it.",
+    "_validation": {
+      "rejected": [],
+      "repairs": [],
+      "warnings": [
+        "triceps: duplicate 'elbow_extension' pattern on Machine Triceps Dip \u2014 no alternative pattern available in pool, kept as-is"
+      ]
+    },
+    "exercises": [
+      {
+        "muscle": "Chest",
+        "name": "Smith Machine Bench Press",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Controlled tempo, bar path straight"
+      },
+      {
+        "muscle": "Shoulders",
+        "name": "Machine Shoulder Press",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Controlled press, avoid locking elbows hard"
+      },
+      {
+        "muscle": "Chest",
+        "name": "Push-Up (feet elevated)",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Full range, controlled tempo"
+      },
+      {
+        "muscle": "Triceps",
+        "name": "Dumbbell Overhead Extension",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Controlled stretch at bottom"
+      },
+      {
+        "muscle": "Triceps",
+        "name": "Machine Triceps Dip",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Controlled tempo, don't lock out hard"
+      },
+      {
+        "muscle": "Shoulders",
+        "name": "Reverse Pec Deck (rear delt)",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Squeeze rear delts, controlled tempo"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Keep shoulder blades back and down, controlled tempo on every rep \u2014 stop a set short of failure if form breaks down.",
+    "warmup_exercises": [
+      "5 min incline treadmill walk",
+      "20\u00d7 arm circles (forward + backward)",
+      "15\u00d7 shoulder rotations each side",
+      "10\u00d7 band pull-aparts",
+      "10\u00d7 push-up negatives (slow 4-sec down)"
+    ]
+  },
+  {
+    "is_rest": true
+  },
+  {
+    "_injury_safety_note": "Some exercises were excluded or reduced today because you flagged: knee. If this is inaccurate, update your intake notes; if the area is still symptomatic, check with a coach or doctor before pushing load through it.",
+    "_validation": {
+      "rejected": [],
+      "repairs": [],
+      "warnings": [
+        "biceps: duplicate 'elbow_flexion' pattern on Cable Bicep Curl \u2014 no alternative pattern available in pool, kept as-is",
+        "traps: duplicate 'shrug' pattern on Band Shrug \u2014 no alternative pattern available in pool, kept as-is",
+        "traps: duplicate 'shrug' pattern on Smith Machine Shrug \u2014 no alternative pattern available in pool, kept as-is"
+      ]
+    },
+    "exercises": [
+      {
+        "muscle": "Back",
+        "name": "Chest-Supported Machine Row",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Full stretch, squeeze at contraction"
+      },
+      {
+        "muscle": "Back",
+        "name": "Machine Rear Delt Fly (targets upper back)",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Squeeze shoulder blades together"
+      },
+      {
+        "muscle": "Biceps",
+        "name": "Hammer Curl (dumbbell)",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Neutral grip, controlled tempo"
+      },
+      {
+        "muscle": "Biceps",
+        "name": "Cable Bicep Curl",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Controlled, no swinging"
+      },
+      {
+        "muscle": "Traps",
+        "name": "Dumbbell Shrug",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Straight up and down, no rolling, pause at top"
+      },
+      {
+        "muscle": "Traps",
+        "name": "Band Shrug",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Constant tension, squeeze at top"
+      },
+      {
+        "muscle": "Traps",
+        "name": "Smith Machine Shrug",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Full range, pause 1 sec at top"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Drive with the elbows, not the hands \u2014 avoid shrugging or using momentum to move the weight.",
+    "warmup_exercises": [
+      "5 min rowing machine (low resistance)",
+      "15\u00d7 scapular retractions",
+      "20\u00d7 band pull-aparts",
+      "10\u00d7 doorway lat stretch each side",
+      "10\u00d7 face-pulls with resistance band"
+    ]
+  },
+  {
+    "_injury_safety_note": "Some exercises were excluded or reduced today because you flagged: knee. If this is inaccurate, update your intake notes; if the area is still symptomatic, check with a coach or doctor before pushing load through it.",
+    "_validation": {
+      "rejected": [],
+      "repairs": [],
+      "warnings": [
+        "calves: duplicate 'calf_raise' pattern on Standing Calf Raise Machine \u2014 no alternative pattern available in pool, kept as-is"
+      ]
+    },
+    "exercises": [
+      {
+        "muscle": "Legs",
+        "name": "Goblet Squat",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Elbows inside knees at bottom, chest tall"
+      },
+      {
+        "muscle": "Legs",
+        "name": "Leg Press",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Full range, don't lock knees out at top"
+      },
+      {
+        "muscle": "Calves",
+        "name": "Bodyweight Calf Raise",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Full range each rep, no bouncing"
+      },
+      {
+        "muscle": "Calves",
+        "name": "Standing Calf Raise Machine",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Full range, pause at top"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Keep knees tracking over toes, chest up, controlled descent on every rep.",
+    "warmup_exercises": [
+      "5 min stationary bike",
+      "20\u00d7 bodyweight squats",
+      "15\u00d7 leg swings each leg (front-back + lateral)",
+      "10\u00d7 hip circles each side",
+      "10\u00d7 glute bridges"
+    ]
+  },
+  {
+    "is_rest": true
+  },
+  {
+    "_injury_safety_note": "Some exercises were excluded or reduced today because you flagged: knee. If this is inaccurate, update your intake notes; if the area is still symptomatic, check with a coach or doctor before pushing load through it.",
+    "exercises": [
+      {
+        "muscle": "Back",
+        "name": "Assisted Pull-up",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Full hang at bottom, chin over bar"
+      },
+      {
+        "muscle": "Chest",
+        "name": "Machine Chest Press",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Controlled press, don't lock elbows hard"
+      },
+      {
+        "muscle": "Back",
+        "name": "Band Pull-Apart",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Slow and controlled, squeeze at end range"
+      },
+      {
+        "muscle": "Chest",
+        "name": "Push-Up (feet elevated)",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Full range, controlled tempo"
+      },
+      {
+        "muscle": "Triceps",
+        "name": "Overhead Cable Triceps Extension",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Elbows stay close to head"
+      },
+      {
+        "muscle": "Shoulders",
+        "name": "Band Lateral Raise",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Constant tension, no jerking"
+      },
+      {
+        "muscle": "Biceps",
+        "name": "Incline Dumbbell Curl",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Full stretch at bottom"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Controlled tempo throughout, full range of motion, stop a rep short of failure if form breaks down.",
+    "warmup_exercises": [
+      "5 min incline treadmill walk",
+      "20\u00d7 arm circles",
+      "15\u00d7 shoulder rotations each side",
+      "10\u00d7 band pull-aparts",
+      "10\u00d7 cat-cow neck rolls"
+    ]
+  },
+  {
+    "_injury_safety_note": "Some exercises were excluded or reduced today because you flagged: knee. If this is inaccurate, update your intake notes; if the area is still symptomatic, check with a coach or doctor before pushing load through it.",
+    "_validation": {
+      "rejected": [],
+      "repairs": [],
+      "warnings": [
+        "calves: duplicate 'calf_raise' pattern on Single-Leg Calf Raise (dumbbell) \u2014 no alternative pattern available in pool, kept as-is"
+      ]
+    },
+    "exercises": [
+      {
+        "muscle": "Legs",
+        "name": "Bodyweight Squat (loaded w/ backpack)",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Slow 3-sec descent, pause at bottom"
+      },
+      {
+        "muscle": "Legs",
+        "name": "Leg Press",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Full range, don't lock knees out at top"
+      },
+      {
+        "muscle": "Calves",
+        "name": "Standing Calf Raise Machine",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Full range, pause at top"
+      },
+      {
+        "muscle": "Calves",
+        "name": "Single-Leg Calf Raise (dumbbell)",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Slow negative, hold top 1 sec"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Keep knees tracking over toes, chest up, controlled descent on every rep.",
+    "warmup_exercises": [
+      "5 min stationary bike",
+      "20\u00d7 bodyweight squats",
+      "15\u00d7 leg swings each leg",
+      "10\u00d7 hip circles each side",
+      "10\u00d7 ankle circles each side"
+    ]
+  }
+]

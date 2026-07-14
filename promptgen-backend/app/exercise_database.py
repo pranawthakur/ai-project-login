@@ -43,45 +43,21 @@ EQUIPMENT HANDLING
 from __future__ import annotations
 import random
 
+from app.equipment import (
+    FULL_EQUIPMENT_LIST,
+    normalize_equipment as _parse_available_equipment,
+    requirement_met as _requirement_met,
+)
 
-# ── EQUIPMENT VOCABULARY ──────────────────────────────────────────────────────
-# Matches the exact chip labels from dashbord.html's EQUIPMENT array (the form
-# posts a comma-joined string of whichever chips the user left ticked; all are
-# ticked by default, so "full gym" clients send the full list, not a keyword).
-FULL_EQUIPMENT_LIST = [
-    "Barbell", "Dumbbells", "EZ curl bar", "Flat bench", "Incline/decline bench",
-    "Squat rack", "Power rack / cage", "Smith machine", "Cable machine (dual stack)",
-    "Lat pulldown", "Seated row machine", "Leg press", "Hack squat machine",
-    "Leg extension machine", "Leg curl machine", "Chest press machine",
-    "Shoulder press machine", "Pec deck / chest fly machine",
-    "Assisted pull-up/dip machine", "Pull-up bar", "Dip station",
-    "Preacher curl bench", "Hyperextension bench", "Calf raise machine",
-    "Hip thrust machine / Smith setup", "Cable crossover", "Functional trainer",
-    "Kettlebells", "Resistance bands", "Battle ropes", "Medicine balls",
-    "TRX / suspension trainer", "Treadmill", "Stationary bike / spin bike",
-    "Elliptical / cross-trainer", "Rowing machine", "Stair climber", "Foam roller",
-]
-
-
-def _parse_available_equipment(equipment_raw: str) -> set:
-    """
-    The form posts a comma-joined list of exact chip labels the user left
-    ticked (all ticked by default). Legacy/manual callers may instead pass
-    a loose phrase like "full gym" or "bodyweight only" — handled as a
-    fallback so this doesn't break for non-form callers (tests, scripts).
-    Returns a lowercased set of available equipment item names.
-    """
-    raw = str(equipment_raw or "").strip()
-    if not raw:
-        return {e.lower() for e in FULL_EQUIPMENT_LIST}
-
-    low = raw.lower()
-    if low == "full gym":
-        return {e.lower() for e in FULL_EQUIPMENT_LIST}
-    if low in ("bodyweight only", "no equipment", "none"):
-        return set()  # exercises with requires=None still work
-
-    return {t.strip().lower() for t in raw.split(",") if t.strip()}
+# NOTE: FULL_EQUIPMENT_LIST, equipment parsing, and requirement-matching now
+# live in equipment.py (the single centralized authority for equipment
+# logic). They're re-imported here under their original names so nothing
+# else in this file — or any external caller importing them from this
+# module — needs to change. Behaviour is unchanged: normalize_equipment()
+# follows the same parsing rules as the old _parse_available_equipment(),
+# just returning a frozenset instead of a plain set (a frozenset is a
+# drop-in read-only replacement everywhere this module uses it: membership
+# tests and iteration, no mutation).
 
 
 # ── EXERCISE DATABASE ─────────────────────────────────────────────────────────
@@ -241,14 +217,6 @@ def _parse_injury_keywords(notes_raw: str) -> set:
     """
     text = str(notes_raw or "").lower()
     return {kw for kw in INJURY_KEYWORDS if kw in text}
-
-
-def _requirement_met(requires, available_lower: set) -> bool:
-    if requires is None:
-        return True
-    if isinstance(requires, tuple):
-        return any(r.lower() in available_lower for r in requires)
-    return requires.lower() in available_lower
 
 
 def _blocked_by_injury(ex: dict, injury_keywords: set) -> bool:

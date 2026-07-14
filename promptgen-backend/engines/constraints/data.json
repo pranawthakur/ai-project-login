@@ -1,0 +1,492 @@
+{
+  "12_Safety_and_Medical_Red_Flag_Engine.md": [
+    {
+      "columns": [
+        "Symptom",
+        "Action"
+      ],
+      "rows": [
+        {
+          "Symptom": "Chest pain/pressure, pain radiating to arm/jaw",
+          "Action": "Stop immediately; advise seeking emergency medical care now"
+        },
+        {
+          "Symptom": "Sudden severe headache (\"worst of life\")",
+          "Action": "Stop immediately; advise emergency care"
+        },
+        {
+          "Symptom": "Shortness of breath disproportionate to effort, or at rest",
+          "Action": "Stop immediately; advise emergency care"
+        },
+        {
+          "Symptom": "Fainting/loss of consciousness during exercise",
+          "Action": "Stop immediately; advise emergency care"
+        },
+        {
+          "Symptom": "Sudden numbness/weakness one side of body, slurred speech",
+          "Action": "Stop immediately; advise emergency care (stroke signs)"
+        },
+        {
+          "Symptom": "Severe, sudden joint deformity or inability to bear weight after injury",
+          "Action": "Stop immediately; advise urgent care/ER"
+        },
+        {
+          "Symptom": "Signs of anaphylaxis (swelling, hives, breathing difficulty)",
+          "Action": "Stop immediately; advise emergency care"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Pain Pattern",
+        "Programming Response"
+      ],
+      "rows": [
+        {
+          "Pain Pattern": "Sharp, localized, sudden onset, joint-associated",
+          "Programming Response": "Remove exercise/pattern entirely; do not substitute with \"lighter version\" of same pattern; recommend professional evaluation before reintroducing"
+        },
+        {
+          "Pain Pattern": "Dull, diffuse, muscular, resolves in 24\u201372h",
+          "Programming Response": "Standard DOMS \u2014 continue, monitor"
+        },
+        {
+          "Pain Pattern": "Pain only at end-range of motion",
+          "Programming Response": "Temporarily cap ROM, add mobility work, re-test in 1\u20132 weeks"
+        },
+        {
+          "Pain Pattern": "Pain that increases session over session despite substitution",
+          "Programming Response": "Full pattern removal + professional referral flag, do not keep attempting substitutions"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Condition",
+        "Hard Constraints"
+      ],
+      "rows": [
+        {
+          "Condition": "Hypertension (controlled)",
+          "Hard Constraints": "Avoid max-effort Valsalva lifts; cap RPE at 8; longer rest; avoid extended breath-holds"
+        },
+        {
+          "Condition": "Hypertension (uncontrolled)",
+          "Hard Constraints": "`medical_clearance_required` \u2014 no programming until cleared"
+        },
+        {
+          "Condition": "Type 2 Diabetes",
+          "Hard Constraints": "Monitor for hypoglycemia signs; recommend blood glucose check before/after if on insulin/sulfonylureas; avoid unsupervised fasted high-intensity work"
+        },
+        {
+          "Condition": "Pregnancy \u2014 1st trimester",
+          "Hard Constraints": "Avoid overheating, avoid new high-impact activity, continue prior training within RPE \u22647"
+        },
+        {
+          "Condition": "Pregnancy \u2014 2nd/3rd trimester",
+          "Hard Constraints": "No supine exercises after ~20 weeks (per client/physician guidance), avoid high fall-risk movements, avoid heavy Valsalva, reduce max intensity"
+        },
+        {
+          "Condition": "Postpartum (<6 weeks)",
+          "Hard Constraints": "No loaded core/impact work until cleared; pelvic floor considerations"
+        },
+        {
+          "Condition": "Osteoporosis/osteopenia",
+          "Hard Constraints": "Avoid spinal flexion under load (e.g., loaded sit-ups, high-rep loaded crunches), avoid high-impact jumping without clearance"
+        },
+        {
+          "Condition": "Active/recent joint replacement",
+          "Hard Constraints": "Follow physician/PT ROM and load restrictions explicitly; never exceed disclosed ROM limits"
+        },
+        {
+          "Condition": "Active eating disorder disclosure",
+          "Hard Constraints": "No caloric deficit prescription, no body-composition tracking metrics pushed, route to supportive/professional referral (Section 6)"
+        },
+        {
+          "Condition": "Asthma (exercise-induced)",
+          "Hard Constraints": "Ensure warm-up ramp, flag conditioning intensity caps, recommend inhaler availability during sessions"
+        },
+        {
+          "Condition": "Cardiac history (any)",
+          "Hard Constraints": "`medical_clearance_required` mandatory, cap intensity at clearance-specified level only"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Medication Class",
+        "Flag",
+        "Programming Note"
+      ],
+      "rows": [
+        {
+          "Medication Class": "Beta-blockers",
+          "Flag": "`heart_rate_response_blunted`",
+          "Programming Note": "Do not use HR-based intensity zones; use RPE instead"
+        },
+        {
+          "Medication Class": "Diuretics",
+          "Flag": "`dehydration_risk_elevated`",
+          "Programming Note": "Emphasize hydration reminders, caution in heat"
+        },
+        {
+          "Medication Class": "Insulin/sulfonylureas",
+          "Flag": "`hypoglycemia_risk`",
+          "Programming Note": "See Section 4 diabetes row"
+        },
+        {
+          "Medication Class": "Corticosteroids (long-term)",
+          "Flag": "`tendon_bone_fragility_risk`",
+          "Programming Note": "Conservative loading progression, avoid rapid load jumps"
+        },
+        {
+          "Medication Class": "Blood thinners",
+          "Flag": "`bruising_bleeding_risk`",
+          "Programming Note": "Avoid high-collision/high-fall-risk activities"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Rule",
+        "Detail"
+      ],
+      "rows": [
+        {
+          "Rule": "No specific calorie/macro targets",
+          "Detail": "If active ED disclosed or behavioral flags present, system must not output numeric diet targets anywhere downstream (file 7)"
+        },
+        {
+          "Rule": "No body-composition emphasis",
+          "Detail": "Suppress progress photos/measurement prompts; shift check-ins to performance/energy/sleep metrics only"
+        },
+        {
+          "Rule": "No causal psychological narratives",
+          "Detail": "System never states *why* a client restricts/binges; reflects only what is disclosed"
+        },
+        {
+          "Rule": "Always suggest professional support",
+          "Detail": "Every ED-flagged interaction includes a suggestion to involve a doctor, dietitian, or therapist, without diagnosing"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Age Band",
+        "Overlay"
+      ],
+      "rows": [
+        {
+          "Age Band": "13\u201317 (guardian consent required)",
+          "Overlay": "No max-effort testing, emphasize technique mastery, cap external load progression rate, guardian visibility into program"
+        },
+        {
+          "Age Band": "18\u201364",
+          "Overlay": "Standard rules apply"
+        },
+        {
+          "Age Band": "65+",
+          "Overlay": "Mandatory fall-risk screen before any single-leg/unstable-surface work; extra warm-up time; conservative RPE cap (\u22647) until baseline established; bone density consideration default to caution (treat as `osteoporosis_risk_unknown` unless screened negative)"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Signal",
+        "Flag",
+        "Response"
+      ],
+      "rows": [
+        {
+          "Signal": "Client reports exercising in extreme heat/humidity without acclimation",
+          "Flag": "`heat_illness_risk`",
+          "Response": "Reduce intensity, increase rest, hydration emphasis, recommend indoor alternative"
+        },
+        {
+          "Signal": "Client reports exercising alone with heavy free-weight max attempts",
+          "Flag": "`unsupervised_max_effort_risk`",
+          "Response": "Recommend spotter/safety bars/machine alternative for near-max attempts"
+        },
+        {
+          "Signal": "Client discloses recent illness/fever (<48h resolved)",
+          "Flag": "`post_illness_deload_required`",
+          "Response": "Force deload week equivalent (file 10 Section 3), no high-intensity work until 48h symptom-free"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Edge Case",
+        "Rule"
+      ],
+      "rows": [
+        {
+          "Edge Case": "Client discloses emergency symptom mid-session via check-in text (not live)",
+          "Rule": "Treat as urgent; response must lead with escalation language before anything else, regardless of what else was asked"
+        },
+        {
+          "Edge Case": "Conflicting disclosures (e.g., \"cleared by physician\" but also lists uncontrolled cardiac condition)",
+          "Rule": "Trust the higher-risk disclosure; keep `medical_clearance_required` active until explicitly reconciled"
+        },
+        {
+          "Edge Case": "Client asks system to \"ignore\" a flag to get harder programming",
+          "Rule": "Refuse; flags are not user-overridable except via updated medical clearance input or resolved timeline (Section 7)"
+        },
+        {
+          "Edge Case": "Guardian requests removal of teen's safety overlay",
+          "Rule": "Overlay stays; only age changing or explicit updated professional guidance changes it"
+        },
+        {
+          "Edge Case": "Repeated pain reports on unrelated patterns (possible systemic issue)",
+          "Rule": "After 3 distinct pattern-pain flags in a mesocycle, escalate to full professional re-evaluation recommendation regardless of individual pattern status"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Symptom",
+        "Cause",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Symptom": "Safety gate never triggers despite flags present",
+          "Cause": "Gate not called before generation step",
+          "Fix": "Enforce `safetyGate()` as mandatory pre-hook in files 1\u201311, 13"
+        },
+        {
+          "Symptom": "ED routing suppressing all nutrition guidance even for unflagged clients",
+          "Cause": "Behavioral flag over-triggering",
+          "Fix": "Require flag confidence threshold (\u22652 co-occurring signals) before auto-routing, per Section 6"
+        }
+      ]
+    }
+  ],
+  "18_Injury_Specific_Rehabilitation_and_Return_to_Training.md": [
+    {
+      "columns": [
+        "Phase",
+        "Programming Response"
+      ],
+      "rows": [
+        {
+          "Phase": "Acute (pain 4-6+)",
+          "Programming Response": "No axial loading; walking, pain-free mobility only"
+        },
+        {
+          "Phase": "Subacute (pain 1-3)",
+          "Programming Response": "Bodyweight/light-load hinge and squat drills, no barbell compounds"
+        },
+        {
+          "Phase": "Return-to-load",
+          "Programming Response": "50% load restart, gradual reintroduction per file 12 Section 7"
+        },
+        {
+          "Phase": "Resolved, cleared",
+          "Programming Response": "Standard programming, monitor for recurrence 4 weeks"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Step",
+        "Criteria to Advance",
+        "If Criteria NOT Met (Else Branch)"
+      ],
+      "rows": [
+        {
+          "Step": "1. Pain-free at rest",
+          "Criteria to Advance": "48 consecutive hours pain-free at rest",
+          "If Criteria NOT Met (Else Branch)": "Remain at previous phase, re-check in 48h"
+        },
+        {
+          "Step": "2. Pain-free with unloaded pattern",
+          "Criteria to Advance": "2 sessions of bodyweight/unloaded pattern with pain \u22641/10",
+          "If Criteria NOT Met (Else Branch)": "If pain >1/10 recurs, reset to Step 1 equivalent load, extend timeline"
+        },
+        {
+          "Step": "3. Pain-free at 50% prior load",
+          "Criteria to Advance": "2 sessions at 50% pre-injury working load, pain \u22641/10",
+          "If Criteria NOT Met (Else Branch)": "If pain recurs, drop back to Step 2, flag for professional eval if this is the 2nd reset"
+        },
+        {
+          "Step": "4. Progressive load increase",
+          "Criteria to Advance": "10-20% load increase per successful pain-free session block",
+          "If Criteria NOT Met (Else Branch)": "If pain recurs at any increase, drop back one step; 2nd recurrence at same step triggers professional referral regardless of severity"
+        },
+        {
+          "Step": "5. Full return",
+          "Criteria to Advance": "Reaches prior working load/volume pain-free",
+          "If Criteria NOT Met (Else Branch)": "Maintain standard monitoring per file 11 Section 6 re-assessment cadence"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Edge Case",
+        "Rule"
+      ],
+      "rows": [
+        {
+          "Edge Case": "Client has two simultaneous injuries in different regions",
+          "Rule": "Apply both protocols independently; if they jointly eliminate all available exercises for a session, fall back to DEFAULT_SAFE_TEMPLATE's unaffected-pattern subset (file 14) rather than skipping the session entirely"
+        },
+        {
+          "Edge Case": "Client's reported pain scale contradicts observed/reported function (e.g., \"pain scale 8\" but reports normal daily activity)",
+          "Rule": "Flag `self_report_inconsistency`, default to the more conservative (higher-caution) interpretation, request professional eval to reconcile rather than assuming self-report is exaggerated"
+        },
+        {
+          "Edge Case": "Injury occurs mid-session",
+          "Rule": "Stop the affected pattern for remainder of session immediately; do not attempt to \"finish the workout\" with modified version same-day; reassess protocol at next scheduled session"
+        },
+        {
+          "Edge Case": "Client wants to \"push through\" pain against protocol recommendation",
+          "Rule": "Do not provide loading progressions that contradict active protocol; may present information neutrally but must not generate a program that violates the current phase's restrictions"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Symptom",
+        "Cause",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Symptom": "Client stuck in \"acute\" phase indefinitely",
+          "Cause": "No re-check trigger scheduled",
+          "Fix": "Ensure Section 5 Step 1 re-check condition is actively polled at each check-in (file 11 Section 5), not just at initial injury report"
+        },
+        {
+          "Symptom": "Same injury protocol re-triggering every few weeks without recognition of pattern",
+          "Cause": "Section 4 detection not being run",
+          "Fix": "Ensure `detectRecurringInjuryPattern()` runs on every new injury report, not just once per client lifetime"
+        }
+      ]
+    }
+  ],
+  "19_Chronic_Health_Condition_Management_Engine.md": [
+    {
+      "columns": [
+        "Edge Case",
+        "Rule"
+      ],
+      "rows": [
+        {
+          "Edge Case": "Condition well-managed for years, client wants to \"stop mentioning it\" at every check-in",
+          "Rule": "Reduce check-in question frequency about it to file 11 Section 6 cadence (not every session) but never fully remove it from `client_state` \u2014 long-term training decisions still reference it"
+        },
+        {
+          "Edge Case": "Client discloses condition only after several months of training",
+          "Rule": "Immediately re-run Section 1 routing retroactively; do not treat prior programming as invalidated, just adjust going forward"
+        },
+        {
+          "Edge Case": "Two conditions have literally opposite ideal cardio modality recommendations",
+          "Rule": "Apply Section 4 conservative-resolution rule; surface the tension to the client/coach rather than silently picking one"
+        },
+        {
+          "Edge Case": "Client stops taking prescribed medication without informing system, later mentions it in passing",
+          "Rule": "Re-run relevant protocol treating client as unmedicated/unmanaged for that condition until restated otherwise; do not assume prior \"managed\" status still holds"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Symptom",
+        "Cause",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Symptom": "Chronic condition protocol conflicting silently with file 12 gate",
+          "Cause": "File 19 not checking file 12 precedence first",
+          "Fix": "Enforce Section 1's first IF branch (file 12 supersedes) as the mandatory entry check in every protocol call"
+        },
+        {
+          "Symptom": "Client's condition stability declining but program unchanged for weeks",
+          "Cause": "Section 5 monitoring not wired into check-in pipeline",
+          "Fix": "Ensure `monitorConditionStability()` runs on every processed check-in (file 11 Section 5), not just at intake"
+        }
+      ]
+    }
+  ],
+  "20_Acute_Symptom_and_First_Response_Triage_Engine.md": [
+    {
+      "columns": [
+        "Signal Combination",
+        "System Confidence in \"Safe to Proceed Normally\"",
+        "Action"
+      ],
+      "rows": [
+        {
+          "Signal Combination": "No symptom reported",
+          "System Confidence in \"Safe to Proceed Normally\"": "High (99%, capped per file 17 Section 5)",
+          "Action": "Proceed normally"
+        },
+        {
+          "Signal Combination": "Vague/incomplete symptom, low apparent severity",
+          "System Confidence in \"Safe to Proceed Normally\"": "Low (uncertain by design)",
+          "Action": "Always request follow-up (Section 3), never guess-and-proceed"
+        },
+        {
+          "Signal Combination": "Clear mild symptom, known benign pattern (e.g., typical DOMS)",
+          "System Confidence in \"Safe to Proceed Normally\"": "Moderate-high",
+          "Action": "Proceed with monitoring"
+        },
+        {
+          "Signal Combination": "Clear symptom matching known injury/condition table",
+          "System Confidence in \"Safe to Proceed Normally\"": "Depends entirely on that table's own branch (files 18/19)",
+          "Action": "Follow that protocol's output exactly"
+        },
+        {
+          "Signal Combination": "Any ambiguity about whether a symptom is emergency-adjacent",
+          "System Confidence in \"Safe to Proceed Normally\"": "Always treated as needing escalation check",
+          "Action": "Route through file 12 Section 2 list check first, regardless of client's own casual framing of the symptom"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Edge Case",
+        "Rule"
+      ],
+      "rows": [
+        {
+          "Edge Case": "Client reports symptom casually mid-conversation, not as a formal \"report\" (e.g., \"haha my chest felt weird earlier but I'm fine\")",
+          "Rule": "Treat as a real report regardless of casual framing; run full classification, do not let tone downgrade triage seriousness"
+        },
+        {
+          "Edge Case": "Client reports symptom then immediately downplays or retracts it",
+          "Rule": "Log both the original report and the retraction; still apply Section 2/3 logic based on the original description, do not simply discard because client walked it back"
+        },
+        {
+          "Edge Case": "Multiple unrelated minor symptoms reported same day (e.g., mild knee ache + mild fatigue + slight dizziness)",
+          "Rule": "Classify and route each independently; do not average into a single \"mostly fine\" conclusion \u2014 the combination itself may warrant Section 2 dizziness branch escalation even if each alone seems minor"
+        },
+        {
+          "Edge Case": "Symptom reported by a third party (e.g., gym coach relaying \"client mentioned chest tightness earlier\")",
+          "Rule": "Treat with same seriousness as direct report; if any ambiguity about severity, default to requesting direct client confirmation before resuming normal session, per fail-conservative rule"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Symptom",
+        "Cause",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Symptom": "Session proceeds normally despite an ambiguous health report",
+          "Cause": "`todaysSessionDecision()` default branch not wired to fail conservative",
+          "Fix": "Enforce Section 4's final ELSE to default to modified/light session, never full unmodified session, when action is unspecified"
+        },
+        {
+          "Symptom": "Repeated vague reports never escalate to a defined protocol",
+          "Cause": "Section 3 follow-up loop not re-invoking `classifyHealthReport()` after client answers",
+          "Fix": "Ensure structured answers feed back into Section 1 classification, not treated as a dead-end"
+        }
+      ]
+    }
+  ]
+}

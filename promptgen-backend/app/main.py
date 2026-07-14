@@ -9,7 +9,7 @@ from app.auth import get_current_user
 from app.membership import get_or_join_member
 from app.db import supabase
 from app.ollama_client import generate_with_ollama
-from app.schemas import GenerateRequest, GenerateResponse, FeedbackSubmission
+from app.schemas import GenerateRequest, GenerateResponse, FeedbackSubmission, CheckinSubmission
 from app.fitness_generator import (
     SYSTEM_PROMPT,
     build_user_prompt,
@@ -17,7 +17,7 @@ from app.fitness_generator import (
     enforce_schema,
     render_dashboard,
     apply_deterministic_day_labels,
-    build_deterministic_workout_days,
+    build_and_review_workout_days,
     ACTIVITY_LABEL,
 )
 from app.safety_engine import (
@@ -26,6 +26,9 @@ from app.safety_engine import (
     DEFAULT_SAFE_SEQUENCE,
     DEFAULT_SAFE_VOL,
 )
+from app import checkin_engine
+from app import progression_engine
+from app import progression_context
 
 
 class ManualCORS(BaseHTTPMiddleware):
@@ -101,6 +104,126 @@ def _get_active_plan(member_id: str) -> dict | None:
         .execute()
     )
     return res.data[0] if res.data else None
+
+
+# ── Phase 6: Biweekly Reassessment & Adaptive Progression ──────────────────
+# checkin_engine.py / progression_engine.py are fully deterministic (no LLM
+# calls) and operate independently of workout generation — see their own
+# module docstrings. Nothing below this point changes how /result builds a
+# plan; it only collects check-in data and stores a progression decision
+# for a future generation pass to read, per this phase's scope.
+def _get_latest_reassessment(member_id: str) -> dict | None:
+    res = (
+        supabase.table("reassessments")
+        .select("*")
+        .eq("member_id", member_id)
+        .order("cycle_number", desc=True)
+        .limit(1)
+        .execute()
+    )
+    return res.data[0] if res.data else None
+
+
+def _get_latest_plan_any_status(member_id: str) -> dict | None:
+    """Most recent plan row regardless of active/expired status — used to
+    find the current cycle's start date for the 14-day eligibility check.
+    Unlike _get_active_plan(), this intentionally ignores valid_until so
+    eligibility can still be computed right after a plan has expired."""
+    res = (
+        supabase.table("plans")
+        .select("*")
+        .eq("member_id", member_id)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    return res.data[0] if res.data else None
+
+
+REASSESSMENT_INTERVAL_DAYS = 14
+
+
+@app.get("/api/checkin/eligibility")
+def checkin_eligibility(
+    user: dict = Depends(get_current_user),
+    member: dict = Depends(get_or_join_member),
+):
+    """Tells the frontend whether the Biweekly Progress check-in should be
+    shown yet. Eligible once REASSESSMENT_INTERVAL_DAYS have passed since
+    the current cycle's plan was created AND no check-in has already been
+    submitted for that cycle."""
+    plan = _get_latest_plan_any_status(member["id"])
+    if not plan:
+        return {
+            "eligible": False, "already_submitted": False,
+            "cycle_number": 1, "next_eligible_at": None,
+        }
+
+    cycle_number = plan["cycle_number"]
+    created_at = datetime.fromisoformat(plan["created_at"].replace("Z", "+00:00"))
+    eligible_at = created_at + timedelta(days=REASSESSMENT_INTERVAL_DAYS)
+    now = datetime.now(timezone.utc)
+
+    history = checkin_engine.get_reassessment_history(member["id"], limit=1)
+    already_submitted = bool(history) and history[0]["cycle_number"] == cycle_number
+
+    return {
+        "eligible": now >= eligible_at and not already_submitted,
+        "already_submitted": already_submitted,
+        "cycle_number": cycle_number,
+        "next_eligible_at": eligible_at.isoformat(),
+    }
+
+
+@app.post("/api/checkin")
+def submit_checkin(
+    body: CheckinSubmission,
+    user: dict = Depends(get_current_user),
+    member: dict = Depends(get_or_join_member),
+):
+    """End-of-cycle biweekly reassessment. Runs the fully deterministic
+    checkin_engine -> progression_engine pipeline (no LLM involved in the
+    decision) and stores the result for a future /result generation to
+    read. Expires the member's current active plan so their next login
+    starts a new cycle — the generation logic itself is untouched and
+    still ignores this data, per this phase's scope.
+    """
+    try:
+        inputs = checkin_engine.assemble_reassessment_inputs(
+            member["id"], body.model_dump(),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    plan = _get_active_plan(member["id"]) or _get_latest_plan_any_status(member["id"])
+    goal = ((plan or {}).get("plan_json") or {}).get("plan", {}).get("goal_label", "")
+
+    result = progression_engine.compute(inputs, goal=goal)
+
+    supabase.table("reassessments").insert({
+        "member_id":       member["id"],
+        "cycle_number":    result["cycle_number"],
+        "checkin_id":      inputs["checkin"]["id"],
+        "progress_state":  result["progress_state"],
+        "compliance_pct":  result["compliance_pct"],
+        "is_deload":       result["is_deload"],
+        "plateau_counter": result["plateau_counter"],
+        "adaptations":     result["adaptations"],
+    }).execute()
+
+    # Force the NEXT /result call to regenerate instead of serving the
+    # now-stale cached plan, starting the next cycle.
+    supabase.table("plans").update({"status": "expired"}).eq(
+        "member_id", member["id"]
+    ).eq("status", "active").execute()
+
+    return {
+        "progress_state":  result["progress_state"],
+        "compliance_pct":  result["compliance_pct"],
+        "is_deload":       result["is_deload"],
+        "plateau_counter": result["plateau_counter"],
+        "actions":         result["adaptations"]["actions"],
+    }
 
 
 @app.post("/api/reset-plan")
@@ -210,6 +333,15 @@ async def result_page(
     if existing:
         return HTMLResponse(content=existing["rendered_html"])
 
+    # Phase 6: cycle_number must actually increment for checkin_engine's
+    # cycle-scoped reads (get_current_cycle_number, reassessment history,
+    # the reassessments table's per-cycle unique constraint) to mean
+    # anything. Computed once, up front, so it can be (a) stamped onto
+    # `data` for the template/frontend to tag feedback rows with, and (b)
+    # reused as-is on the plans insert below.
+    prev_plan = _get_latest_plan_any_status(member["id"])
+    next_cycle = (prev_plan["cycle_number"] + 1) if prev_plan else 1
+
     profile = {
         # Identity
         "name":               name or "User",
@@ -235,6 +367,17 @@ async def result_page(
         # Health
         "medical_notes":      notes or "none",
     }
+
+    # Final Backend Integration: load the latest adaptive-progression
+    # decision (if any) so THIS generation can consume it, closing the
+    # loop described in the integration spec. Purely additive, same
+    # profile["_xxx"] convention as _weekly_template/_vol below.
+    # load_latest_progression_context() returns None (never raises) when
+    # there's no reassessment yet or the optional read fails, in which
+    # case build_deterministic_workout_days() generates exactly as before.
+    profile["_progression_context"] = progression_context.load_latest_progression_context(
+        member["id"], goal=goal,
+    )
 
     # ── SAFETY GATE (KB File 12) — runs unconditionally, before anything else.
     # This must be the very first thing that happens with the intake data:
@@ -266,12 +409,17 @@ async def result_page(
         Workout content (exercise selection, sets/reps/rest, warmups) is no
         longer produced by the LLM at all — build_user_prompt() tells it to
         leave workout.weekly_schedule / workout.days as empty arrays, and
-        build_deterministic_workout_days() fills them in Python using the
-        curated exercise database. That removes the old retry-on-mismatch
-        step entirely: there's nothing left in the LLM's own output to
-        validate against the weekly template, since it never produces any.
-        The LLM is still used for diet content, recovery copy, and macro
-        numbers, which do get parsed from its response as before.
+        build_and_review_workout_days() fills them in Python using the
+        curated exercise database, then runs Trainer Review (a second,
+        bounded Gemini call, whitelist-checked by review_validation.py —
+        never able to introduce an exercise outside the deterministic
+        candidates) before returning. If that second call fails, the
+        deterministic days are returned unchanged; a Trainer Review outage
+        never blocks plan delivery. That removes the old retry-on-mismatch
+        step entirely: there's nothing left in the LLM's own workout output
+        to validate against the weekly template, since it never produces
+        any. The LLM is still used for diet content, recovery copy, and
+        macro numbers, which do get parsed from its response as before.
         """
         weekly_template = profile.get("_weekly_template", [])
         vol = profile.get("_vol", {})
@@ -280,9 +428,14 @@ async def result_page(
         data = parse_llm_json(raw)
 
         data.setdefault("workout", {})
-        data["workout"]["days"] = build_deterministic_workout_days(profile, weekly_template, vol)
+        reviewed = await build_and_review_workout_days(
+            profile, weekly_template, vol, generate_with_ollama,
+        )
+        data["workout"]["days"] = reviewed["days"]
+        profile["_trainer_review"] = reviewed["trainer_review"]
 
         data = enforce_schema(data, profile)
+        data["cycle_number"] = next_cycle
 
         if weekly_template:
             data = apply_deterministic_day_labels(data, weekly_template)
@@ -347,7 +500,7 @@ async def result_page(
     # the lock check at the top of this route reads from this table.
     supabase.table("plans").insert({
         "member_id": member["id"],
-        "cycle_number": 1,
+        "cycle_number": next_cycle,
         "plan_json": data,
         "rendered_html": html,
         "status": "active",

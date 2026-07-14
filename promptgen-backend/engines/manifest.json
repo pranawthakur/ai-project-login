@@ -1,0 +1,113 @@
+{
+  "biomechanics": {
+    "sources": [
+      "16_biomechanics_engine/README.md",
+      "10_movement_engine/movement_patterns.md",
+      "10_movement_engine/movement_schema.md",
+      "22_Movement_Intelligence_Engine/README.md"
+    ],
+    "missing": [],
+    "tables_extracted": 0
+  },
+  "exercise_database": {
+    "sources": [
+      "16_Exercise_Intelligence_Database.md",
+      "9_Exercise_Selection_Rules.md",
+      "21_pairing_engine/README.md"
+    ],
+    "missing": [],
+    "tables_extracted": 20
+  },
+  "programming": {
+    "sources": [
+      "1_Master_Workout_Split_Table.md",
+      "2_Programming_Rules.md",
+      "3_Beginner_Programming.md",
+      "4_Intermediate_Programming.md",
+      "5_Advanced_Programming.md",
+      "6_Intensity_Techniques.md",
+      "7_Goal_Based_Modifications.md",
+      "8_Weekly_Muscle_Volume.md",
+      "13_Cardio_and_Conditioning_Programming.md",
+      "14_Default_Safe_Template_and_Coach_Override.md"
+    ],
+    "missing": [],
+    "tables_extracted": 59
+  },
+  "progression": {
+    "sources": [
+      "11_progression_engine/README.md",
+      "11_progression_engine/progression_schema.md",
+      "17_plateau_engine/README.md",
+      "18_weakpoint_engine/README.md",
+      "17_Periodization_and_AI_Decision_Engine.md",
+      "24_periodization_engine/README.md"
+    ],
+    "missing": [],
+    "tables_extracted": 5
+  },
+  "fatigue": {
+    "sources": [
+      "12_fatigue_engine/README.md",
+      "19_recovery_capacity_engine/README.md",
+      "27_readiness_engine/README.md"
+    ],
+    "missing": [],
+    "tables_extracted": 0
+  },
+  "recovery": {
+    "sources": [
+      "10_Recovery_and_Deload.md",
+      "15_recovery_engine/README.md"
+    ],
+    "missing": [],
+    "tables_extracted": 9
+  },
+  "substitution": {
+    "sources": [
+      "22_conflict_engine/README.md"
+    ],
+    "missing": [],
+    "tables_extracted": 0
+  },
+  "constraints": {
+    "sources": [
+      "12_Safety_and_Medical_Red_Flag_Engine.md",
+      "18_Injury_Specific_Rehabilitation_and_Return_to_Training.md",
+      "19_Chronic_Health_Condition_Management_Engine.md",
+      "20_Acute_Symptom_and_First_Response_Triage_Engine.md"
+    ],
+    "missing": [],
+    "tables_extracted": 18
+  },
+  "validation": {
+    "sources": [
+      "0_Master_Index_Versioning_and_Localization.md",
+      "11_Assessment_and_Intake_Engine.md"
+    ],
+    "missing": [],
+    "tables_extracted": 12
+  },
+  "analytics": {
+    "sources": [
+      "20_adherence_engine/README.md",
+      "25_metadata_engine/README.md"
+    ],
+    "missing": [],
+    "tables_extracted": 0
+  },
+  "nutrition": {
+    "sources": [
+      "15_Supplement_Safety_and_Interaction_Engine.md"
+    ],
+    "missing": [],
+    "tables_extracted": 6
+  },
+  "feedback": {
+    "sources": [
+      "26_explanation_engine/README.md"
+    ],
+    "missing": [],
+    "tables_extracted": 0
+  }
+}

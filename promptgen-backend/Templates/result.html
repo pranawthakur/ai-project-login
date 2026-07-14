@@ -300,6 +300,13 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
 .feedback-status.ok{color:#4ade80}
 .feedback-status.err{color:#f87171}
 
+.ci-label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.ci-input{width:100%;background:var(--bg3);border:1px solid var(--border-hi);border-radius:10px;padding:10px 12px;color:#e8e8e8;font-size:13.5px;font-family:inherit}
+.ci-input:focus{outline:none;border-color:#a855f7}
+.ci-pill{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border-hi);border-radius:20px;padding:7px 12px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none}
+.ci-pill input{accent-color:#a855f7}
+.ci-pill:has(input:checked){color:#e8e8e8;border-color:#a855f7}
+
 .safety-note{margin-top:12px;background:var(--bg3);border-left:2px solid var(--lime);border-radius:0 8px 8px 0;padding:9px 13px;font-size:11.5px;color:var(--muted);line-height:1.55}
 .safety-note strong{color:#aaa;font-weight:600}
 
@@ -404,6 +411,10 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
 </style>
 </head>
 <body>
+<script>
+  window.CURRENT_CYCLE = {{ cycle_number | default(1) }};
+  window.BACKEND_BASE = "https://ai-project-login-de6g.onrender.com";
+</script>
 
 <div class="bg-aurora"><div class="bg-grid"></div><div class="bg-noise"></div></div>
 <div class="spotlight" id="spotlight"></div>
@@ -451,6 +462,10 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
       <button class="sb-item" data-sec="recovery">
         <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         <span class="sb-label">Progress</span>
+      </button>
+      <button class="sb-item" data-sec="checkin" id="checkinNavBtn" style="display:none">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span class="sb-label">Biweekly Check-in</span>
       </button>
     </nav>
 
@@ -696,6 +711,94 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
           {% endfor %}
         </div>
         {% endfor %}
+      </div>
+
+      <!-- ══════════ BIWEEKLY CHECK-IN (Phase 6) ══════════ -->
+      <div class="section" id="sec-checkin">
+        <div class="card" id="checkinLockedCard">
+          <div class="card-title">Biweekly Progress Check-in</div>
+          <p style="color:var(--muted);font-size:13.5px;line-height:1.6" id="checkinLockedMsg">
+            Checking eligibility…
+          </p>
+        </div>
+
+        <div class="card" id="checkinFormCard" style="display:none">
+          <div class="card-title">Biweekly Progress Check-in</div>
+          <p style="color:var(--muted);font-size:13px;margin-bottom:16px">
+            Takes about 3 minutes. Body measurements are optional.
+          </p>
+
+          <form id="checkinForm" style="display:flex;flex-direction:column;gap:16px">
+            <div>
+              <label class="ci-label">How's your recovery been?</label>
+              <select name="recovery" class="ci-input" required>
+                <option value="excellent">Excellent</option>
+                <option value="good" selected>Good</option>
+                <option value="average">Average</option>
+                <option value="poor">Poor</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="ci-label">How has the difficulty felt overall?</label>
+              <select name="difficulty" class="ci-input" required>
+                <option value="too_easy">Too easy</option>
+                <option value="easy">Easy</option>
+                <option value="just_right" selected>Just right</option>
+                <option value="hard">Hard</option>
+                <option value="too_hard">Too hard</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="ci-label">Current soreness level</label>
+              <select name="soreness" class="ci-input" required>
+                <option value="none" selected>None</option>
+                <option value="mild">Mild</option>
+                <option value="moderate">Moderate</option>
+                <option value="severe">Severe</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="ci-label">Any pain areas? (select all that apply)</label>
+              <div id="ciPainAreas" style="display:flex;flex-wrap:wrap;gap:8px">
+                {% for area in ["none","shoulder","elbow","wrist","lower_back","hip","knee","ankle","other"] %}
+                <label class="ci-pill">
+                  <input type="checkbox" name="pain_areas" value="{{ area }}" {% if area == "none" %}checked{% endif %}>
+                  <span>{{ area | replace("_", " ") | title }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div>
+              <label class="ci-label">Pain notes (optional)</label>
+              <textarea name="pain_notes" class="ci-input" rows="2"></textarea>
+            </div>
+
+            <div class="sec-label" style="margin-top:4px">Body measurements (optional)</div>
+            <div class="set-grid">
+              <div><label class="ci-label">Weight (kg)</label><input type="number" step="0.1" name="body_weight_kg" class="ci-input"></div>
+              <div><label class="ci-label">Waist (cm)</label><input type="number" step="0.1" name="waist_cm" class="ci-input"></div>
+              <div><label class="ci-label">Chest (cm)</label><input type="number" step="0.1" name="chest_cm" class="ci-input"></div>
+              <div><label class="ci-label">Arms (cm)</label><input type="number" step="0.1" name="arms_cm" class="ci-input"></div>
+              <div><label class="ci-label">Thighs (cm)</label><input type="number" step="0.1" name="thighs_cm" class="ci-input"></div>
+              <div><label class="ci-label">Hips (cm)</label><input type="number" step="0.1" name="hips_cm" class="ci-input"></div>
+              <div><label class="ci-label">Body fat %</label><input type="number" step="0.1" name="body_fat_pct" class="ci-input"></div>
+            </div>
+
+            <button type="submit" class="feedback-submit" id="checkinSubmitBtn">Submit Check-in</button>
+            <div id="checkinStatus" class="feedback-status"></div>
+          </form>
+        </div>
+
+        <div class="card" id="checkinSuccessCard" style="display:none">
+          <div class="card-title">✓ Check-in submitted</div>
+          <p style="color:var(--muted);font-size:13.5px;line-height:1.6" id="checkinSuccessMsg">
+            Your next plan will reflect this check-in.
+          </p>
+        </div>
       </div>
 
     </div>
@@ -1021,7 +1124,8 @@ document.querySelectorAll('.ex-stars').forEach(group => {
       const { data: setRows, error: setErr } = await supabase
         .from('workout_set_feedback')
         .select('day_index, exercise, set_number, weight_kg, reps_used')
-        .eq('member_id', memberId);
+        .eq('member_id', memberId)
+        .eq('cycle_number', window.CURRENT_CYCLE || 1);
       if (setErr) throw setErr;
 
       (setRows || []).forEach(row => {
@@ -1038,7 +1142,8 @@ document.querySelectorAll('.ex-stars').forEach(group => {
       const { data: exRows, error: exErr } = await supabase
         .from('workout_exercise_feedback')
         .select('day_index, exercise, difficulty, notes')
-        .eq('member_id', memberId);
+        .eq('member_id', memberId)
+        .eq('cycle_number', window.CURRENT_CYCLE || 1);
       if (exErr) throw exErr;
 
       (exRows || []).forEach(row => {
@@ -1086,6 +1191,7 @@ document.querySelectorAll('.ex-stars').forEach(group => {
         set_number: parseInt(cell.dataset.setNumber, 10),
         weight_kg: weight,
         reps_used: repsUsed,
+        cycle_number: window.CURRENT_CYCLE || 1,
       });
     });
 
@@ -1107,6 +1213,7 @@ document.querySelectorAll('.ex-stars').forEach(group => {
         exercise: anySetCell.dataset.exercise,
         difficulty: rating || null,
         notes: notes,
+        cycle_number: window.CURRENT_CYCLE || 1,
       });
     });
 
@@ -1139,7 +1246,7 @@ document.querySelectorAll('.ex-stars').forEach(group => {
           .from('workout_set_feedback')
           .upsert(
             setEntries.map(e => ({ ...e, member_id: memberId })),
-            { onConflict: 'member_id,day_index,exercise,set_number' }
+            { onConflict: 'member_id,cycle_number,day_index,exercise,set_number' }
           );
         if (setErr) throw setErr;
       }
@@ -1149,7 +1256,7 @@ document.querySelectorAll('.ex-stars').forEach(group => {
           .from('workout_exercise_feedback')
           .upsert(
             exerciseEntries.map(e => ({ ...e, member_id: memberId })),
-            { onConflict: 'member_id,day_index,exercise' }
+            { onConflict: 'member_id,cycle_number,day_index,exercise' }
           );
         if (exErr) throw exErr;
       }
@@ -1157,6 +1264,128 @@ document.querySelectorAll('.ex-stars').forEach(group => {
       status.textContent = `✓ Saved ${setEntries.length} sets, ${exerciseEntries.length} exercise ratings`;
       status.className = 'feedback-status ok';
       computeAndRenderProgress(); // bars only refresh on a successful submit, not while typing
+    } catch (err) {
+      status.textContent = '✗ ' + (err.message || 'Something went wrong');
+      status.className = 'feedback-status err';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+
+// ══════════ PHASE 6: BIWEEKLY CHECK-IN (additive — does not alter any logic above) ══════════
+(async function () {
+  const navBtn = document.getElementById('checkinNavBtn');
+  const lockedCard = document.getElementById('checkinLockedCard');
+  const lockedMsg = document.getElementById('checkinLockedMsg');
+  const formCard = document.getElementById('checkinFormCard');
+  const successCard = document.getElementById('checkinSuccessCard');
+  if (!navBtn) return;
+
+  async function getSession() {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js');
+    const supabase = createClient(
+      'https://yabclxadadynmprymcns.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYmNseGFkYWR5bm1wcnltY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0Njg4NzIsImV4cCI6MjA5ODA0NDg3Mn0.e2IwBxrW-NbMIqqWFZb8gnh5T95vlDwS-h2FhlWRb1k'
+    );
+    const { data: { session } } = await supabase.auth.getSession();
+    return session;
+  }
+
+  async function checkEligibility() {
+    try {
+      const session = await getSession();
+      if (!session) return;
+
+      const res = await fetch(window.BACKEND_BASE + '/api/checkin/eligibility', {
+        headers: { 'Authorization': 'Bearer ' + session.access_token },
+      });
+      if (!res.ok) throw new Error('eligibility check failed');
+      const data = await res.json();
+
+      if (data.already_submitted) {
+        navBtn.style.display = '';
+        lockedCard.style.display = 'none';
+        formCard.style.display = 'none';
+        successCard.style.display = '';
+        return;
+      }
+
+      if (data.eligible) {
+        navBtn.style.display = '';
+        lockedCard.style.display = 'none';
+        formCard.style.display = '';
+        successCard.style.display = 'none';
+      } else {
+        // Stays hidden until eligible — nav item and section remain out of
+        // the way rather than showing a disabled/locked state up front.
+        navBtn.style.display = 'none';
+        if (data.next_eligible_at) {
+          const d = new Date(data.next_eligible_at);
+          lockedMsg.textContent = 'Your next check-in unlocks on ' + d.toLocaleDateString() + '.';
+        }
+      }
+    } catch (err) {
+      console.warn('Could not check biweekly eligibility:', err.message || err);
+    }
+  }
+
+  checkEligibility();
+
+  const form = document.getElementById('checkinForm');
+  if (!form) return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('checkinSubmitBtn');
+    const status = document.getElementById('checkinStatus');
+    btn.disabled = true;
+    status.textContent = 'Saving…';
+    status.className = 'feedback-status';
+
+    try {
+      const session = await getSession();
+      if (!session) throw new Error('Session expired — go back and log in again.');
+
+      const fd = new FormData(form);
+      const numOrNull = (v) => (v === '' || v === null ? null : parseFloat(v));
+      const payload = {
+        recovery: fd.get('recovery'),
+        difficulty: fd.get('difficulty'),
+        soreness: fd.get('soreness'),
+        pain_areas: fd.getAll('pain_areas'),
+        pain_notes: fd.get('pain_notes') || null,
+        body_weight_kg: numOrNull(fd.get('body_weight_kg')),
+        waist_cm: numOrNull(fd.get('waist_cm')),
+        chest_cm: numOrNull(fd.get('chest_cm')),
+        arms_cm: numOrNull(fd.get('arms_cm')),
+        thighs_cm: numOrNull(fd.get('thighs_cm')),
+        hips_cm: numOrNull(fd.get('hips_cm')),
+        body_fat_pct: numOrNull(fd.get('body_fat_pct')),
+      };
+
+      const res = await fetch(window.BACKEND_BASE + '/api/checkin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + session.access_token,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.detail || 'Could not submit check-in');
+      }
+      const result = await res.json();
+
+      formCard.style.display = 'none';
+      successCard.style.display = '';
+      const successMsg = document.getElementById('checkinSuccessMsg');
+      if (successMsg) {
+        successMsg.textContent = 'Progress: ' + result.progress_state +
+          (result.is_deload ? ' — a deload is recommended next cycle.' : '.') +
+          ' Your next plan will reflect this check-in.';
+      }
     } catch (err) {
       status.textContent = '✗ ' + (err.message || 'Something went wrong');
       status.className = 'feedback-status err';

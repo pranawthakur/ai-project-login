@@ -1,0 +1,229 @@
+{
+  "17_Periodization_and_AI_Decision_Engine.md": [
+    {
+      "columns": [
+        "Split",
+        "Strength",
+        "Powerlifting",
+        "Hypertrophy",
+        "Fat Loss",
+        "General Health",
+        "Athletic Performance"
+      ],
+      "rows": [
+        {
+          "Split": "Full Body x2-3",
+          "Strength": "0.8",
+          "Powerlifting": "0.7",
+          "Hypertrophy": "0.6",
+          "Fat Loss": "0.8",
+          "General Health": "0.95",
+          "Athletic Performance": "0.7"
+        },
+        {
+          "Split": "Upper/Lower x4",
+          "Strength": "0.9",
+          "Powerlifting": "0.9",
+          "Hypertrophy": "0.85",
+          "Fat Loss": "0.75",
+          "General Health": "0.8",
+          "Athletic Performance": "0.85"
+        },
+        {
+          "Split": "PPL x3 (per week)",
+          "Strength": "0.6",
+          "Powerlifting": "0.5",
+          "Hypertrophy": "0.85",
+          "Fat Loss": "0.65",
+          "General Health": "0.6",
+          "Athletic Performance": "0.6"
+        },
+        {
+          "Split": "PPL x2 (6 days)",
+          "Strength": "0.7",
+          "Powerlifting": "0.6",
+          "Hypertrophy": "0.95",
+          "Fat Loss": "0.6",
+          "General Health": "0.5",
+          "Athletic Performance": "0.6"
+        },
+        {
+          "Split": "Bro Split (1 muscle/day)",
+          "Strength": "0.4",
+          "Powerlifting": "0.3",
+          "Hypertrophy": "0.75",
+          "Fat Loss": "0.5",
+          "General Health": "0.4",
+          "Athletic Performance": "0.4"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Method",
+        "What",
+        "Gate"
+      ],
+      "rows": [
+        {
+          "Method": "Contrast Training",
+          "What": "Heavy strength set followed by biomechanically similar explosive/plyometric movement",
+          "Gate": "`goals.primary == \"athletic_performance\" AND training_age >= 24 months AND tier == \"green\"`"
+        },
+        {
+          "Method": "French Contrast",
+          "What": "4-exercise complex: heavy compound \u2192 plyometric \u2192 weighted plyometric/assisted speed work \u2192 unweighted speed work, same pattern",
+          "Gate": "Same gate as above, plus requires adequate plyometric tolerance (no lower-limb injury flags active)"
+        },
+        {
+          "Method": "Triphasic Training",
+          "What": "Block sequence emphasizing eccentric, then isometric, then concentric focus phases",
+          "Gate": "`training_age >= 36 months AND goals.primary == \"athletic_performance\"`; not appropriate for general population hypertrophy/fat-loss goals"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Technique",
+        "Definition",
+        "Fatigue Cost",
+        "Gate"
+      ],
+      "rows": [
+        {
+          "Technique": "Top Set + Backoff Sets",
+          "Definition": "One heaviest working set, followed by sets at reduced load/higher reps",
+          "Fatigue Cost": "Moderate",
+          "Gate": "All tiers (backoff % adjusted by tier)"
+        },
+        {
+          "Technique": "Cluster Sets",
+          "Definition": "Set broken into mini-sets with short (10-20s) intra-set rest to sustain higher load for more total reps",
+          "Fatigue Cost": "Moderate-High",
+          "Gate": "Green tier, training_age >= 6 months"
+        },
+        {
+          "Technique": "Myo-Reps",
+          "Definition": "One activation set to ~RIR1-2, then short-rest mini-sets of 3-5 reps until stimulus fatigue",
+          "Fatigue Cost": "High (local)",
+          "Gate": "Green/yellow tier, isolation exercises preferred over compounds"
+        },
+        {
+          "Technique": "Drop Sets",
+          "Definition": "Reduce load ~20-30% immediately upon reaching near-failure, continue without rest",
+          "Fatigue Cost": "High (local)",
+          "Gate": "Green tier, isolation/machine exercises preferred (lower injury risk when form degrades)"
+        },
+        {
+          "Technique": "Mechanical Drop Sets",
+          "Definition": "Same muscle group, shift to biomechanically easier variation upon failure (e.g., incline \u2192 flat \u2192 decline press)",
+          "Fatigue Cost": "High (local)",
+          "Gate": "Green tier"
+        },
+        {
+          "Technique": "Supersets (same muscle)",
+          "Definition": "Two exercises same muscle group back-to-back, no rest",
+          "Fatigue Cost": "Moderate-High",
+          "Gate": "Yellow/green tier"
+        },
+        {
+          "Technique": "Supersets (antagonist)",
+          "Definition": "Two exercises opposing muscle groups back-to-back",
+          "Fatigue Cost": "Moderate",
+          "Gate": "All tiers (efficient, doesn't compound local fatigue)"
+        },
+        {
+          "Technique": "Tri-Sets / Giant Sets",
+          "Definition": "3-4 exercises in sequence, minimal rest",
+          "Fatigue Cost": "High",
+          "Gate": "Green tier only, hypertrophy-focused blocks"
+        },
+        {
+          "Technique": "Rest-Pause",
+          "Definition": "Near-failure set, ~15-20s rest, continue same exercise for additional reps",
+          "Fatigue Cost": "High",
+          "Gate": "Green tier, training_age >= 6 months"
+        },
+        {
+          "Technique": "Forced Reps",
+          "Definition": "Spotter-assisted reps beyond failure",
+          "Fatigue Cost": "Very High",
+          "Gate": "Green tier only, requires spotter/coach supervision \u2014 flag `unsupervised_max_effort_risk` (file 12 Sec 9) if solo"
+        },
+        {
+          "Technique": "Cheat Reps",
+          "Definition": "Slight momentum use to complete reps beyond strict failure",
+          "Fatigue Cost": "High, elevated injury risk if uncontrolled",
+          "Gate": "Green tier only, advanced trainees, discouraged for large compound barbell lifts"
+        },
+        {
+          "Technique": "Partial Reps / Partials",
+          "Definition": "Reduced-ROM reps at point of failure to extend set",
+          "Fatigue Cost": "Moderate-High",
+          "Gate": "Green tier"
+        },
+        {
+          "Technique": "Blood Flow Restriction (Occlusion)",
+          "Definition": "Restricted venous return with light load (~20-30% 1RM) to induce metabolic stress",
+          "Fatigue Cost": "Moderate (local), requires proper cuff protocol",
+          "Gate": "Requires explicit `medical_clearance_required` resolution if any vascular/clotting history flag present (file 12 Sec 4); otherwise green/yellow tier rehab-adjacent use permitted under coach guidance"
+        },
+        {
+          "Technique": "Isometrics (overcoming/yielding)",
+          "Definition": "Static holds at a joint angle, max or submax effort",
+          "Fatigue Cost": "Low-Moderate systemic, position-specific joint stress",
+          "Gate": "All tiers (yielding isometrics useful even in DEFAULT_SAFE_TEMPLATE progression)"
+        },
+        {
+          "Technique": "Explosive/Compensatory Acceleration Work",
+          "Definition": "Submaximal load moved with maximal intended velocity",
+          "Fatigue Cost": "Low-Moderate",
+          "Gate": "Green/yellow tier, requires clean technique baseline first"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Edge Case",
+        "Rule"
+      ],
+      "rows": [
+        {
+          "Edge Case": "Client's ideal split (by scoring) conflicts with strong stated preference (e.g., wants bro split, scores favor upper/lower)",
+          "Rule": "Present scored recommendation with reasoning, but allow client to select preferred split if no safety flag conflict \u2014 adherence to a liked plan often outweighs marginal programming optimality; log the override as client-initiated, not system error"
+        },
+        {
+          "Edge Case": "Recovery score and goal-fit scores tie between two splits",
+          "Rule": "Break tie using adherence_fit (Section 1) \u2014 favor lower-complexity option for tie-breaking"
+        },
+        {
+          "Edge Case": "Client training age unknown/unreliable (file 11 Section 8 discrepancy)",
+          "Rule": "Default to movement-screen-derived training age, not self-report, per existing file 11 rule"
+        },
+        {
+          "Edge Case": "Advanced technique requested by name (e.g., \"I want to try myo-reps\") by a yellow-tier client",
+          "Rule": "Explain gate requirement, offer closest permitted alternative (e.g., standard straight sets with slightly higher rep target), do not unlock technique solely on request"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Symptom",
+        "Cause",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Symptom": "Split recommendation flip-flops week to week",
+          "Cause": "Recovery score volatility feeding directly into split selection without smoothing",
+          "Fix": "Use trailing 2-week average recovery score for split selection, not single latest data point"
+        },
+        {
+          "Symptom": "Confidence scores cluster unrealistically high (90%+) across almost all outputs",
+          "Cause": "`client_data_completeness` and evidence_strength inputs not actually varying / being read",
+          "Fix": "Audit that Section 5 formula receives real per-recommendation values, not defaulted constants"
+        }
+      ]
+    }
+  ]
+}

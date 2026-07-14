@@ -1,0 +1,204 @@
+[
+  {
+    "is_rest": true
+  },
+  {
+    "_validation": {
+      "rejected": [],
+      "repairs": [],
+      "warnings": [
+        "chest: duplicate 'horizontal_push_isolation' pattern on Pec Deck Machine \u2014 no alternative pattern available in pool, kept as-is",
+        "triceps: duplicate 'elbow_extension' pattern on Close-Grip Push-Up \u2014 no alternative pattern available in pool, kept as-is"
+      ]
+    },
+    "exercises": [
+      {
+        "muscle": "Chest",
+        "name": "Smith Machine Bench Press",
+        "reps": "6\u201312 reps",
+        "rest": "60\u2013120s",
+        "sets": 4,
+        "tempo_or_cue": "Controlled tempo, bar path straight"
+      },
+      {
+        "muscle": "Chest",
+        "name": "Cable Chest Fly",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Slight bend in elbow, squeeze at center"
+      },
+      {
+        "muscle": "Chest",
+        "name": "Pec Deck Machine",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Controlled squeeze, don't slam the pads"
+      },
+      {
+        "muscle": "Triceps",
+        "name": "Band Triceps Pushdown",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Constant tension, controlled negative"
+      },
+      {
+        "muscle": "Triceps",
+        "name": "Close-Grip Push-Up",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Elbows tucked, full range"
+      },
+      {
+        "muscle": "Shoulders",
+        "name": "Reverse Pec Deck (rear delt)",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Squeeze rear delts, controlled tempo"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Keep shoulder blades back and down, controlled tempo on every rep \u2014 stop a set short of failure if form breaks down.",
+    "warmup_exercises": [
+      "5 min incline treadmill walk",
+      "20\u00d7 arm circles (forward + backward)",
+      "15\u00d7 shoulder rotations each side",
+      "10\u00d7 band pull-aparts",
+      "10\u00d7 push-up negatives (slow 4-sec down)"
+    ]
+  },
+  {
+    "is_rest": true
+  },
+  {
+    "is_rest": true
+  },
+  {
+    "_validation": {
+      "rejected": [],
+      "repairs": [],
+      "warnings": [
+        "biceps: duplicate 'elbow_flexion' pattern on Band Bicep Curl \u2014 no alternative pattern available in pool, kept as-is"
+      ]
+    },
+    "exercises": [
+      {
+        "muscle": "Back",
+        "name": "Chest-Supported Machine Row",
+        "reps": "6\u201312 reps",
+        "rest": "60\u2013120s",
+        "sets": 4,
+        "tempo_or_cue": "Full stretch, squeeze at contraction"
+      },
+      {
+        "muscle": "Back",
+        "name": "Straight-Arm Cable Pulldown",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Slight elbow bend, squeeze lats"
+      },
+      {
+        "muscle": "Back",
+        "name": "Band Pull-Apart",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Slow and controlled, squeeze at end range"
+      },
+      {
+        "muscle": "Biceps",
+        "name": "Machine Preacher Curl",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Full range, controlled negative"
+      },
+      {
+        "muscle": "Biceps",
+        "name": "Band Bicep Curl",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Constant tension throughout"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Drive with the elbows, not the hands \u2014 avoid shrugging or using momentum to move the weight.",
+    "warmup_exercises": [
+      "5 min rowing machine (low resistance)",
+      "15\u00d7 scapular retractions",
+      "20\u00d7 band pull-aparts",
+      "10\u00d7 doorway lat stretch each side",
+      "10\u00d7 face-pulls with resistance band"
+    ]
+  },
+  {
+    "is_rest": true
+  },
+  {
+    "exercises": [
+      {
+        "muscle": "Legs",
+        "name": "Smith Machine Squat",
+        "reps": "6\u201312 reps",
+        "rest": "60\u2013120s",
+        "sets": 4,
+        "tempo_or_cue": "Bar path vertical, brace core throughout"
+      },
+      {
+        "muscle": "Legs",
+        "name": "Leg Extension",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Squeeze quads 1 sec at top"
+      },
+      {
+        "muscle": "Legs",
+        "name": "Bulgarian Split Squat (dumbbell)",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Rear foot elevated, front knee tracks over toes"
+      },
+      {
+        "muscle": "Legs",
+        "name": "Glute Bridge (loaded)",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Squeeze glutes hard at top, 1-sec pause"
+      },
+      {
+        "muscle": "Legs",
+        "name": "Leg Press",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Full range, don't lock knees out at top"
+      },
+      {
+        "muscle": "Calves",
+        "name": "Standing Calf Raise Machine",
+        "reps": "6\u201312 reps",
+        "rest": "45\u201390s",
+        "sets": 4,
+        "tempo_or_cue": "Full range, pause at top"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Keep knees tracking over toes, chest up, controlled descent on every rep.",
+    "warmup_exercises": [
+      "5 min stationary bike",
+      "20\u00d7 bodyweight squats",
+      "15\u00d7 leg swings each leg (front-back + lateral)",
+      "10\u00d7 hip circles each side",
+      "10\u00d7 glute bridges"
+    ]
+  }
+]

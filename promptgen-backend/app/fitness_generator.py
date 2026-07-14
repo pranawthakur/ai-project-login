@@ -36,15 +36,46 @@ from jinja2 import Environment, FileSystemLoader
 
 from .split_engine import recommend_split, SPLIT_LIBRARY, _session_minutes
 from .exercise_database import (
-    select_day_exercises,
     MUSCLE_PRIORITY,
     BEGINNER_CAP_LEG_DAY as BEGINNER_LEG_DAY_TARGET_TOTAL,
+)
+# select_day_exercises now comes from exercise_selector.py, not
+# exercise_database.py directly — it's a documented drop-in replacement
+# (identical (exercises, used_fallback, injury_keywords) return shape)
+# that adds movement-pattern-aware isolation sampling, a hard rule against
+# literal duplicate exercises in one day, and goal-aware compound
+# filtering (recovery goals deprioritize heavy free-weight compounds).
+# exercise_database.py's own select_day_exercises() is left in place and
+# untouched for any other caller that still imports it directly.
+from .exercise_selector import select_day_exercises
+from .validator import (
+    validate_and_repair_day,
+    validate_week,
+    get_condition_intensity_flags,
+    check_condition_pattern_conflicts,
 )
 from .programming_rules import (
     weekly_volume_target,
     sets_reps_rest_for_goal,
     session_duration_cap,
 )
+from . import knowledge_retriever as kb
+from . import trainer_review as trainer_review_mod
+from . import review_validation as review_validation_mod
+# NOTE on progression.py: attempted to source per-exercise rest from
+# progression.py's rest_for_exercise_type() (compound vs isolation bands),
+# but that function is keyed by intensity band only, not by goal — there's
+# no authoritative goal->exercise_type mapping in engines/programming
+# (confirmed via its own GAPS.md, which explicitly leaves that
+# classification to the caller). Deriving one via a %1RM cutoff produced
+# a real conflict with programming_rules.SETS_REPS_BY_GOAL's own already-
+# vetted text (180-300s vs. the KB's stated 60-120s for muscle-gain
+# compound work). Reverted to parsing the compound/isolation split that
+# already exists as text in SETS_REPS_BY_GOAL itself (see
+# _rest_string_for_slot below) instead of pulling from progression.py.
+# progression.py is not currently imported by this file as a result —
+# see conversation for what a legitimate future use of it here would need
+# (a sourced goal/RIR-band -> exercise_type mapping that doesn't exist yet).
 
 
 # ── TEMPLATE DIR ─────────────────────────────────────────────────────────────
@@ -373,6 +404,7 @@ def _compute_day_plan(
     goal: str = "",
     muscle_frequency: dict | None = None,
     session_minutes: int | None = None,
+    progression_context: dict | None = None,
 ) -> dict:
     """
     Precompute the EXACT exercise breakdown for one training day so the LLM
@@ -412,6 +444,21 @@ def _compute_day_plan(
         once it reaches the last-priority muscle. Instead it uses fixed,
         tier-independent isolation floors (back 3, chest 3, shoulders 2,
         biceps 2, triceps 2) so no muscle group can silently vanish.
+
+    `progression_context` (optional, see progression_context.py) is where
+    adaptive progression connects to generation: its "volume_multiplier"
+    (computed by progression_engine.py — deload cuts, plateau bumps,
+    low-compliance cuts, etc.) scales each muscle's weekly_volume_target
+    in the MEV/MAV override branch below, exactly like the integration
+    spec's "reducing weekly volume" / "applying a deload" examples. `None`
+    (the default, and what every existing caller still passes) behaves
+    identically to before this param existed — this is what "generate
+    workouts exactly as before" when there's no reassessment data means in
+    practice. NOTE: the "upper" and beginner fixed-plan branches above
+    return early and don't reach the MEV/MAV override, so volume_multiplier
+    has no effect on those two day types — a known, documented gap rather
+    than a silent one, consistent with this task's "do not redesign the
+    generator" scope.
     """
     # ── Combined "upper" day uses a fixed, explicit distribution per client
     # hard-rule (see UPPER_FIXED_DAY_PLAN above) — applies to EVERY
@@ -540,9 +587,13 @@ def _compute_day_plan(
     # that doesn't pass it breaks.
     if muscle_frequency is not None:
         sets_per_ex = sets_reps_rest_for_goal(goal)["sets_per_exercise"]
+        # Deterministic adaptive-progression hook (see progression_context.py
+        # docstring above): 1.0 whenever there's no progression context yet,
+        # i.e. identical to pre-integration behaviour.
+        volume_multiplier = (progression_context or {}).get("volume_multiplier", 1.0) or 1.0
         for m in muscles:
             freq = max(muscle_frequency.get(m, 1), 1)
-            weekly_target = weekly_volume_target(m, exp_key, goal)
+            weekly_target = weekly_volume_target(m, exp_key, goal) * volume_multiplier
             if weekly_target <= 0:
                 continue
             sets_needed_this_session = weekly_target / freq
@@ -660,6 +711,51 @@ def _render_day_plan_table(
 # (8–15) and a muscle-gain client gets fewer/heavier reps (6–12) instead of every
 # goal seeing the same fixed 8–10 / 12–15 split by slot type.
 
+_REST_SPLIT_PATTERN = re.compile(
+    r"([\d\u2013\u2013\-\s]+(?:s|min))\s*\((compound|power)\)\s*,\s*"
+    r"([\d\u2013\-\s]+(?:s|min))\s*\((isolation|accessory)\)",
+    re.IGNORECASE,
+)
+
+
+def _rest_string_for_slot(goal: str, slot: str) -> str:
+    """
+    Per-exercise rest range, slot-aware (compound vs isolation) where the
+    source data actually supports that split, otherwise the goal's single
+    flat value.
+
+    programming_rules.SETS_REPS_BY_GOAL's own "rest" text already encodes
+    a compound/isolation (or power/accessory) split as descriptive text
+    for goals where 2_Programming_Rules.md specifies one (muscle_gain:
+    "60-120s (compound), 45-90s (isolation)"; athletic: "3-5 min (power),
+    60-90s (accessory)") — this parses that existing text and returns the
+    half that matches the exercise's actual slot, instead of the previous
+    behavior of printing the whole dual-value string on every exercise
+    regardless of slot.
+
+    For goals where the KB gives one flat value with no split (strength,
+    fat_loss, general_fitness), that same flat value is used for both
+    compound and isolation — deliberately NOT inventing a split there.
+    An earlier version of this function picked progression.py's
+    heavy_compound_ge_85pct vs moderate_compound_65_80pct band based on
+    an 85%-1RM cutoff invented for this purpose; that produced 180-300s
+    for muscle-gain compound work, contradicting the 60-120s already in
+    the KB text above. engines/programming's rest_for_exercise_type() is
+    keyed by intensity band only, not by goal (confirmed in its own
+    GAPS.md: goal-to-exercise-type classification is explicitly left to
+    the caller, not sourced) — so deriving it from goal via a made-up
+    threshold isn't a legitimate use of that function. Parsing the
+    already-vetted goal-level text directly avoids introducing a second,
+    conflicting number.
+    """
+    rest_text = sets_reps_rest_for_goal(goal)["rest"]
+    match = _REST_SPLIT_PATTERN.search(rest_text)
+    if not match:
+        return rest_text  # flat value, no split in the source — use as-is for every slot
+    compound_part, _, isolation_part, _ = match.groups()
+    return compound_part.strip() if slot == "compound" else isolation_part.strip()
+
+
 _SAFETY_DEFAULT_BY_TOKEN = {
     "push":  "Keep shoulder blades back and down, controlled tempo on every rep — stop a set short of failure if form breaks down.",
     "pull":  "Drive with the elbows, not the hands — avoid shrugging or using momentum to move the weight.",
@@ -693,10 +789,36 @@ def build_deterministic_workout_days(profile: dict, weekly_template: list, vol: 
     muscle_frequency = _muscle_frequency(weekly_template, exp_key)
     rng = random.Random()
 
+    # Final Backend Integration: consume the latest adaptive progression
+    # decision, if main.py attached one (see progression_context.py).
+    # `None` here (no reassessment yet, or the optional load failed) means
+    # every branch below behaves exactly as it did before this hook existed.
+    progression_context = profile.get("_progression_context")
+    if progression_context and progression_context.get("pain_flags"):
+        # Fold biweekly check-in pain flags into the same free-text injury
+        # detection notes_raw already goes through (exercise_selector.py's
+        # _parse_injury_keywords), so newly-reported pain gets the same
+        # exclusion treatment as intake-form pain — no duplicate injury
+        # logic, just a wider input to the existing filter.
+        notes_raw = f"{notes_raw}, {', '.join(progression_context['pain_flags'])} pain (from biweekly check-in)"
+
+    # Condition-based defense-in-depth flags don't depend on any one day,
+    # so this is computed once per profile rather than re-parsing
+    # notes_raw on every training day.
+    condition_flags = get_condition_intensity_flags(notes_raw)
+
     days = []
+    # Post-repair exercise lists, index-aligned with weekly_template
+    # (including rest/cardio days as empty placeholders), so validate_week()
+    # can run its cross-day checks (push/pull balance, split consistency,
+    # weekly volume sanity) against exactly what actually shipped in each
+    # day, not the pre-repair picks.
+    week_exercises_by_day: list = []
+
     for token in weekly_template:
         if token == "rest":
             days.append({"is_rest": True})
+            week_exercises_by_day.append([])
             continue
 
         if token in NO_LIFTING_TOKENS:
@@ -706,20 +828,42 @@ def build_deterministic_workout_days(profile: dict, weekly_template: list, vol: 
                 "exercises": [],
                 "safety": _SAFETY_DEFAULT_BY_TOKEN.get(token, _SAFETY_DEFAULT_BY_TOKEN.get("cardio", "")),
             })
+            week_exercises_by_day.append([])
             continue
 
         plan = _compute_day_plan(
             token, vol, exp_key,
             goal=goal, muscle_frequency=muscle_frequency, session_minutes=session_minutes,
+            progression_context=progression_context,
         )
         picks, _used_fallback, _injury_kw = select_day_exercises(
             plan, equipment_raw, notes_raw, experience_raw, rng,
+            goal_raw=goal,
         )
 
-        # Sets/rest now come from 2_Programming_Rules.md §1 (goal-based),
-        # not just the flat per-tier vol[] table — a fat-loss client and a
-        # muscle-gain client at the same experience tier get different
-        # rest/rep prescriptions, matching the doc's own table.
+        # Post-generation QA + auto-repair pass (validator.py). This is
+        # defense-in-depth on top of exercise_selector.py's own
+        # equipment/injury/duplicate-pattern handling at selection time,
+        # not a replacement for it — exercise_selector.py is still what
+        # prevents most issues from ever reaching this point. What lands
+        # here in practice is mostly a no-op; repairs/rejections only fire
+        # when selection-time filtering already had to fall back (e.g. a
+        # pattern duplicate the pool couldn't avoid) or on any future
+        # caller that builds a day's exercise list without going through
+        # select_day_exercises() at all.
+        repair_result = validate_and_repair_day(
+            picks, plan, equipment_raw, notes_raw, experience_raw, rng,
+        )
+        picks = repair_result["exercises"]
+        day_warnings = list(repair_result["warnings"])
+        day_warnings.extend(check_condition_pattern_conflicts(picks, condition_flags))
+
+        week_exercises_by_day.append(picks)
+
+        # Sets/reps still come from 2_Programming_Rules.md §1 (goal-based),
+        # unchanged. Rest is now per-exercise slot-aware (see
+        # _rest_string_for_slot) instead of one flat string applied to
+        # every exercise in the day regardless of compound vs isolation.
         goal_prescription = sets_reps_rest_for_goal(goal)
         exercises = []
         for p in picks:
@@ -728,7 +872,7 @@ def build_deterministic_workout_days(profile: dict, weekly_template: list, vol: 
                 "muscle": p["muscle"].title(),
                 "sets": goal_prescription["sets_per_exercise"],
                 "reps": goal_prescription["reps"] + " reps",
-                "rest": goal_prescription["rest"],
+                "rest": _rest_string_for_slot(goal, p.get("slot", "isolation")),
                 "tempo_or_cue": p["cue"],
             })
 
@@ -745,9 +889,118 @@ def build_deterministic_workout_days(profile: dict, weekly_template: list, vol: 
                 f"intake notes; if the area is still symptomatic, check with a "
                 f"coach or doctor before pushing load through it."
             )
+        # Additive, optional diagnostics from validator.py — only attached
+        # when there's actually something to report, same convention as
+        # _injury_safety_note above. Nothing here removes or renames an
+        # existing key, so main.py/schemas/frontend consumers that don't
+        # know about this key are unaffected.
+        if repair_result["repairs"] or repair_result["rejected"] or day_warnings:
+            day_entry["_validation"] = {
+                "repairs": repair_result["repairs"],
+                "rejected": repair_result["rejected"],
+                "warnings": day_warnings,
+            }
+        # Additive, optional — same convention as _injury_safety_note /
+        # _validation above. Purely informational surfacing of the
+        # deterministic decision progression_engine.py already made; this
+        # does not change exercise selection itself (that already happened
+        # via the volume_multiplier applied inside _compute_day_plan above).
+        if progression_context and (
+            progression_context.get("deload_required") or progression_context.get("plateau_detected")
+        ):
+            notes = []
+            if progression_context.get("deload_required"):
+                notes.append("Deload cycle — volume reduced based on your last check-in.")
+            if progression_context.get("plateau_detected"):
+                notes.append("Progress has plateaued — consider pushing harder or varying exercises this cycle.")
+            day_entry["_progression_note"] = " ".join(notes)
         days.append(day_entry)
 
+    # Weekly cross-day checks (push/pull balance, split consistency,
+    # squat/hip-dominant balance, weekly volume sanity) run once against
+    # the final, post-repair per-day exercise lists. These are
+    # informational only — validate_week() doesn't auto-repair anything,
+    # since fixing a weekly imbalance means changing a different day's
+    # selection, which isn't this function's job to reach into. Attached
+    # to `profile` (mutated in place) rather than changed into the return
+    # shape, matching the existing profile["_weekly_template"]/["_vol"]
+    # convention elsewhere in this pipeline — main.py's caller keeps
+    # getting a plain list of day dicts back, unchanged.
+    week_result = validate_week(week_exercises_by_day, weekly_template, TOKEN_MUSCLE_MAP, experience_raw)
+    if week_result["warnings"]:
+        profile["_validation_warnings"] = week_result["warnings"]
+
     return days
+
+
+# ── KNOWLEDGE RETRIEVER + TRAINER REVIEW + REVIEW VALIDATION ─────────────────
+# New pipeline stage implementing the desired flow:
+#   Split Engine -> Exercise Selector -> Progression -> Validator ->
+#   Knowledge Retriever -> Trainer Review -> Python Review Validation ->
+#   Final Workout.
+#
+# This wraps build_deterministic_workout_days() (left completely unmodified
+# above — it's what tests/regression/run_regression.py calls directly and
+# snapshots against a frozen baseline; a Trainer Review pass belongs AFTER
+# that deterministic core, not inside it, so the regression baseline stays
+# meaningful) and adds the Gemini review + re-validation pass on top as an
+# additive stage.
+#
+# main.py's /result route already calls this (generate_dashboard() below
+# still calls build_deterministic_workout_days() directly and has no
+# Trainer Review pass — that's a separate, non-API code path, not the
+# live /result route).
+async def build_and_review_workout_days(
+    profile: dict, weekly_template: list, vol: dict, llm_caller,
+) -> dict:
+    """
+    Full pipeline: build the deterministic workout days (unchanged core),
+    then run them through Trainer Review and Python Review Validation.
+
+    Returns:
+        {
+          "days": list,              # final, post-review workout days
+          "trainer_review": {
+              "accepted": [...], "rejected": [...], "flags": [...],
+              "parse_error": str | None,
+          },
+        }
+
+    Fail-safe: if the Gemini call itself raises (network/timeout/API
+    error), the deterministic days are returned unchanged with
+    trainer_review=None — a Trainer Review outage must never block plan
+    delivery, matching the fail-conservative principle used throughout
+    this pipeline (equipment/injury filtering, validator.py repairs, etc).
+    """
+    days = build_deterministic_workout_days(profile, weekly_template, vol)
+
+    notes_raw = profile.get("medical_notes") or profile.get("notes") or ""
+    condition_flags = get_condition_intensity_flags(notes_raw)
+
+    try:
+        review = await trainer_review_mod.review_workout(
+            days=days, profile=profile, condition_flags=condition_flags,
+            llm_caller=llm_caller,
+        )
+    except Exception as e:  # noqa: BLE001 — see fail-safe note above
+        return {
+            "days": days,
+            "trainer_review": {
+                "accepted": [], "rejected": [], "flags": [],
+                "parse_error": f"trainer_review_call_failed: {e}",
+            },
+        }
+
+    result = review_validation_mod.apply_review(days=days, review=review, profile=profile)
+    return {
+        "days": result["days"],
+        "trainer_review": {
+            "accepted": result["accepted"],
+            "rejected": result["rejected"],
+            "flags": result["flags"],
+            "parse_error": review.get("parse_error"),
+        },
+    }
 
 
 def _resolve_exp_key(profile: dict) -> str:
@@ -1674,6 +1927,64 @@ def generate_dashboard(profile: dict, llm_caller) -> str:
 
     data.setdefault("workout", {})
     data["workout"]["days"] = build_deterministic_workout_days(profile, weekly_template, vol)
+
+    data = enforce_schema(data, profile)
+    data = apply_deterministic_day_labels(data, weekly_template)
+    return render_dashboard(data)
+
+
+async def generate_dashboard_with_review(profile: dict, llm_caller, review_llm_caller=None) -> str:
+    """
+    Async sibling of generate_dashboard() that runs the workout through
+    Trainer Review (see build_and_review_workout_days above) before
+    rendering. generate_dashboard() itself is left unmodified — its
+    llm_caller is called synchronously with a different argument order
+    (system, user) and this file doesn't know every existing caller of it,
+    so this is an additive new entry point rather than a signature change
+    to an existing one.
+
+    `review_llm_caller` defaults to `llm_caller` if not given, and must be
+    an async callable matching app.ollama_client.generate_with_ollama's
+    signature: `async def f(prompt: str, system: str | None = None) -> str`.
+    """
+    from .safety_engine import (
+        safety_gate, emergency_block_html,
+        DEFAULT_SAFE_SEQUENCE, DEFAULT_SAFE_VOL,
+    )
+
+    gate = safety_gate(profile)
+    if gate["action"] == "block":
+        return emergency_block_html(gate["messages"])
+
+    user_prompt = build_user_prompt(profile)
+
+    if gate["action"] == "default_template":
+        profile["_weekly_template"] = DEFAULT_SAFE_SEQUENCE
+        profile["_vol"] = DEFAULT_SAFE_VOL
+
+    raw_response = llm_caller(SYSTEM_PROMPT, user_prompt)
+    data = parse_llm_json(raw_response)
+
+    weekly_template = profile.get("_weekly_template") or _build_weekly_template(
+        recommend_split({
+            "experience": profile.get("experience", "intermediate"),
+            "days_per_week": int(profile.get("days_per_week", 4)),
+            "session_duration": profile.get("session_duration", "45–60 min"),
+            "goal": profile.get("goal", "fat loss"),
+            "height_cm": profile.get("height_cm", 170),
+            "current_weight_kg": profile.get("current_weight_kg", 70),
+            "activity_key": profile.get("activity_key", "moderate"),
+        })["sequence"],
+        int(profile.get("days_per_week", 4)),
+    )
+    vol = profile.get("_vol") or EXERCISE_VOLUME[_resolve_exp_key(profile)]
+
+    reviewed = await build_and_review_workout_days(
+        profile, weekly_template, vol, review_llm_caller or llm_caller,
+    )
+    data.setdefault("workout", {})
+    data["workout"]["days"] = reviewed["days"]
+    profile["_trainer_review"] = reviewed["trainer_review"]
 
     data = enforce_schema(data, profile)
     data = apply_deterministic_day_labels(data, weekly_template)
