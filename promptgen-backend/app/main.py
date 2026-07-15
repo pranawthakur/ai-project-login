@@ -1,8 +1,8 @@
 import asyncio
 import traceback
 from datetime import datetime, timedelta, timezone
-from fastapi import FastAPI, Depends, HTTPException, Request, Form
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi import FastAPI, Depends, HTTPException, Request, Form, Header, Body
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import settings
 from app.auth import get_current_user
@@ -18,6 +18,7 @@ from app.fitness_generator import (
     render_dashboard,
     apply_deterministic_day_labels,
     build_and_review_workout_days,
+    build_deterministic_workout_days,
     ACTIVITY_LABEL,
 )
 from app.safety_engine import (
@@ -72,6 +73,75 @@ print(
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# ── Multi-gym access-link skeleton ──────────────────────────────────────────
+# The dev-console's link generator (admin-dashboard-backend + dev-console,
+# separate repos) already produces links shaped like
+# `{MEMBER_APP_BASE_URL}/member/login?gym={slug}`. Historically nothing on
+# this side served that path — the real member login page is the static
+# frontend (login.html.html, deployed on Vercel), not this FastAPI backend.
+# This route is a thin, environment-portable bridge: it 302s straight to the
+# real login page with `?gym=` preserved, so MEMBER_APP_BASE_URL can point at
+# *this* backend's public URL without the dev-console needing to know the
+# separate Vercel frontend's URL/filename. If/when the frontend gets a clean
+# `/member/login` path of its own (see vercel.json rewrite added alongside
+# this), MEMBER_APP_BASE_URL can just point at Vercel directly instead and
+# this route becomes redundant, not broken — safe either way.
+@app.get("/member/login")
+def member_login_redirect(gym: str | None = None):
+    if not settings.member_frontend_url:
+        # Fail loudly rather than guess at frontend_origins[0] - that list
+        # is CORS config, not guaranteed to be prod-URL-first (see
+        # config.py). An unset member_frontend_url means this hasn't been
+        # configured for the current environment yet.
+        raise HTTPException(
+            status_code=503,
+            detail="MEMBER_FRONTEND_URL is not set on this deployment - "
+                   "/member/login can't redirect anywhere yet.",
+        )
+    target = f"{settings.member_frontend_url.rstrip('/')}/member/login"
+    if gym:
+        target += f"?gym={gym}"
+    return RedirectResponse(url=target, status_code=302)
+
+
+# ── Dev-only raw engine test endpoint ───────────────────────────────────────
+# Proxied to by the dev-console's app/routers/ai_testing.py
+# (POST {MEMBER_APP_BASE_URL}/generate/test). Runs ONLY the deterministic
+# core (split_engine.py / programming_rules.py via
+# build_deterministic_workout_days) on a raw profile dict — no Supabase
+# auth, no member join, no LLM call, no DB write. Lets the dev console
+# sanity-check the deterministic engine output directly.
+#
+# Gated by a shared secret (DEV_TEST_KEY) rather than a JWT, since the
+# caller is a *different backend*, not a logged-in browser. Unset key ->
+# 503, matching this project's existing fail-loud-not-fabricated pattern
+# (see ai_testing.py's own comment on the dev-console side). Set the SAME
+# value for DEV_TEST_KEY here and MEMBER_APP_DEV_TEST_KEY (or however you
+# name it) in the dev-console's .env once you wire this up for real.
+@app.post("/generate/test")
+def generate_test(
+    profile: dict = Body(...),
+    x_dev_test_key: str | None = Header(default=None, alias="X-Dev-Test-Key"),
+):
+    if not settings.dev_test_key:
+        raise HTTPException(
+            status_code=503,
+            detail="DEV_TEST_KEY is not set on this deployment — /generate/test is disabled.",
+        )
+    if x_dev_test_key != settings.dev_test_key:
+        raise HTTPException(status_code=401, detail="Invalid or missing X-Dev-Test-Key.")
+
+    gate = safety_gate(profile)
+    if gate["action"] == "block":
+        return {"safety_gate": gate, "days": None}
+
+    weekly_template = DEFAULT_SAFE_SEQUENCE if gate["action"] == "default_template" else []
+    vol = DEFAULT_SAFE_VOL if gate["action"] == "default_template" else {}
+
+    days = build_deterministic_workout_days(profile, weekly_template, vol)
+    return {"safety_gate": gate, "days": days}
 
 
 # ── Existing JSON API (kept intact) ─────────────────────────────────────────

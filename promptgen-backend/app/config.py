@@ -11,6 +11,22 @@ class Settings(BaseSettings):
     ollama_model: str = "llama3.1"
     frontend_origin: str = "http://127.0.0.1:5500,https://ai-project-login-44q4.vercel.app"
 
+    # Dedicated target for the /member/login redirect (main.py). Deliberately
+    # SEPARATE from frontend_origin above - that's a CORS allow-list, order
+    # isn't guaranteed to put the real prod URL first (the default above
+    # literally lists localhost first), so reusing it for a redirect target
+    # was a bug, not a shortcut. Set to project #2's real URL - the
+    # ai-project-login Vercel deploy, NOT admin-dashboard-backend's separate
+    # Vercel project - e.g. https://ai-project-login-44q4.vercel.app
+    member_frontend_url: str = ""
+
+    # Optional. Gates POST /generate/test (see main.py) - the dev-console's
+    # AI Engine Test page sends this back as X-Dev-Test-Key. Unset -> the
+    # route returns 503 rather than running unauthenticated, matching the
+    # "fail loudly, don't fabricate" pattern ai_testing.py's own comment
+    # already commits to on the dev-console side.
+    dev_test_key: str = ""
+
     @property
     def frontend_origins(self) -> list[str]:
         return [o.strip() for o in self.frontend_origin.split(",") if o.strip()]
