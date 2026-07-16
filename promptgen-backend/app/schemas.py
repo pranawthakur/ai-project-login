@@ -1,6 +1,31 @@
 from pydantic import BaseModel
 
 
+# ── Member auth (Phase 2: login_code + password) ────────────────────────────
+# Three-step flow, all scoped by (gym, login_code) — see main.py for the
+# endpoints that use these:
+#   1. MemberCheckCodeRequest  -> POST /member/check-code
+#      "does this code belong to a member, and have they set a password yet?"
+#   2. MemberSetPasswordRequest -> POST /member/set-password (first login only)
+#   3. MemberLoginRequest      -> POST /member/login (returning members)
+class MemberCheckCodeRequest(BaseModel):
+    code: str
+    gym: str | None = None
+
+
+class MemberSetPasswordRequest(BaseModel):
+    code: str
+    gym: str | None = None
+    password: str
+    confirm_password: str
+
+
+class MemberLoginRequest(BaseModel):
+    code: str
+    gym: str | None = None
+    password: str
+
+
 class GenerateRequest(BaseModel):
     prompt: str
     system: str | None = None
@@ -31,7 +56,38 @@ class FeedbackSubmission(BaseModel):
     entries: list[FeedbackEntry]
 
 
-# ── Phase 6: Biweekly Reassessment & Adaptive Progression ──────────────────
+# ── Workout set/exercise feedback (used by Templates/result.html) ──────────
+# Previously written directly from the browser to Supabase (workout_set_
+# feedback / workout_exercise_feedback tables) using the member's Supabase
+# Auth session + RLS keyed on auth.uid(). Now that members don't get a
+# Supabase Auth user at all (see auth.py), that path is gone — these two
+# tables are read/written through the backend instead, scoped to
+# member["id"] from the verified session token, same as everything else.
+class SetFeedbackEntry(BaseModel):
+    day_index: int
+    day_name: str | None = None
+    exercise: str
+    set_number: int
+    weight_kg: float | None = None
+    reps_used: int | None = None
+    cycle_number: int = 1
+
+
+class ExerciseFeedbackEntry(BaseModel):
+    day_index: int
+    day_name: str | None = None
+    exercise: str
+    difficulty: int | None = None
+    notes: str | None = None
+    cycle_number: int = 1
+
+
+class SetFeedbackSubmission(BaseModel):
+    entries: list[SetFeedbackEntry]
+
+
+class ExerciseFeedbackSubmission(BaseModel):
+    entries: list[ExerciseFeedbackEntry]
 class CheckinSubmission(BaseModel):
     recovery:   str   # excellent | good | average | poor
     difficulty: str   # too_easy | easy | just_right | hard | too_hard

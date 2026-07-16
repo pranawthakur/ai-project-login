@@ -1,105 +1,111 @@
 import time
+import uuid
 
-import httpx
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+import bcrypt
+from fastapi import HTTPException, status
 from jose import jwt, JWTError
 
 from app.config import settings
 
-bearer_scheme = HTTPBearer()
+bearer_scheme_error_hint = (
+    "Missing or invalid Authorization header. Log in again to get a new "
+    "member session token."
+)
 
-# ── JWT verification, take 2 ────────────────────────────────────────────────
-# History, so the next person doesn't repeat this: this originally verified
-# with a hardcoded ES256 public key. admin-dashboard-backend's HANDOFF.md
-# flagged that as wrong and claimed Supabase actually issues HS256 tokens
-# signed with the legacy shared secret — that turned out to ALSO be wrong
-# for this project (confirmed live: python-jose rejected HS256 verification
-# with "The specified alg value is not allowed", meaning the token's real
-# `alg` header is neither of those two guesses... it's whatever this
-# project's actual signing key is, most likely ES256 via Supabase's newer
-# per-project asymmetric keys (the modern default for new Supabase
-# projects), fetched from a JWKS endpoint rather than hardcoded anywhere.
+# ── Member session tokens (self-issued, replaces Supabase Auth) ────────────
+# History: this project used to verify Supabase Auth JWTs here (first via a
+# hardcoded key guess, then via Supabase's JWKS endpoint — see git history
+# for that saga). That entire mechanism depended on members signing up
+# through Supabase Auth email/password on the frontend.
 #
-# Fix: stop guessing the algorithm/key. Fetch Supabase's own published JWKS
-# (its public key set), pick the key whose `kid` matches the token's header,
-# and verify with whatever algorithm THAT key declares. This is correct
-# regardless of whether the project is on HS256, ES256, or RS256, and
-# survives Supabase rotating or adding signing keys without another manual
-# guess-and-check round.
+# That signup flow has been removed. The real, intended member-identity
+# path is: a gym admin adds a member in gym-dashboard, which generates an
+# 8-digit `login_code` on the `members` row. The member enters that code,
+# plus a password (added in Phase 2 — see /member/login and
+# /member/set-password in main.py), which looks the row up directly —
+# no Supabase Auth user is ever created for a member. So there is nothing
+# to verify against Supabase's JWKS anymore.
+#
+# Instead, this app now signs its own short-lived-ish HS256 tokens keyed by
+# MEMBER_SESSION_SECRET. The token's only job is "prove you're the member
+# with this id" for subsequent API calls — it is NOT a Supabase Auth token
+# and Supabase's own auth.uid()/RLS machinery does not know about it (any
+# endpoint that used to rely on RLS + auth.uid() for a member now needs an
+# explicit member_id check against the token instead — see membership.py).
 
-_JWKS_URL = f"{settings.supabase_url.rstrip('/')}/auth/v1/.well-known/jwks.json"
-_JWKS_CACHE_TTL_SECONDS = 3600
-_jwks_cache: dict = {"keys": [], "fetched_at": 0.0}
-
-
-def _get_jwks() -> list[dict]:
-    now = time.time()
-    if _jwks_cache["keys"] and (now - _jwks_cache["fetched_at"]) < _JWKS_CACHE_TTL_SECONDS:
-        return _jwks_cache["keys"]
-
-    try:
-        resp = httpx.get(_JWKS_URL, timeout=10)
-        resp.raise_for_status()
-        keys = resp.json().get("keys", [])
-    except Exception:
-        # If the fetch fails but we have a (possibly stale) cache, prefer
-        # stale-but-present over hard-failing every request during a
-        # transient network blip.
-        if _jwks_cache["keys"]:
-            return _jwks_cache["keys"]
-        raise
-
-    _jwks_cache["keys"] = keys
-    _jwks_cache["fetched_at"] = now
-    return keys
+_ALG = "HS256"
+_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60  # 30 days — long-lived on purpose,
+# since members log in rarely (once, from a link their gym sent) and
+# there's no email/password to fall back on if the session dies.
 
 
-def _find_key_for_token(token: str) -> dict:
-    unverified_header = jwt.get_unverified_header(token)
-    kid = unverified_header.get("kid")
-
-    keys = _get_jwks()
-    for key in keys:
-        if key.get("kid") == kid:
-            return key
-
-    # kid not found — could be a genuinely bad token, or Supabase rotated
-    # keys since our cache was fetched. Force one fresh fetch and retry
-    # once before giving up, instead of caching a miss for a full hour.
-    _jwks_cache["fetched_at"] = 0.0
-    keys = _get_jwks()
-    for key in keys:
-        if key.get("kid") == kid:
-            return key
-
-    raise JWTError(f"No matching signing key found for kid={kid!r}")
-
-
-def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-) -> dict:
-    token = credentials.credentials
-    try:
-        key = _find_key_for_token(token)
-        payload = jwt.decode(
-            token,
-            key,
-            algorithms=[key.get("alg", "ES256")],
-            audience="authenticated",
+def issue_member_token(member_id: str, gym_id: str | None) -> str:
+    if not settings.member_session_secret:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="MEMBER_SESSION_SECRET is not set on this deployment — "
+                   "member login is disabled until it's configured.",
         )
+    now = int(time.time())
+    payload = {
+        "sub": member_id,
+        "gym_id": gym_id,
+        "iat": now,
+        "exp": now + _TOKEN_TTL_SECONDS,
+        # A random jti isn't checked against a revocation list anywhere
+        # (no such table exists yet) — noted as a follow-up gap, same
+        # category as the missing rate-limit on /member/login and /member/set-password.
+        "jti": str(uuid.uuid4()),
+    }
+    return jwt.encode(payload, settings.member_session_secret, algorithm=_ALG)
+
+
+def verify_member_token(token: str) -> dict:
+    if not settings.member_session_secret:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="MEMBER_SESSION_SECRET is not set on this deployment.",
+        )
+    try:
+        payload = jwt.decode(token, settings.member_session_secret, algorithms=[_ALG])
     except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid or expired token: {e}",
+            detail=f"Invalid or expired session: {e}",
         )
-    except Exception as e:
-        # JWKS fetch failure, malformed token header, etc. — still a 401
-        # from the caller's point of view, but logged with more context
-        # server-side than the generic JWTError branch above.
+    if not payload.get("sub"):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Could not verify token: {e}",
+            detail="Invalid session token.",
         )
-
     return payload
+
+
+# ── Member password hashing (Phase 2) ───────────────────────────────────────
+# Phase 1 (the code-login fix already in this repo) authenticated members by
+# `login_code` alone. The project decision for Phase 2 is: the code identifies
+# WHICH member is logging in, and a password — set by the member on their
+# first login — is what actually proves it's them. A member row created by
+# gym-dashboard's "Add Member" has `login_code` but no `password_hash` (that
+# column starts NULL — gym-dashboard was intentionally not touched to add
+# it). NULL `password_hash` is exactly how "first login, no password yet" is
+# detected; see `find_member_by_login_code` callers in main.py.
+#
+# bcrypt truncates/ignores input past 72 bytes by design — not handled
+# specially here since member passwords are short, human-typed strings, not
+# machine-generated secrets that could realistically hit that length.
+_BCRYPT_ROUNDS = 12
+
+
+def hash_password(password: str) -> str:
+    salt = bcrypt.gensalt(rounds=_BCRYPT_ROUNDS)
+    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    try:
+        return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+    except (ValueError, TypeError):
+        # Malformed/empty hash stored somehow — treat as "does not match"
+        # rather than raising, so a bad row can't 500 the login endpoint.
+        return False

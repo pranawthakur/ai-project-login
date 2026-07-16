@@ -65,36 +65,6 @@
 
   .logo-text span { font-family:'Baloo 2',cursive; font-style: italic; font-weight: 600; color: #c4b5fd; }
 
-  /* TABS */
-  .tabs {
-    display: flex;
-    background: #0f0a1c;
-    border: 1px solid rgba(139,92,246,.18);
-    border-radius: 12px;
-    padding: 4px;
-    margin-bottom: 28px;
-  }
-
-  .tab {
-    flex: 1;
-    padding: 9px;
-    border: none;
-    background: none;
-    border-radius: 9px;
-    font-size: 13px;
-    font-weight: 700;
-    color: #94a3b8;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: 'Inter', sans-serif;
-    letter-spacing: 0.2px;
-  }
-
-  .tab.active {
-    background: linear-gradient(135deg,#a855f7,#6366f1);
-    color: #ffffff;
-  }
-
   /* FORM HEADING */
   .form-heading {
     font-size: 22px;
@@ -102,18 +72,18 @@
     color: #f8fafc;
     margin-bottom: 4px;
     letter-spacing: -0.4px;
+    text-align: center;
   }
 
   .form-sub {
     font-size: 13px;
     color: #64748b;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
+    text-align: center;
+    line-height: 1.5;
   }
 
-  /* INPUTS */
-  .field {
-    margin-bottom: 14px;
-  }
+  .field { margin-bottom: 14px; }
 
   .field label {
     display: block;
@@ -123,41 +93,51 @@
     letter-spacing: 1px;
     text-transform: uppercase;
     margin-bottom: 6px;
+    text-align: center;
   }
 
-  .field-input {
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-
-  .field-input svg {
-    position: absolute;
-    left: 14px;
-    width: 16px;
-    height: 16px;
-    stroke: #64748b;
-    pointer-events: none;
-  }
-
-  .field input {
+  .code-input {
     width: 100%;
     background: #0f0a1c;
     border: 1px solid rgba(139,92,246,.18);
-    border-radius: 10px;
-    padding: 12px 14px 12px 40px;
-    font-size: 14px;
+    border-radius: 12px;
+    padding: 16px 14px;
+    font-size: 26px;
+    letter-spacing: 10px;
+    text-align: center;
     color: #f8fafc;
     font-family: 'Inter', sans-serif;
+    font-weight: 700;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
   }
 
-  .field input::placeholder { color: #475569; }
+  .code-input::placeholder { color: #3f3358; letter-spacing: 10px; }
 
-  .field input:focus {
+  .text-input {
+    width: 100%;
+    background: #0f0a1c;
+    border: 1px solid rgba(139,92,246,.18);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 15px;
+    color: #f8fafc;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .code-input:focus, .text-input:focus {
     border-color: #a855f7;
     box-shadow: 0 0 0 3px rgba(168,85,247,.2);
+  }
+
+  .hint {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 6px;
+    text-align: center;
   }
 
   /* BUTTON */
@@ -181,44 +161,34 @@
   .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
   .btn:active { transform: scale(0.98); }
 
-  /* SWITCH LINK */
-  .switch-text {
-    text-align: center;
-    font-size: 13px;
-    color: #64748b;
-    margin-top: 20px;
+  .btn.loading, .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
   }
 
-  .switch-text span {
-    color: #c4b5fd;
-    cursor: pointer;
-    font-weight: 700;
-  }
-
-  .switch-text span:hover { text-decoration: underline; }
-
-  /* DEMO BUTTON */
-  .demo-divider {
-    border: none;
-    border-top: 1px solid rgba(139,92,246,.18);
-    margin: 22px 0 16px;
-  }
-
-  .demo-btn {
+  .btn-text {
     width: 100%;
-    padding: 12px;
-    background: rgba(139,92,246,.1);
-    border: 1px solid rgba(139,92,246,.3);
-    color: #c4b5fd;
-    border-radius: 10px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
+    background: none;
+    border: none;
+    color: #a5b4fc;
+    font-size: 12px;
+    font-weight: 600;
     font-family: 'Inter', sans-serif;
-    transition: background 0.2s;
+    cursor: pointer;
+    margin-top: 14px;
+    text-align: center;
   }
+  .btn-text:hover { color: #c4b5fd; text-decoration: underline; }
 
-  .demo-btn:hover { background: rgba(139,92,246,.18); }
+  /* HELP TEXT */
+  .help-text {
+    text-align: center;
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 22px;
+    line-height: 1.6;
+  }
 
   /* ERROR */
   .error-msg {
@@ -230,12 +200,11 @@
     color: #f87171;
     margin-bottom: 14px;
     display: none;
+    text-align: center;
   }
 
-  .btn.loading {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
+  .step { display: none; }
+  .step.active { display: block; }
 </style>
 </head>
 
@@ -249,220 +218,327 @@
     <div class="logo-text">GymCoach<span>.studio</span></div>
   </div>
 
-  <!-- TABS -->
-  <div class="tabs">
-    <button class="tab active" id="loginTab">Log in</button>
-    <button class="tab" id="signupTab">Sign up</button>
-  </div>
-
-  <!-- ERROR -->
+  <!-- ERROR (shared across all steps) -->
   <div class="error-msg" id="errorMsg"></div>
 
-  <!-- LOGIN FORM -->
-  <div id="loginForm">
+  <!-- STEP 1: enter the 8-digit code -->
+  <div class="step active" id="stepCode">
     <div class="form-heading">Welcome back</div>
-    <div class="form-sub">Log in to your gym dashboard</div>
+    <div class="form-sub">Enter the login code your gym gave you</div>
 
     <div class="field">
-      <label>Email</label>
-      <div class="field-input">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M22 6l-10 7L2 6"/><path d="M2 6h20v12H2z"/></svg>
-        <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email">
-      </div>
+      <label for="loginCode">Login code</label>
+      <input
+        id="loginCode"
+        class="code-input"
+        type="text"
+        inputmode="numeric"
+        pattern="[0-9]*"
+        maxlength="8"
+        placeholder="00000000"
+        autocomplete="one-time-code"
+      >
     </div>
 
+    <button class="btn" id="continueBtn">Continue</button>
+
+    <div class="help-text">
+      Don't have a code? Ask the front desk at your gym — they'll add you as<br>
+      a member and give you an 8-digit code to log in with.
+    </div>
+  </div>
+
+  <!-- STEP 2A: returning member — enter password -->
+  <div class="step" id="stepLogin">
+    <div class="form-heading" id="loginGreeting">Welcome back</div>
+    <div class="form-sub">Enter your password to continue</div>
+
     <div class="field">
-      <label>Password</label>
-      <div class="field-input">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password">
-      </div>
+      <label for="loginPassword">Password</label>
+      <input id="loginPassword" class="text-input" type="password" autocomplete="current-password" placeholder="••••••••">
     </div>
 
     <button class="btn" id="loginBtn">Log in</button>
-
-    <div class="switch-text">
-      No account? <span id="goSignup">Create one</span>
-    </div>
-
-    <hr class="demo-divider">
-    <button class="demo-btn" id="demoBtn">✦ Try with demo account</button>
+    <button class="btn-text" id="backFromLogin">← Use a different code</button>
   </div>
 
-  <!-- SIGNUP FORM -->
-  <div id="signupForm" style="display:none">
-    <div class="form-heading">Create account</div>
-    <div class="form-sub">Start your gym's AI coaching journey</div>
+  <!-- STEP 2B: first login — set a password -->
+  <div class="step" id="stepSetPassword">
+    <div class="form-heading" id="setPasswordGreeting">Set up your password</div>
+    <div class="form-sub">This is your first time logging in — create a password to secure your account</div>
 
     <div class="field">
-      <label>Username</label>
-      <div class="field-input">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <input id="signupUsername" type="text" placeholder="Your gym name">
-      </div>
+      <label for="newPassword">New password</label>
+      <input id="newPassword" class="text-input" type="password" autocomplete="new-password" placeholder="At least 8 characters">
     </div>
 
     <div class="field">
-      <label>Email</label>
-      <div class="field-input">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 6l-10 7L2 6"/><path d="M2 6h20v12H2z"/></svg>
-        <input id="signupEmail" type="email" placeholder="you@example.com" autocomplete="email">
-      </div>
+      <label for="confirmPassword">Confirm password</label>
+      <input id="confirmPassword" class="text-input" type="password" autocomplete="new-password" placeholder="Re-enter your password">
+      <div class="hint">Use at least 8 characters. You'll use this password every time you log in from now on.</div>
     </div>
 
-    <div class="field">
-      <label>Password</label>
-      <div class="field-input">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <input id="signupPassword" type="password" placeholder="Min. 6 characters">
-      </div>
-    </div>
-
-    <div class="field">
-      <label>Confirm password</label>
-      <div class="field-input">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <input id="confirmPassword" type="password" placeholder="Repeat password">
-      </div>
-    </div>
-
-    <button class="btn" id="signupBtn">Create account</button>
-
-    <div class="switch-text">
-      Already have an account? <span id="goLogin">Log in</span>
-    </div>
+    <button class="btn" id="savePasswordBtn">Save password &amp; log in</button>
+    <button class="btn-text" id="backFromSetPassword">← Use a different code</button>
   </div>
 
 </div>
 
 <script>
   // Fire-and-forget: wake up the Render backend the instant this page loads,
-  // so it's hopefully warm by the time the user reaches "Generate My Plan".
-  // We don't await this or show any UI for it — just let it run in the background.
-  fetch('https://ai-project-login-de6g.onrender.com/health').catch(() => {
+  // so it's hopefully warm by the time the user logs in.
+  const BACKEND_BASE = 'https://ai-project-login-de6g.onrender.com';
+  fetch(BACKEND_BASE + '/health').catch(() => {
     // Silently ignore errors — this is just a best-effort warm-up ping.
   });
 </script>
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+<script>
+  // ── Multi-gym skeleton ──────────────────────────────────────────────────
+  // A gym-specific access link (generated by the dev-console / gym-admin
+  // dashboard, both separate repos) lands here as /member/login?gym=<slug>
+  // — or, if you're on Vercel's rewrite, the raw URL is whatever
+  // vercel.json maps /member/login to. Either way, capture the slug once
+  // and remember it in localStorage so dashbord.html / the /result flow
+  // can send it back as an X-Gym-Slug header on every API call. No slug
+  // present -> falls back to the single demo gym on the backend.
+  const gymSlugParam = new URLSearchParams(window.location.search).get('gym');
+  if (gymSlugParam) {
+    localStorage.setItem('gymSlug', gymSlugParam);
+  }
 
-const supabase = createClient(
-  'https://yabclxadadynmprymcns.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYmNseGFkYWR5bm1wcnltY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0Njg4NzIsImV4cCI6MjA5ODA0NDg3Mn0.e2IwBxrW-NbMIqqWFZb8gnh5T95vlDwS-h2FhlWRb1k'
-)
+  // ── Elements ──────────────────────────────────────────────────────────
+  const errorMsg = document.getElementById('errorMsg');
 
-// ── Multi-gym skeleton ──────────────────────────────────────────────────
-// A gym-specific access link (generated by the dev-console / gym-admin
-// dashboard, both separate repos) lands here as
-// /member/login?gym=<slug> — or, if you're on Vercel's rewrite, the raw
-// URL is whatever vercel.json maps /member/login to. Either way, capture
-// the slug once and remember it in localStorage so dashbord.html / the
-// /result flow can send it back as an X-Gym-Slug header on every API
-// call. No slug present -> untouched, falls back to the single demo gym
-// exactly as before (see app/gym_scope.py on the backend for the other
-// half of this).
-const gymSlugParam = new URLSearchParams(window.location.search).get('gym')
-if (gymSlugParam) {
-  localStorage.setItem('gymSlug', gymSlugParam)
-}
+  const stepCode = document.getElementById('stepCode');
+  const stepLogin = document.getElementById('stepLogin');
+  const stepSetPassword = document.getElementById('stepSetPassword');
 
-const loginForm  = document.getElementById('loginForm')
-const signupForm = document.getElementById('signupForm')
-const loginTab   = document.getElementById('loginTab')
-const signupTab  = document.getElementById('signupTab')
-const errorMsg   = document.getElementById('errorMsg')
+  const codeInput = document.getElementById('loginCode');
+  const continueBtn = document.getElementById('continueBtn');
 
-function showError(msg) {
-  errorMsg.textContent = msg
-  errorMsg.style.display = 'block'
-}
+  const loginPasswordInput = document.getElementById('loginPassword');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginGreeting = document.getElementById('loginGreeting');
+  const backFromLogin = document.getElementById('backFromLogin');
 
-function hideError() {
-  errorMsg.style.display = 'none'
-  errorMsg.textContent = ''
-}
+  const newPasswordInput = document.getElementById('newPassword');
+  const confirmPasswordInput = document.getElementById('confirmPassword');
+  const savePasswordBtn = document.getElementById('savePasswordBtn');
+  const setPasswordGreeting = document.getElementById('setPasswordGreeting');
+  const backFromSetPassword = document.getElementById('backFromSetPassword');
 
-function showLogin() {
-  loginForm.style.display = 'block'
-  signupForm.style.display = 'none'
-  loginTab.classList.add('active')
-  signupTab.classList.remove('active')
-  hideError()
-}
+  // Remembers the code that was checked, so step 2 doesn't need the user
+  // to retype it — both /member/login and /member/set-password still take
+  // it in the body since the backend re-validates on every call rather
+  // than trusting a client-held "this code was already checked" claim.
+  let checkedCode = '';
 
-function showSignup() {
-  signupForm.style.display = 'block'
-  loginForm.style.display = 'none'
-  signupTab.classList.add('active')
-  loginTab.classList.remove('active')
-  hideError()
-}
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.style.display = 'block';
+  }
 
-loginTab.addEventListener('click', showLogin)
-signupTab.addEventListener('click', showSignup)
-document.getElementById('goSignup').addEventListener('click', showSignup)
-document.getElementById('goLogin').addEventListener('click', showLogin)
+  function hideError() {
+    errorMsg.style.display = 'none';
+    errorMsg.textContent = '';
+  }
 
-async function doLogin(email, password) {
-  hideError()
-  if (!email || !password) { showError('Please fill in all fields'); return }
+  function showStep(step) {
+    hideError();
+    [stepCode, stepLogin, stepSetPassword].forEach(s => s.classList.remove('active'));
+    step.classList.add('active');
+  }
 
-  const btn = document.getElementById('loginBtn')
-  btn.textContent = 'Logging in...'
-  btn.classList.add('loading')
+  function setLoading(btn, isLoading, loadingText, normalText) {
+    btn.disabled = isLoading;
+    btn.classList.toggle('loading', isLoading);
+    btn.textContent = isLoading ? loadingText : normalText;
+  }
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  function gymHeaders() {
+    const slug = localStorage.getItem('gymSlug');
+    return slug ? { 'X-Gym-Slug': slug } : {};
+  }
 
-  btn.textContent = 'Log in'
-  btn.classList.remove('loading')
+  function extractErrorDetail(data, fallback) {
+    // The backend's 400 for "no password yet" sends detail as an object
+    // ({message, needs_password_setup}), everything else sends a plain
+    // string — handle both so a stray shape never bubbles up as
+    // "[object Object]" in the UI.
+    if (!data || !data.detail) return fallback;
+    if (typeof data.detail === 'string') return data.detail;
+    if (typeof data.detail === 'object' && data.detail.message) return data.detail.message;
+    return fallback;
+  }
 
-  if (error) { showError(error.message); return }
+  // Digits only, as-you-type — the code the gym gives out is 8 digits.
+  codeInput.addEventListener('input', () => {
+    codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 8);
+  });
 
-  window.location.href = 'dashbord.html'
-}
+  function completeLogin(data) {
+    // The member's identity going forward: our own session token (not a
+    // Supabase Auth session — members never get one of those anymore).
+    // Stored in localStorage (not sessionStorage) so it survives a closed
+    // tab/browser restart — that's the "remember session" behavior; the
+    // token itself is long-lived (see promptgen-backend/app/auth.py).
+    localStorage.setItem('memberToken', data.token);
+    localStorage.setItem('memberName', (data.member && data.member.name) || '');
+    window.location.href = 'dashbord.html';
+  }
 
-// LOGIN
-document.getElementById('loginBtn').addEventListener('click', async () => {
-  const email    = document.getElementById('loginEmail').value.trim()
-  const password = document.getElementById('loginPassword').value
-  await doLogin(email, password)
-})
+  // ── STEP 1: check the code, decide which form to show next ─────────────
+  async function doCheckCode() {
+    hideError();
+    const code = codeInput.value.trim();
+    if (!code || code.length < 8) { showError('Enter your 8-digit login code'); return; }
 
-// DEMO ACCOUNT — fills + submits with demo credentials
-document.getElementById('demoBtn').addEventListener('click', async () => {
-  document.getElementById('loginEmail').value = 'demo@gymcoach.studio'
-  document.getElementById('loginPassword').value = 'demo1234'
-  await doLogin('demo@gymcoach.studio', 'demo1234')
-})
+    setLoading(continueBtn, true, 'Checking…', 'Continue');
 
-// SIGNUP
-document.getElementById('signupBtn').addEventListener('click', async () => {
-  hideError()
-  const username        = document.getElementById('signupUsername').value.trim()
-  const email           = document.getElementById('signupEmail').value.trim()
-  const password        = document.getElementById('signupPassword').value
-  const confirmPassword = document.getElementById('confirmPassword').value
+    try {
+      const res = await fetch(BACKEND_BASE + '/member/check-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...gymHeaders() },
+        body: JSON.stringify({ code, gym: localStorage.getItem('gymSlug') || null }),
+      });
+      const data = await res.json().catch(() => ({}));
 
-  if (!username)                    { showError('Please enter a username'); return }
-  if (!email)                       { showError('Please enter an email'); return }
-  if (password.length < 6)         { showError('Password must be at least 6 characters'); return }
-  if (password !== confirmPassword) { showError('Passwords do not match'); return }
+      if (!res.ok) {
+        showError(extractErrorDetail(data, 'Could not verify that code. Check it and try again.'));
+        return;
+      }
 
-  const btn = document.getElementById('signupBtn')
-  btn.textContent = 'Creating account...'
-  btn.classList.add('loading')
+      checkedCode = code;
+      const name = data.name ? data.name.split(' ')[0] : '';
 
-  const { error } = await supabase.auth.signUp({ email, password })
+      if (data.has_password) {
+        loginGreeting.textContent = name ? `Welcome back, ${name}` : 'Welcome back';
+        loginPasswordInput.value = '';
+        showStep(stepLogin);
+        loginPasswordInput.focus();
+      } else {
+        setPasswordGreeting.textContent = name ? `Hi ${name}, let's set up your password` : 'Set up your password';
+        newPasswordInput.value = '';
+        confirmPasswordInput.value = '';
+        showStep(stepSetPassword);
+        newPasswordInput.focus();
+      }
+    } catch (e) {
+      showError('Network error — please try again.');
+    } finally {
+      setLoading(continueBtn, false, 'Checking…', 'Continue');
+    }
+  }
 
-  btn.textContent = 'Create account'
-  btn.classList.remove('loading')
+  // ── STEP 2A: normal login ────────────────────────────────────────────────
+  async function doLogin() {
+    hideError();
+    const password = loginPasswordInput.value;
+    if (!password) { showError('Enter your password'); return; }
 
-  if (error) { showError(error.message); return }
+    setLoading(loginBtn, true, 'Logging in…', 'Log in');
 
-  localStorage.setItem('username', username)
-  alert('Account created! Check your email to confirm.')
-  showLogin()
-})
+    try {
+      const res = await fetch(BACKEND_BASE + '/member/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...gymHeaders() },
+        body: JSON.stringify({
+          code: checkedCode,
+          password,
+          gym: localStorage.getItem('gymSlug') || null,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        // Edge case: the account somehow has no password yet even though
+        // /check-code said otherwise (e.g. it changed between the two
+        // calls) — the backend flags this explicitly so we can route
+        // there instead of showing a confusing "wrong password" error.
+        if (data && data.detail && data.detail.needs_password_setup) {
+          showStep(stepSetPassword);
+          showError('Please set up a password to continue.');
+          return;
+        }
+        showError(extractErrorDetail(data, 'Could not log in. Check your password and try again.'));
+        return;
+      }
+
+      completeLogin(data);
+    } catch (e) {
+      showError('Network error — please try again.');
+    } finally {
+      setLoading(loginBtn, false, 'Logging in…', 'Log in');
+    }
+  }
+
+  // ── STEP 2B: first-login password setup ─────────────────────────────────
+  async function doSetPassword() {
+    hideError();
+    const password = newPasswordInput.value;
+    const confirm = confirmPasswordInput.value;
+
+    if (password.length < 8) { showError('Password must be at least 8 characters'); return; }
+    if (password !== confirm) { showError('Passwords do not match'); return; }
+
+    setLoading(savePasswordBtn, true, 'Saving…', 'Save password & log in');
+
+    try {
+      const res = await fetch(BACKEND_BASE + '/member/set-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...gymHeaders() },
+        body: JSON.stringify({
+          code: checkedCode,
+          password,
+          confirm_password: confirm,
+          gym: localStorage.getItem('gymSlug') || null,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        // A password already exists (409) — someone else finished setup
+        // in the meantime, or this is a stale form. Send them to the
+        // normal login step instead of leaving them stuck here.
+        if (res.status === 409) {
+          loginPasswordInput.value = '';
+          showStep(stepLogin);
+          showError('A password is already set for this account — please log in.');
+          return;
+        }
+        showError(extractErrorDetail(data, 'Could not save your password. Please try again.'));
+        return;
+      }
+
+      completeLogin(data);
+    } catch (e) {
+      showError('Network error — please try again.');
+    } finally {
+      setLoading(savePasswordBtn, false, 'Saving…', 'Save password & log in');
+    }
+  }
+
+  continueBtn.addEventListener('click', doCheckCode);
+  codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doCheckCode(); });
+
+  loginBtn.addEventListener('click', doLogin);
+  loginPasswordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+
+  savePasswordBtn.addEventListener('click', doSetPassword);
+  confirmPasswordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSetPassword(); });
+
+  backFromLogin.addEventListener('click', () => {
+    checkedCode = '';
+    codeInput.value = '';
+    showStep(stepCode);
+    codeInput.focus();
+  });
+  backFromSetPassword.addEventListener('click', () => {
+    checkedCode = '';
+    codeInput.value = '';
+    showStep(stepCode);
+    codeInput.focus();
+  });
 </script>
 </body>
 </html>

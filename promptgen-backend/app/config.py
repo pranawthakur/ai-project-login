@@ -7,6 +7,16 @@ class Settings(BaseSettings):
     supabase_service_role_key: str
     demo_gym_id: str
     gemini_api_key: str
+
+    # Signs/verifies this app's own member session tokens, issued by
+    # POST /member/login or POST /member/set-password (see app/auth.py).
+    # Replaces Supabase Auth entirely for members as of the code+password
+    # migration — members never get a Supabase auth.users row anymore, so
+    # there is no JWKS/Supabase JWT to verify on incoming requests, only
+    # this token. Unset -> those routes fail loud with 503 rather than
+    # signing tokens with a blank/guessable key.
+    member_session_secret: str = ""
+
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1"
     frontend_origin: str = "http://127.0.0.1:5500,https://ai-project-login-44q4.vercel.app"

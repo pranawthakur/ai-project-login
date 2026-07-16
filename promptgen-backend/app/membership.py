@@ -1,17 +1,18 @@
 from fastapi import Depends, Header, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from app.config import settings
-from app.auth import get_current_user
+from app.auth import verify_member_token
 from app.db import supabase as _supabase
-from app.gym_scope import GymLookupError, resolve_gym_id
+
+bearer_scheme = HTTPBearer()
 
 
 def _extract_gym_slug(request: Request, x_gym_slug: str | None) -> str | None:
     """
     Slug can arrive two ways, checked in this order:
-    1. `X-Gym-Slug` header - what the frontend should send on every
-       authenticated call once a member has logged in via a gym-specific
-       link (see gym-scope.js / localStorage['gymSlug']).
+    1. `X-Gym-Slug` header - what the frontend sends on every call once a
+       member has logged in via a gym-specific link (see login.html.html /
+       localStorage['gymSlug']).
     2. `?gym=` query param - convenience for routes hit directly (e.g. a
        bookmarked link, or a manual test), same as the `/member/login?gym=`
        pattern the dev-console's link generator already produces.
@@ -20,63 +21,84 @@ def _extract_gym_slug(request: Request, x_gym_slug: str | None) -> str | None:
     """
     if x_gym_slug:
         return x_gym_slug
-    return request.query_params.get("gym")
+    if request is not None:
+        return request.query_params.get("gym")
+    return None
 
 
-def get_or_join_member(
+def find_member_by_login_code(gym_id: str, code: str) -> dict | None:
+    """
+    Looks up an existing `members` row by (gym_id, login_code). This is the
+    ONLY place a member gets identified for login — there is no signup here.
+    The row itself is created exclusively by gym-dashboard's "Add Member"
+    flow (POST /admin/members), which is what generates `login_code` in the
+    first place. If the code doesn't match a row in this gym, that's not
+    "create an account", it's "wrong code" (see main.py's 401 handling).
+
+    Phase 2 note: the returned row's `password_hash` column is how the login
+    flow tells first-login (NULL — gym-dashboard never sets it) apart from a
+    returning member (set, from a prior POST /member/set-password). Callers
+    must never put `password_hash` itself in an API response.
+    """
+    res = (
+        _supabase.table("members")
+        .select("*")
+        .eq("gym_id", gym_id)
+        .eq("login_code", code)
+        .limit(1)
+        .execute()
+    )
+    return res.data[0] if res.data else None
+
+
+def set_member_password_hash(member_id: str, password_hash: str) -> None:
+    """
+    Persists a member's password hash, set once on their first login (see
+    POST /member/set-password in main.py). gym-dashboard's Add Member flow
+    never populates this column — it starts NULL for every member it
+    creates, by design, since Add Member was intentionally left unmodified.
+    """
+    (
+        _supabase.table("members")
+        .update({"password_hash": password_hash})
+        .eq("id", member_id)
+        .execute()
+    )
+
+
+def get_current_member(
     request: Request,
-    user: dict = Depends(get_current_user),
-    x_gym_slug: str | None = Header(default=None, alias="X-Gym-Slug"),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ) -> dict:
     """
-    Ensures the logged-in Supabase auth user has a `members` row for their
-    gym, creating one (if there's room) on first login. Raises 403 if the
-    gym is at capacity.
-
-    Every route that should be gym-scoped depends on this instead of just
-    get_current_user.
-
-    Gym scoping: resolves a slug (see _extract_gym_slug) to a gym_id via
-    gym_scope.resolve_gym_id(), falling back to settings.demo_gym_id when no
-    slug is supplied - this keeps every existing single-tenant caller
-    working unchanged. A slug that doesn't resolve to a real gym is a 404,
-    not a silent fallback (see gym_scope.GymLookupError docstring for why).
+    Replaces the old get_current_user + get_or_join_member pair. There is no
+    "user" separate from "member" anymore, and no join-on-first-login step —
+    membership is established once, up front, when the gym admin adds the
+    member. This dependency just: verifies the caller's self-issued session
+    token (see app/auth.py), and re-fetches the member row fresh from the DB
+    (not just trusting stale claims in the token) so a status change (e.g.
+    admin deactivates a member) takes effect on their very next request.
     """
-    auth_user_id = user.get("sub")
-    slug = _extract_gym_slug(request, x_gym_slug)
+    payload = verify_member_token(credentials.credentials)
+    member_id = payload["sub"]
 
-    try:
-        gym_id = resolve_gym_id(slug)
-    except GymLookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
-
-    try:
-        result = _supabase.rpc(
-            "join_gym_if_capacity",
-            {"p_gym_id": gym_id, "p_auth_user_id": auth_user_id},
-        ).execute()
-    except Exception as e:
-        if "gym_full" in str(e):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="This gym has reached its member limit. Contact your gym.",
-            )
+    res = (
+        _supabase.table("members")
+        .select("*")
+        .eq("id", member_id)
+        .limit(1)
+        .execute()
+    )
+    if not res.data:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Membership check failed: {e}",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Member account no longer exists.",
         )
 
-    if not result.data:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Could not join gym.",
-        )
-
-    member = result.data
+    member = res.data[0]
     if member.get("status") != "active":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your account has been deactivated. Contact your gym.",
         )
-
     return member

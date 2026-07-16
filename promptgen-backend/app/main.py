@@ -5,11 +5,21 @@ from fastapi import FastAPI, Depends, HTTPException, Request, Form, Header, Body
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import settings
-from app.auth import get_current_user
-from app.membership import get_or_join_member
+from app.auth import issue_member_token, hash_password, verify_password
+from app.membership import (
+    get_current_member,
+    find_member_by_login_code,
+    set_member_password_hash,
+    _extract_gym_slug,
+)
+from app.gym_scope import resolve_gym_id, GymLookupError
 from app.db import supabase
 from app.ollama_client import generate_with_ollama
-from app.schemas import GenerateRequest, GenerateResponse, FeedbackSubmission, CheckinSubmission
+from app.schemas import (
+    GenerateRequest, GenerateResponse, FeedbackSubmission, CheckinSubmission,
+    SetFeedbackSubmission, ExerciseFeedbackSubmission,
+    MemberCheckCodeRequest, MemberSetPasswordRequest, MemberLoginRequest,
+)
 from app.fitness_generator import (
     SYSTEM_PROMPT,
     build_user_prompt,
@@ -106,6 +116,152 @@ def member_login_redirect(gym: str | None = None):
     return RedirectResponse(url=target, status_code=302)
 
 
+# ── Member auth: login_code + password (Phase 2) ────────────────────────────
+# The identity anchor is still the gym-issued 8-digit `login_code` (Phase 1:
+# a code that doesn't match any row in this gym is "wrong code", never
+# "create a new account" — there is no signup). Phase 2 adds a password on
+# top: the code says WHICH member, the password proves it's actually them.
+#
+# gym-dashboard's Add Member (untouched, per this phase's scope) never sets
+# a password — a freshly created member row has `password_hash = NULL`.
+# That NULL is exactly how "this member needs to set a password" is
+# detected below; there is no separate "first login" flag anywhere.
+#
+# Three endpoints, all unauthenticated (no session token yet — that's the
+# whole point):
+#   POST /member/check-code    - code only. Tells the frontend whether to
+#                                 render the "set a password" form or the
+#                                 normal "enter your password" form. Never
+#                                 issues a token.
+#   POST /member/set-password  - code + new password + confirm. Only valid
+#                                 while password_hash is still NULL (a
+#                                 member who already has a password must use
+#                                 /member/login instead — this endpoint is
+#                                 not a "reset password" route). Logs the
+#                                 member in immediately on success.
+#   POST /member/login         - code + password, for a member who already
+#                                 has a password set.
+#
+# Known gap, carried over from Phase 1 and still true here: no rate
+# limiting on any of these three. A password is a real second factor now
+# (better than the code alone), but per-IP/per-gym attempt throttling is
+# still worth adding before this goes to real users at scale — left as a
+# follow-up, same as before.
+def _resolve_gym_or_404(request: Request, x_gym_slug: str | None, body_gym: str | None) -> str:
+    slug = _extract_gym_slug(request, x_gym_slug) or body_gym
+    try:
+        return resolve_gym_id(slug)
+    except GymLookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+def _require_code(code: str | None) -> str:
+    code = (code or "").strip()
+    if not code:
+        raise HTTPException(status_code=400, detail="Enter your login code.")
+    return code
+
+
+@app.post("/member/check-code")
+def member_check_code(
+    body: MemberCheckCodeRequest,
+    request: Request,
+    x_gym_slug: str | None = Header(default=None, alias="X-Gym-Slug"),
+):
+    gym_id = _resolve_gym_or_404(request, x_gym_slug, body.gym)
+    code = _require_code(body.code)
+
+    member = find_member_by_login_code(gym_id, code)
+    if not member:
+        raise HTTPException(status_code=401, detail="Invalid code. Check with your gym and try again.")
+    if member.get("status") != "active":
+        raise HTTPException(status_code=403, detail="Your account isn't active. Contact your gym.")
+
+    return {
+        "has_password": bool(member.get("password_hash")),
+        "name": member.get("name"),
+    }
+
+
+@app.post("/member/set-password")
+def member_set_password(
+    body: MemberSetPasswordRequest,
+    request: Request,
+    x_gym_slug: str | None = Header(default=None, alias="X-Gym-Slug"),
+):
+    gym_id = _resolve_gym_or_404(request, x_gym_slug, body.gym)
+    code = _require_code(body.code)
+
+    member = find_member_by_login_code(gym_id, code)
+    if not member:
+        raise HTTPException(status_code=401, detail="Invalid code. Check with your gym and try again.")
+    if member.get("status") != "active":
+        raise HTTPException(status_code=403, detail="Your account isn't active. Contact your gym.")
+    if member.get("password_hash"):
+        # Already set — this route is "first-time setup", not "reset". A
+        # returning member who ends up here (e.g. a stale/bookmarked form)
+        # should log in normally instead.
+        raise HTTPException(
+            status_code=409,
+            detail="A password is already set for this account. Please log in instead.",
+        )
+
+    password = body.password or ""
+    confirm = body.confirm_password or ""
+    if len(password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
+    if password != confirm:
+        raise HTTPException(status_code=400, detail="Passwords do not match.")
+
+    set_member_password_hash(member["id"], hash_password(password))
+
+    token = issue_member_token(member["id"], gym_id)
+    return {
+        "token": token,
+        "member": {"id": member["id"], "name": member.get("name"), "gym_id": gym_id},
+    }
+
+
+@app.post("/member/login")
+def member_login(
+    body: MemberLoginRequest,
+    request: Request,
+    x_gym_slug: str | None = Header(default=None, alias="X-Gym-Slug"),
+):
+    gym_id = _resolve_gym_or_404(request, x_gym_slug, body.gym)
+    code = _require_code(body.code)
+
+    member = find_member_by_login_code(gym_id, code)
+    if not member:
+        raise HTTPException(status_code=401, detail="Invalid code. Check with your gym and try again.")
+    if member.get("status") != "active":
+        raise HTTPException(status_code=403, detail="Your account isn't active. Contact your gym.")
+
+    stored_hash = member.get("password_hash")
+    if not stored_hash:
+        # No password set yet — this is actually a first-login, just routed
+        # to the wrong endpoint (frontend should have called /check-code
+        # first). Tell it explicitly rather than a generic 401, so the UI
+        # can redirect to the set-password screen instead of showing
+        # "wrong password" for a password that was never set.
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "This account hasn't set a password yet.",
+                "needs_password_setup": True,
+            },
+        )
+
+    if not verify_password(body.password or "", stored_hash):
+        raise HTTPException(status_code=401, detail="Incorrect password. Try again.")
+
+    token = issue_member_token(member["id"], gym_id)
+    return {
+        "token": token,
+        "member": {"id": member["id"], "name": member.get("name"), "gym_id": gym_id},
+    }
+
+
 # ── Dev-only raw engine test endpoint ───────────────────────────────────────
 # Proxied to by the dev-console's app/routers/ai_testing.py
 # (POST {MEMBER_APP_BASE_URL}/generate/test). Runs ONLY the deterministic
@@ -148,7 +304,7 @@ def generate_test(
 @app.post("/api/generate", response_model=GenerateResponse)
 async def generate(
     body: GenerateRequest,
-    user: dict = Depends(get_current_user),
+    member: dict = Depends(get_current_member),
 ):
     try:
         result = await generate_with_ollama(body.prompt, body.system)
@@ -158,8 +314,8 @@ async def generate(
 
 
 @app.get("/api/me")
-def whoami(user: dict = Depends(get_current_user)):
-    return {"sub": user.get("sub"), "email": user.get("email")}
+def whoami(member: dict = Depends(get_current_member)):
+    return {"id": member.get("id"), "name": member.get("name"), "gym_id": member.get("gym_id")}
 
 
 def _get_active_plan(member_id: str) -> dict | None:
@@ -215,8 +371,7 @@ REASSESSMENT_INTERVAL_DAYS = 14
 
 @app.get("/api/checkin/eligibility")
 def checkin_eligibility(
-    user: dict = Depends(get_current_user),
-    member: dict = Depends(get_or_join_member),
+    member: dict = Depends(get_current_member),
 ):
     """Tells the frontend whether the Biweekly Progress check-in should be
     shown yet. Eligible once REASSESSMENT_INTERVAL_DAYS have passed since
@@ -248,8 +403,7 @@ def checkin_eligibility(
 @app.post("/api/checkin")
 def submit_checkin(
     body: CheckinSubmission,
-    user: dict = Depends(get_current_user),
-    member: dict = Depends(get_or_join_member),
+    member: dict = Depends(get_current_member),
 ):
     """End-of-cycle biweekly reassessment. Runs the fully deterministic
     checkin_engine -> progression_engine pipeline (no LLM involved in the
@@ -298,8 +452,7 @@ def submit_checkin(
 
 @app.post("/api/reset-plan")
 def reset_plan(
-    user: dict = Depends(get_current_user),
-    member: dict = Depends(get_or_join_member),
+    member: dict = Depends(get_current_member),
 ):
     """Dev/testing helper: expires the caller's own active plan row(s) so the
     NEXT /result call is forced to regenerate from scratch (fresh Jinja2
@@ -324,8 +477,7 @@ def reset_plan(
 @app.post("/api/submit-feedback")
 def submit_feedback(
     body: FeedbackSubmission,
-    user: dict = Depends(get_current_user),
-    member: dict = Depends(get_or_join_member),
+    member: dict = Depends(get_current_member),
 ):
     """Stores the weight-per-set and difficulty-star ratings the member
     entered at the end of their training week. Each row is one set of one
@@ -354,8 +506,7 @@ def submit_feedback(
 @app.get("/api/my-plan")
 
 def my_plan(
-    user: dict = Depends(get_current_user),
-    member: dict = Depends(get_or_join_member),
+    member: dict = Depends(get_current_member),
 ):
     """Called by the frontend right after login. If an active plan already
     exists, the frontend redirects straight to it instead of showing the
@@ -366,12 +517,67 @@ def my_plan(
     return {"has_plan": False}
 
 
+# ── Workout set/exercise feedback (backs the progress tracker on the plan
+# page — see Templates/result.html). Replaces direct browser->Supabase
+# writes that relied on Supabase Auth + RLS, which no longer exist for
+# members (see auth.py). Scoped to member["id"] from the verified session
+# token; the frontend never sends a member_id, so there's no way to read or
+# write anyone else's rows through this endpoint.
+@app.get("/api/workout-feedback")
+def get_workout_feedback(
+    cycle: int = 1,
+    member: dict = Depends(get_current_member),
+):
+    sets = (
+        supabase.table("workout_set_feedback")
+        .select("day_index, exercise, set_number, weight_kg, reps_used")
+        .eq("member_id", member["id"])
+        .eq("cycle_number", cycle)
+        .execute()
+    )
+    exercises = (
+        supabase.table("workout_exercise_feedback")
+        .select("day_index, exercise, difficulty, notes")
+        .eq("member_id", member["id"])
+        .eq("cycle_number", cycle)
+        .execute()
+    )
+    return {"sets": sets.data or [], "exercises": exercises.data or []}
+
+
+@app.post("/api/workout-feedback/sets")
+def submit_set_feedback(
+    body: SetFeedbackSubmission,
+    member: dict = Depends(get_current_member),
+):
+    if not body.entries:
+        return {"saved": 0}
+    rows = [{**e.model_dump(), "member_id": member["id"]} for e in body.entries]
+    supabase.table("workout_set_feedback").upsert(
+        rows, on_conflict="member_id,cycle_number,day_index,exercise,set_number",
+    ).execute()
+    return {"saved": len(rows)}
+
+
+@app.post("/api/workout-feedback/exercises")
+def submit_exercise_feedback(
+    body: ExerciseFeedbackSubmission,
+    member: dict = Depends(get_current_member),
+):
+    if not body.entries:
+        return {"saved": 0}
+    rows = [{**e.model_dump(), "member_id": member["id"]} for e in body.entries]
+    supabase.table("workout_exercise_feedback").upsert(
+        rows, on_conflict="member_id,cycle_number,day_index,exercise",
+    ).execute()
+    return {"saved": len(rows)}
+
+
 # ── New: form POST → fitness_generator → Jinja2 dashboard ───────────────────
 @app.post("/result", response_class=HTMLResponse)
 async def result_page(
     request: Request,
-    user: dict = Depends(get_current_user),
-    member: dict = Depends(get_or_join_member),
+    member: dict = Depends(get_current_member),
     # ── Basic bio ────────────────────────────────────────────────────────────
     name:       str = Form(""),
     age:        str = Form(""),
@@ -453,7 +659,7 @@ async def result_page(
     # This must be the very first thing that happens with the intake data:
     # no LLM call, no exercise selection, no DB write until this clears.
     gate = safety_gate(profile)
-    print(f"[/result] safety_gate for user={user.get('sub')}: {gate}")
+    print(f"[/result] safety_gate for member={member.get('id')}: {gate}")
 
     if gate["action"] == "block":
         # Emergency symptom or under-13. Never generate a workout, never
@@ -512,7 +718,7 @@ async def result_page(
 
         return data, render_dashboard(data)
 
-    user_key = str(user.get("sub", "anonymous"))
+    user_key = str(member.get("id", "anonymous"))
 
     # If this user already has a generation in flight (frontend retry after a
     # client-side timeout, or a double-click on "Generate My Plan"), attach to
