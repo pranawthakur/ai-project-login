@@ -1021,41 +1021,23 @@ def submit_exercise_feedback(
 
 
 # ── New: form POST → fitness_generator → Jinja2 dashboard ───────────────────
-@app.post("/result", response_class=HTMLResponse)
-async def result_page(
-    request: Request,
-    member: dict = Depends(get_current_member),
-    # ── Basic bio ────────────────────────────────────────────────────────────
-    name:       str = Form(""),
-    age:        str = Form(""),
-    gender:     str = Form("Male"),
-    height:     str = Form(""),
-    weight:     str = Form(""),
-    target:     str = Form(""),
-    # ── Goal & experience ────────────────────────────────────────────────────
-    goal:       str = Form("Fat loss"),
-    experience: str = Form("Intermediate"),   # Beginner / Intermediate / Advanced
-    # ── Training preferences ─────────────────────────────────────────────────
-    activity:   str = Form("moderate"),       # sedentary/light/moderate/very_active/extreme
-    days:       str = Form("4"),              # training days per week
-    duration:   str = Form("45-60 min"),
-    equipment:  str = Form("full gym"),
-    # ── Diet preferences ─────────────────────────────────────────────────────
-    diet:       str = Form("Non-vegetarian"), # Non-vegetarian/Vegetarian/Vegan/Eggetarian
-    meals:      str = Form("5"),              # meals per day
-    region:     str = Form(""),
-    budget:     str = Form("medium"),
-    allergies:  str = Form("none"),
-    # ── Health notes ─────────────────────────────────────────────────────────
-    notes:      str = Form(""),
-):
-    # ── Lock check: an active, unexpired plan already exists → serve it,
-    # zero LLM calls. This is what actually prevents API-limit burn on
-    # repeat logins, independent of whatever the frontend does.
-    existing = _get_active_plan(member["id"])
-    if existing:
-        return HTMLResponse(content=existing["rendered_html"])
+async def _generate_and_save_plan(member: dict, profile: dict, source_label: str = "form") -> HTMLResponse:
+    """
+    Shared plan-generation pipeline used by both POST /result (fresh intake
+    submission, profile built from Form fields) and POST /api/regenerate
+    (regenerating immediately after a biweekly check-in, profile rebuilt
+    from the member's last stored plan_json["_intake"]). Runs the exact
+    same safety gate, generation steps, and persistence as before this was
+    split out — nothing skipped or weakened for either caller.
 
+    `profile` must already contain the raw intake fields (name, age,
+    gender, height_cm, current_weight_kg, target_weight_kg, goal,
+    experience, activity_key, days_per_week, session_duration, equipment,
+    diet_pref, meals_per_day, region, budget, allergies, medical_notes).
+    This function is responsible for adding the `_xxx` computed fields
+    (_progression_context, _member_id, _cycle_number, _weekly_template,
+    _vol, _trainer_review) needed during generation.
+    """
     # Phase 6: cycle_number must actually increment for checkin_engine's
     # cycle-scoped reads (get_current_cycle_number, reassessment history,
     # the reassessments table's per-cycle unique constraint) to mean
@@ -1065,31 +1047,11 @@ async def result_page(
     prev_plan = _get_latest_plan_any_status(member["id"])
     next_cycle = (prev_plan["cycle_number"] + 1) if prev_plan else 1
 
-    profile = {
-        # Identity
-        "name":               name or "User",
-        "age":                age or "25",
-        "gender":             gender,
-        "height_cm":          height or "170",
-        "current_weight_kg":  weight or "70",
-        "target_weight_kg":   target or "—",
-        # Goal & experience
-        "goal":               goal,
-        "experience":         experience,
-        # Training
-        "activity_key":       activity,           # raw key used for factor lookup
-        "days_per_week":      days or "4",
-        "session_duration":   duration,
-        "equipment":          equipment or "full gym",
-        # Diet — pass the RAW value so diet_token lookup can fuzzy-match it
-        "diet_pref":          diet,
-        "meals_per_day":      meals or "5",
-        "region":             region or "India",
-        "budget":             budget,
-        "allergies":          allergies or "none",
-        # Health
-        "medical_notes":      notes or "none",
-    }
+    # Snapshot of the RAW intake, taken before any `_xxx` computed keys are
+    # added below — this is what gets persisted into data["_intake"] and,
+    # later, what POST /api/regenerate reloads to rebuild `profile` from
+    # scratch without a fresh form submission.
+    intake_snapshot = dict(profile)
 
     # Final Backend Integration: load the latest adaptive-progression
     # decision (if any) so THIS generation can consume it, closing the
@@ -1099,7 +1061,7 @@ async def result_page(
     # there's no reassessment yet or the optional read fails, in which
     # case build_deterministic_workout_days() generates exactly as before.
     profile["_progression_context"] = progression_context.load_latest_progression_context(
-        member["id"], goal=goal,
+        member["id"], goal=profile.get("goal"),
     )
     profile["_member_id"] = member["id"]
     profile["_cycle_number"] = next_cycle
@@ -1108,7 +1070,7 @@ async def result_page(
     # This must be the very first thing that happens with the intake data:
     # no LLM call, no exercise selection, no DB write until this clears.
     gate = safety_gate(profile)
-    print(f"[/result] safety_gate for member={member.get('id')}: {gate}")
+    print(f"[_generate_and_save_plan:{source_label}] safety_gate for member={member.get('id')}: {gate}")
 
     if gate["action"] == "block":
         # Emergency symptom or under-13. Never generate a workout, never
@@ -1341,14 +1303,14 @@ async def result_page(
 
         data = enforce_schema(data, profile)
         data["cycle_number"] = next_cycle
-        data["_intake"] = {"experience": profile.get("experience"), "age": profile.get("age")}
+        data["_intake"] = intake_snapshot
 
         if weekly_template:
             data = apply_deterministic_day_labels(data, weekly_template)
 
         return data, render_dashboard(data)
 
-    user_key = str(member.get("id", "anonymous"))
+    user_key = str(member.get("id", "anonymous")) + (f":{source_label}" if source_label else "")
 
     # If this user already has a generation in flight (frontend retry after a
     # client-side timeout, or a double-click on "Generate My Plan"), attach to
@@ -1361,7 +1323,7 @@ async def result_page(
     try:
         data, html = await task
     except RuntimeError as e:
-        print(f"[/result] LLM error for user={user_key}: {e}")
+        print(f"[_generate_and_save_plan:{source_label}] LLM error for user={user_key}: {e}")
         traceback.print_exc()
         return HTMLResponse(
             content=(
@@ -1371,7 +1333,7 @@ async def result_page(
             status_code=503,
         )
     except Exception as e:
-        print(f"[/result] Unhandled error for user={user_key}: {e}")
+        print(f"[_generate_and_save_plan:{source_label}] Unhandled error for user={user_key}: {e}")
         traceback.print_exc()
         return HTMLResponse(
             content=(
@@ -1403,7 +1365,7 @@ async def result_page(
         html = banner + html
 
     # Save so this doesn't get regenerated on the member's next login —
-    # the lock check at the top of this route reads from this table.
+    # the lock check at the top of /result reads from this table.
     supabase.table("plans").insert({
         "member_id": member["id"],
         "cycle_number": next_cycle,
@@ -1428,3 +1390,99 @@ async def result_page(
     )
 
     return HTMLResponse(content=html)
+
+
+# ── New: form POST → fitness_generator → Jinja2 dashboard ───────────────────
+@app.post("/result", response_class=HTMLResponse)
+async def result_page(
+    request: Request,
+    member: dict = Depends(get_current_member),
+    # ── Basic bio ────────────────────────────────────────────────────────────
+    name:       str = Form(""),
+    age:        str = Form(""),
+    gender:     str = Form("Male"),
+    height:     str = Form(""),
+    weight:     str = Form(""),
+    target:     str = Form(""),
+    # ── Goal & experience ────────────────────────────────────────────────────
+    goal:       str = Form("Fat loss"),
+    experience: str = Form("Intermediate"),   # Beginner / Intermediate / Advanced
+    # ── Training preferences ─────────────────────────────────────────────────
+    activity:   str = Form("moderate"),       # sedentary/light/moderate/very_active/extreme
+    days:       str = Form("4"),              # training days per week
+    duration:   str = Form("45-60 min"),
+    equipment:  str = Form("full gym"),
+    # ── Diet preferences ─────────────────────────────────────────────────────
+    diet:       str = Form("Non-vegetarian"), # Non-vegetarian/Vegetarian/Vegan/Eggetarian
+    meals:      str = Form("5"),              # meals per day
+    region:     str = Form(""),
+    budget:     str = Form("medium"),
+    allergies:  str = Form("none"),
+    # ── Health notes ─────────────────────────────────────────────────────────
+    notes:      str = Form(""),
+):
+    # ── Lock check: an active, unexpired plan already exists → serve it,
+    # zero LLM calls. This is what actually prevents API-limit burn on
+    # repeat logins, independent of whatever the frontend does.
+    existing = _get_active_plan(member["id"])
+    if existing:
+        return HTMLResponse(content=existing["rendered_html"])
+
+    profile = {
+        # Identity
+        "name":               name or "User",
+        "age":                age or "25",
+        "gender":             gender,
+        "height_cm":          height or "170",
+        "current_weight_kg":  weight or "70",
+        "target_weight_kg":   target or "—",
+        # Goal & experience
+        "goal":               goal,
+        "experience":         experience,
+        # Training
+        "activity_key":       activity,           # raw key used for factor lookup
+        "days_per_week":      days or "4",
+        "session_duration":   duration,
+        "equipment":          equipment or "full gym",
+        # Diet — pass the RAW value so diet_token lookup can fuzzy-match it
+        "diet_pref":          diet,
+        "meals_per_day":      meals or "5",
+        "region":             region or "India",
+        "budget":             budget,
+        "allergies":          allergies or "none",
+        # Health
+        "medical_notes":      notes or "none",
+    }
+
+    return await _generate_and_save_plan(member, profile, source_label="form")
+
+
+# ── New: skip the dashboard round-trip after a biweekly check-in.
+# POST /api/checkin (above) expires the member's active plan but does NOT
+# regenerate one — historically the member had to navigate back to
+# dashbord.html, which called /api/my-plan and bounced them to result.html
+# once a fresh plan existed. This endpoint reuses the exact same generation
+# pipeline /result runs, but sources the profile inputs from the member's
+# most recent plan's plan_json["_intake"] (persisted above) instead of
+# Form(...) fields, so the frontend can regenerate immediately after a
+# check-in with no dashboard round-trip and no re-typed intake.
+@app.post("/api/regenerate", response_class=HTMLResponse)
+async def regenerate_plan(member: dict = Depends(get_current_member)):
+    prev_plan = _get_latest_plan_any_status(member["id"])
+    intake = ((prev_plan or {}).get("plan_json") or {}).get("_intake") or {}
+    if not intake:
+        # No stored intake to regenerate from (e.g. a plan generated before
+        # this feature existed, when only {experience, age} were kept).
+        # Same safety posture as /result — no guessed profile, no silent
+        # partial generation.
+        raise HTTPException(
+            status_code=422,
+            detail="No stored intake found for this member — please fill out the intake form again.",
+        )
+
+    # Fresh copy: _generate_and_save_plan mutates the profile dict with
+    # `_xxx` computed keys as it runs, and we don't want that leaking back
+    # into the stored intake dict itself.
+    profile = dict(intake)
+
+    return await _generate_and_save_plan(member, profile, source_label="regenerate")

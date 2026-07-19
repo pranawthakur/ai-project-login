@@ -43,13 +43,43 @@
 </div>
 
 <script>
+  window.__gymHeaders = () => {
+    const slug = localStorage.getItem('gymSlug')
+    return slug ? { 'X-Gym-Slug': slug } : {}
+  }
+
+  async function loadFromApi() {
+    const memberToken = localStorage.getItem('memberToken');
+    if (!memberToken) {
+      document.getElementById("empty").style.display = "block";
+      return;
+    }
+    try {
+      const res = await fetch('https://ai-project-login.onrender.com/api/my-plan', {
+        headers: { Authorization: `Bearer ${memberToken}`, ...window.__gymHeaders() }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.has_plan) {
+          document.getElementById("frameWrap").style.display = "block";
+          document.getElementById("planFrame").srcdoc = data.html;
+          return;
+        }
+      }
+      document.getElementById("empty").style.display = "block";
+    } catch (e) {
+      console.warn('my-plan fallback fetch failed', e);
+      document.getElementById("empty").style.display = "block";
+    }
+  }
+
   const html = sessionStorage.getItem("fitforge_plan_html");
   if (html) {
     document.getElementById("frameWrap").style.display = "block";
     document.getElementById("planFrame").srcdoc = html;
     sessionStorage.removeItem("fitforge_plan_html");
   } else {
-    document.getElementById("empty").style.display = "block";
+    loadFromApi();
   }
 </script>
 

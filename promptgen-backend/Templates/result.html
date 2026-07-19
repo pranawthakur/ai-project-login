@@ -690,10 +690,10 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
 
         <div class="feedback-bar">
           <div class="feedback-copy">
-            <strong>Done with this week?</strong> Fill in the weight and reps you actually used, then rate how hard the exercise felt overall — submit, and your next plan gets tuned off this instead of starting from scratch.
+            <strong>Done with today's session?</strong> Fill in the weight and reps you actually used, then rate how hard the exercise felt overall — submit, and your next plan gets tuned off this instead of starting from scratch.
           </div>
           <span class="feedback-status" id="feedbackStatus"></span>
-          <button class="feedback-submit" id="submitFeedbackBtn">Submit Weekly Feedback</button>
+          <button class="feedback-submit" id="submitFeedbackBtn">Submit Daily Feedback</button>
         </div>
       </div>
 
@@ -1054,7 +1054,7 @@ function toggleExercise(row) {
 // Note: this only refreshes the small logged-count badge as you type. The
 // reps-vs-target progress bars (sidebar, day-strip, weekly split) are
 // intentionally NOT recalculated here anymore — they only update when you
-// click "Submit Weekly Feedback", so the bar reflects your last submitted
+// click "Submit Daily Feedback", so the bar reflects your last submitted
 // state rather than jumping around mid-typing.
 function updateExerciseStatus(fieldEl) {
   const row = fieldEl.closest('.ex-row');
@@ -1130,7 +1130,7 @@ function checkSetOverachieve(repsInput) {
 // full workout, not just whichever single set happens to have a value.
 // Sidebar bar = whole plan; each day-strip pill's own bar = just that day.
 // Recalculated once on load (after saved data is pulled in from Supabase)
-// and again only after a successful "Submit Weekly Feedback" — not on
+// and again only after a successful "Submit Daily Feedback" — not on
 // every keystroke — so the bar reflects your last submitted state.
 function computeAndRenderProgress() {
   const perDay = {};
@@ -1252,38 +1252,44 @@ document.querySelectorAll('.ex-stars').forEach(group => {
   });
 });
 
-// ── Submit Weekly Feedback ──
+// ── Submit Daily Feedback ──
 // This runs INSIDE the srcdoc iframe. Since srcdoc documents inherit the
-// parent's origin, this page's own localStorage is the SAME storage the
-// Supabase client on dashbord.html already wrote the session into — so we
-// can create a fresh client here and read that session directly, no
-// postMessage bridge to the parent page needed.
+// parent's origin, this page's own localStorage is the SAME storage
+// dashbord.html already wrote the memberToken into — so we can read it
+// directly here, no postMessage bridge to the parent page needed. Members
+// authenticate via the backend-issued memberToken (Bearer auth), not
+// Supabase Auth — there is no Supabase session to read here.
 (function () {
   const btn = document.getElementById('submitFeedbackBtn');
   const status = document.getElementById('feedbackStatus');
   if (!btn) return;
 
+  function feedbackAuthHeaders() {
+    const token = localStorage.getItem('memberToken');
+    const slug = localStorage.getItem('gymSlug');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (slug) headers['X-Gym-Slug'] = slug;
+    return headers;
+  }
+
   // On load: pull back whatever this member already saved (previous session
-  // or earlier this week) and prefill the fields, so the progress bar and
+  // or earlier today) and prefill the fields, so the progress bar and
   // "X/N logged" counts are correct immediately, not just after a fresh
-  // submit. Uses the same session/table setup as the submit handler below.
+  // submit. Uses the same memberToken auth as the submit handler below.
   (async function loadSavedProgress() {
     try {
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js');
-      const supabase = createClient(
-        'https://yabclxadadynmprymcns.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYmNseGFkYWR5bm1wcnltY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0Njg4NzIsImV4cCI6MjA5ODA0NDg3Mn0.e2IwBxrW-NbMIqqWFZb8gnh5T95vlDwS-h2FhlWRb1k'
-      );
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return; // not logged in yet — nothing to prefill
-      const memberId = session.user.id;
+      const token = localStorage.getItem('memberToken');
+      if (!token) return; // not logged in yet — nothing to prefill
 
-      const { data: setRows, error: setErr } = await supabase
-        .from('workout_set_feedback')
-        .select('day_index, exercise, set_number, weight_kg, reps_used')
-        .eq('member_id', memberId)
-        .eq('cycle_number', window.CURRENT_CYCLE || 1);
-      if (setErr) throw setErr;
+      const res = await fetch(
+        window.BACKEND_BASE + '/api/workout-feedback?cycle=' + (window.CURRENT_CYCLE || 1),
+        { headers: feedbackAuthHeaders() }
+      );
+      if (!res.ok) throw new Error('Could not load saved progress (status ' + res.status + ')');
+      const data = await res.json();
+      const setRows = data.sets || [];
+      const exRows = data.exercises || [];
 
       (setRows || []).forEach(row => {
         const cell = document.querySelector(
@@ -1298,13 +1304,6 @@ document.querySelectorAll('.ex-stars').forEach(group => {
           checkSetOverachieve(repsInput);
         }
       });
-
-      const { data: exRows, error: exErr } = await supabase
-        .from('workout_exercise_feedback')
-        .select('day_index, exercise, difficulty, notes')
-        .eq('member_id', memberId)
-        .eq('cycle_number', window.CURRENT_CYCLE || 1);
-      if (exErr) throw exErr;
 
       (exRows || []).forEach(row => {
         document.querySelectorAll('.ex-row').forEach(exRow => {
@@ -1388,37 +1387,36 @@ document.querySelectorAll('.ex-stars').forEach(group => {
     status.className = 'feedback-status';
 
     try {
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js');
-      const supabase = createClient(
-        'https://yabclxadadynmprymcns.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhYmNseGFkYWR5bm1wcnltY25zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0Njg4NzIsImV4cCI6MjA5ODA0NDg3Mn0.e2IwBxrW-NbMIqqWFZb8gnh5T95vlDwS-h2FhlWRb1k'
-      );
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Session expired — go back and log in again.');
-      const memberId = session.user.id;
+      const token = localStorage.getItem('memberToken');
+      if (!token) throw new Error('Session expired — go back and log in again.');
 
-      // Two tables (see accompanying SQL): workout_set_feedback for per-set
-      // weight/reps, workout_exercise_feedback for the one difficulty rating
-      // + notes per exercise. Both are upserts keyed to this member's id, so
-      // resubmitting the same week just overwrites rather than duplicating.
+      // Two backend endpoints (backed by the workout_set_feedback /
+      // workout_exercise_feedback tables) — both upsert keyed to this
+      // member's id, so resubmitting the same day just overwrites rather
+      // than duplicating. Auth is the backend-issued memberToken, not
+      // Supabase Auth.
+      let adaptations = [];
       if (setEntries.length > 0) {
-        const { error: setErr } = await supabase
-          .from('workout_set_feedback')
-          .upsert(
-            setEntries.map(e => ({ ...e, member_id: memberId })),
-            { onConflict: 'member_id,cycle_number,day_index,exercise,set_number' }
-          );
-        if (setErr) throw setErr;
+        const setRes = await fetch(window.BACKEND_BASE + '/api/workout-feedback/sets', {
+          method: 'POST',
+          headers: feedbackAuthHeaders(),
+          body: JSON.stringify({ entries: setEntries }),
+        });
+        if (!setRes.ok) throw new Error('Could not save set feedback (status ' + setRes.status + ')');
       }
 
       if (exerciseEntries.length > 0) {
-        const { error: exErr } = await supabase
-          .from('workout_exercise_feedback')
-          .upsert(
-            exerciseEntries.map(e => ({ ...e, member_id: memberId })),
-            { onConflict: 'member_id,cycle_number,day_index,exercise' }
-          );
-        if (exErr) throw exErr;
+        const exRes = await fetch(window.BACKEND_BASE + '/api/workout-feedback/exercises', {
+          method: 'POST',
+          headers: feedbackAuthHeaders(),
+          body: JSON.stringify({ entries: exerciseEntries }),
+        });
+        if (!exRes.ok) throw new Error('Could not save exercise feedback (status ' + exRes.status + ')');
+        // Preserve whatever the endpoint returns (classifications/adaptations
+        // from _apply_intra_cycle_adaptation) in case it's useful to surface,
+        // without requiring it for the save to be considered successful.
+        const exData = await exRes.json().catch(() => ({}));
+        adaptations = exData.adaptations || [];
       }
 
       status.textContent = `✓ Saved ${setEntries.length} sets, ${exerciseEntries.length} exercise ratings`;
@@ -1543,13 +1541,41 @@ document.querySelectorAll('.ex-stars').forEach(group => {
       }
       const result = await res.json();
 
+      // ── Skip the dashboard round-trip: regenerate the plan right now,
+      // off the member's stored intake (POST /api/checkin already expired
+      // the active plan above), and replace THIS document's content
+      // directly with the fresh HTML. This script runs inside the srcdoc
+      // iframe, so replacing our own document is how we "swap the iframe
+      // content" — no window.location navigation to dashbord.html or
+      // result.html, and no reliance on sessionStorage for this flow.
+      status.textContent = 'Saved — generating your updated plan…';
+      status.className = 'feedback-status';
+
+      const regenRes = await fetch(window.BACKEND_BASE + '/api/regenerate', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + session.access_token },
+      });
+
+      if (regenRes.ok) {
+        const newHtml = await regenRes.text();
+        document.open();
+        document.write(newHtml);
+        document.close();
+        return; // document has been fully replaced — nothing left to update below
+      }
+
+      // Regeneration failed — the check-in itself still saved successfully,
+      // so surface that plainly rather than pretending nothing happened.
+      const errBody = await regenRes.json().catch(() => ({}));
       formCard.style.display = 'none';
       successCard.style.display = '';
       const successMsg = document.getElementById('checkinSuccessMsg');
       if (successMsg) {
         successMsg.textContent = 'Progress: ' + result.progress_state +
           (result.is_deload ? ' — a deload is recommended next cycle.' : '.') +
-          ' Your next plan will reflect this check-in.';
+          ' Check-in saved, but your plan could not be regenerated automatically' +
+          (errBody.detail ? ' (' + errBody.detail + ')' : '') +
+          ' — please refresh to try again.';
       }
     } catch (err) {
       status.textContent = '✗ ' + (err.message || 'Something went wrong');
