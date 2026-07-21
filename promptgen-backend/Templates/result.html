@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>{{ user.name }} {{ plan.goal_label }} Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --lime:#a855f7;
+  --lime-dim:#7c3aed;
+  --lime-glow:#a855f722;
+  --lime2:#c084fc;
+  --blue:#6366f1;
+  --bg:#0a0714;
+  --bg2:#150f24;
+  --bg3:#1c1330;
+  --bg4:#241a3a;
+  --glass:rgba(28,19,48,.52);
+  --glass-hi:rgba(255,255,255,.045);
+  --border:#ffffff0f;
+  --border-hi:#ffffff1a;
+  --grad-border:linear-gradient(155deg,#a855f755,#6366f122 40%,#ffffff08 70%);
+  --text:#F0F0F0;
+  --muted:#8983a8;
+  --dim:#3d3556;
+  --sidebar-w:230px;
+  --sidebar-w-collapsed:76px;
+  --topbar-h:64px;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}
+}
+html{scroll-behavior:smooth}
+html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
+.hdr-title,.card-title,.day-name,.sb-brand span,.dt-date{font-family:'Space Grotesk',sans-serif}
+
+/* ══════════ AMBIENT BACKGROUND ══════════ */
+.bg-aurora{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.bg-aurora::before{
+  content:"";position:absolute;inset:-20%;
+  background:
+    radial-gradient(620px 520px at 8% 4%, #4c1d9540, transparent 60%),
+    radial-gradient(680px 560px at 96% 96%, #1d4ed838, transparent 60%),
+    radial-gradient(500px 420px at 60% 30%, #a855f722, transparent 65%);
+  animation:auroraDrift 22s var(--ease) infinite alternate;
+  filter:blur(2px);
+}
+@keyframes auroraDrift{
+  0%{transform:translate(0,0) scale(1)}
+  50%{transform:translate(-2%,2%) scale(1.06)}
+  100%{transform:translate(2%,-1%) scale(1.02)}
+}
+.bg-grid{position:absolute;inset:0;
+  background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);
+  background-size:52px 52px;
+  mask-image:radial-gradient(ellipse 90% 70% at 50% 0%, #000 20%, transparent 75%);
+  opacity:.5;
+}
+.bg-noise{position:absolute;inset:0;opacity:.035;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.spotlight{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(340px circle at var(--sx,50%) var(--sy,20%), #a855f712, transparent 70%);
+  transition:background .08s linear;
+}
+.app-shell,.sb-overlay{position:relative;z-index:2}
+
+/* ══════════ APP SHELL ══════════ */
+.app-shell{display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;background:rgba(13,9,23,.97);backdrop-filter:blur(22px) saturate(140%);-webkit-backdrop-filter:blur(22px) saturate(140%);
+  border-right:1px solid var(--border-hi);
+  display:flex;flex-direction:column;padding:20px 14px;position:fixed;left:0;top:0;height:100vh;height:100dvh;
+  transition:width .28s var(--ease),transform .28s var(--ease);overflow:hidden;z-index:300;
+  box-shadow:0 0 0 1px #00000040,40px 0 60px -20px #000000a0;
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .sidebar{background:rgba(11,7,20,.99)}
+}
+.sidebar.collapsed{width:var(--sidebar-w-collapsed)}
+.sb-brand{display:flex;align-items:center;gap:10px;padding:4px 6px 22px;white-space:nowrap}
+.sb-brand-icon{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,#a855f7,#6366f1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;box-shadow:0 8px 22px -8px #7c3aed99,0 0 0 1px #ffffff14 inset;position:relative;transition:transform .3s var(--ease)}
+.sb-brand-icon::after{content:"";position:absolute;inset:-6px;border-radius:16px;background:conic-gradient(from 0deg,#a855f7,#6366f1,#a855f7);opacity:0;filter:blur(8px);z-index:-1;transition:opacity .3s}
+.sb-brand:hover .sb-brand-icon{transform:rotate(-6deg) scale(1.05)}
+.sb-brand:hover .sb-brand-icon::after{opacity:.55;animation:spin 3s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sb-brand span{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.3px;background:linear-gradient(100deg,#fff,#d8c9ff 70%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sidebar.collapsed .sb-label,.sidebar.collapsed .sb-brand span,.sidebar.collapsed .sb-progress-wrap{display:none}
+
+.sb-progress-wrap{padding:2px 6px 20px;white-space:nowrap}
+.sb-progress-day{font-size:20px;font-weight:800;color:#fff;margin-bottom:8px}
+.sb-progress-track{height:6px;background:var(--bg4);border-radius:4px;overflow:hidden;position:relative}
+.sb-progress-fill{height:100%;background:linear-gradient(90deg,#a855f7,#6366f1);border-radius:4px;position:relative;overflow:hidden}
+.sb-progress-fill.pf-over{background:linear-gradient(90deg,#22c55e,#16a34a)}
+.sb-progress-fill.pf-under{background:linear-gradient(90deg,#f97316,#ef4444)}
+.sb-progress-fill.pf-fatigue{background:linear-gradient(90deg,#ef4444,#b91c1c)}
+.sb-progress-frac.pf-fatigue-text{color:#f87171;font-weight:700}
+.sb-progress-fill::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent,#ffffff55,transparent);animation:shimmer 2.2s ease-in-out infinite}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.sb-progress-frac{font-size:10px;color:var(--muted);margin-top:6px;text-align:right}
+
+.sb-nav{display:flex;flex-direction:column;gap:3px;flex:1;overflow-y:auto}
+.sb-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;border:none;background:none;color:var(--muted);font-size:13.5px;font-weight:600;cursor:pointer;text-align:left;white-space:nowrap;transition:background .18s,color .18s,transform .18s var(--ease)}
+.sb-item svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;transition:transform .2s var(--ease)}
+.sb-item:hover{background:var(--bg3);color:#ddd;transform:translateX(2px)}
+.sb-item:hover svg{transform:scale(1.1)}
+.sb-item.active{background:linear-gradient(100deg,#7c3aed40,#3b82f640);color:#fff;box-shadow:inset 0 0 0 1px var(--lime-dim),0 4px 18px -8px #7c3aed66}
+.sb-item:focus-visible,.sb-collapse-btn:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--lime2);outline-offset:2px}
+.sidebar.collapsed .sb-item{justify-content:center;padding:12px}
+
+.sb-collapse-btn{margin-top:auto;display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;border:1px solid var(--border-hi);background:var(--bg3);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.sb-collapse-btn:hover{background:var(--bg4);color:#ddd}
+.sb-collapse-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0;transition:transform .2s}
+.sidebar.collapsed .sb-collapse-btn svg{transform:rotate(180deg)}
+.sidebar.collapsed .sb-collapse-btn span{display:none}
+.sidebar.collapsed .sb-collapse-btn{justify-content:center}
+
+/* mobile overlay */
+.sb-overlay{display:none;position:fixed;inset:0;background:#050308cc;backdrop-filter:blur(3px);z-index:290}
+.sb-overlay.show{display:block;animation:fadeIn .2s ease}
+/* body scroll lock while mobile drawer is open */
+html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior:contain}
+
+/* ── MAIN ── */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;margin-left:var(--sidebar-w);transition:margin-left .28s var(--ease)}
+.sidebar.collapsed + .main{margin-left:var(--sidebar-w-collapsed)}
+
+.topbar{
+  height:var(--topbar-h);flex-shrink:0;display:flex;align-items:center;gap:14px;
+  padding:0 22px;border-bottom:1px solid var(--border);position:sticky;top:0;
+  background:rgba(10,7,20,.72);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);z-index:100;
+}
+.hamburger{
+  display:none;position:fixed;top:14px;left:14px;width:38px;height:38px;border-radius:10px;
+  border:1px solid var(--border-hi);background:var(--bg2);color:var(--text);align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;transition:background .15s,transform .15s;
+  z-index:310; /* above .sidebar(300) and .sb-overlay(290) so it's never covered by the drawer */
+}
+.hamburger:hover{background:var(--bg3);transform:scale(1.05)}
+.hamburger svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;position:absolute;transition:opacity .18s,transform .18s var(--ease)}
+.hamburger .ic-close{opacity:0;transform:rotate(-45deg) scale(.6)}
+.hamburger[aria-expanded="true"] .ic-burger{opacity:0;transform:rotate(45deg) scale(.6)}
+.hamburger[aria-expanded="true"] .ic-close{opacity:1;transform:rotate(0) scale(1)}
+
+.tb-goal{display:flex;flex-direction:column;gap:1px;white-space:nowrap}
+.tb-goal-label{font-size:10px;font-weight:700;color:var(--lime2);letter-spacing:1.5px;text-transform:uppercase}
+.tb-goal-title{font-size:clamp(13px,1.4vw,15px);font-weight:800;color:#fff}
+
+.tb-diff{display:flex;align-items:center;gap:8px;margin-left:auto;white-space:nowrap}
+.tb-diff-ring{width:28px;height:28px;border-radius:50%;background:conic-gradient(var(--lime) var(--ring-pct,70%),var(--bg4) 0);position:relative;flex-shrink:0;box-shadow:0 0 12px -2px #a855f766;transition:box-shadow .3s}
+.tb-diff-ring::after{content:"";position:absolute;inset:4px;border-radius:50%;background:var(--bg)}
+.tb-diff-label{font-size:9px;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.tb-stars{color:var(--lime2);font-size:13px;letter-spacing:1px;text-shadow:0 0 10px #a855f766}
+
+.tb-user{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.tb-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#a855f7,#6366f1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;box-shadow:0 0 0 2px #0a0714,0 0 0 3px #a855f755}
+.tb-username{font-size:12.5px;font-weight:700;color:#eee;white-space:nowrap}
+
+/* ── DAY STRIP ── */
+.day-strip{display:flex;gap:8px;padding:14px 22px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;border-bottom:1px solid var(--border);scroll-snap-type:x proximity;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;cursor:grab;max-width:100%}
+.day-strip:active{cursor:grabbing}
+.day-strip::-webkit-scrollbar{display:none}
+.dt{flex:0 0 auto;width:clamp(92px,18vw,132px);scroll-snap-align:start;background:var(--glass);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:14px;padding:10px 14px;cursor:pointer;transition:transform .22s var(--ease),box-shadow .22s var(--ease),border-color .22s}
+.dt:hover{transform:translateY(-3px);border-color:var(--border-hi);box-shadow:0 12px 24px -16px #000a}
+.dt.active{background:linear-gradient(135deg,#7c3aed,#6d28d9);border-color:transparent;box-shadow:0 10px 30px -12px #7c3aed99,0 0 0 1px #ffffff1a inset}
+.dt-date{font-size:13.5px;font-weight:700;color:#eee;overflow-wrap:anywhere;line-height:1.3}
+.dt.active .dt-date{color:#fff}
+.dt-bar{height:4px;background:var(--bg4);border-radius:3px;margin-top:9px;overflow:hidden}
+.dt.active .dt-bar{background:#ffffff33}
+.dt-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--lime),var(--lime2));transition:width .8s var(--ease)}
+.dt-bar-fill.pf-over{background:linear-gradient(90deg,#22c55e,#16a34a)}
+.dt-bar-fill.pf-under{background:linear-gradient(90deg,#f97316,#ef4444)}
+.dt-bar-fill.pf-fatigue{background:linear-gradient(90deg,#ef4444,#b91c1c)}
+.dt.active .dt-bar-fill{background:#fff}
+.dt-rest .dt-date{color:var(--muted)}
+
+/* ── CONTENT ── */
+.content{flex:1;padding:clamp(14px,2.5vw,20px) clamp(14px,3vw,22px) 60px;max-width:1180px;width:100%}
+.section{display:none;animation:fadeIn .35s var(--ease)}
+.section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.sec-label{font-size:10.5px;font-weight:700;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin:22px 0 12px;display:flex;align-items:center;gap:8px}
+.sec-label::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--border-hi),transparent)}
+.sec-label:first-child{margin-top:0}
+
+/* ── STAT CARDS ── */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+.sc{background:var(--glass);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);
+  border:1px solid var(--border);border-radius:16px;padding:16px;position:relative;overflow:hidden;
+  transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s;isolation:isolate}
+.sc::before{content:"";position:absolute;inset:0;padding:1px;border-radius:inherit;background:var(--grad-border);
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;
+  opacity:0;transition:opacity .3s;pointer-events:none}
+.sc:hover{transform:translateY(-4px);box-shadow:0 18px 40px -20px #000c,0 0 0 1px #ffffff08;border-color:transparent}
+.sc:hover::before{opacity:1}
+.sc-label{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
+.sc-val{font-size:clamp(21px,2.6vw,26px);font-weight:800;color:#fff;letter-spacing:-0.5px;font-variant-numeric:tabular-nums}
+.sc-val.accent{color:var(--lime2);text-shadow:0 0 18px #a855f755}
+.sc-sub{font-size:10.5px;color:var(--muted);margin-top:3px}
+
+/* ── CARDS ── */
+.card{background:var(--glass);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);
+  border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:12px;position:relative;
+  transition:border-color .3s,box-shadow .3s}
+.card:hover{border-color:var(--border-hi);box-shadow:0 20px 44px -28px #000d}
+.card-title{font-size:11px;font-weight:700;color:var(--lime2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px}
+
+/* ── WORKOUT DAY PANEL (single day shown at a time, driven by the top day-strip) ── */
+.day-panel{display:none}
+.day-panel.active{display:block;animation:fadeIn .3s var(--ease)}
+.day-panel-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.day-panel-title{font-size:clamp(19px,3vw,22px);font-weight:800;color:#fff}
+.day-panel-sub{font-size:12px;color:var(--muted);font-weight:600;margin-top:3px}
+.rest-panel{background:var(--glass);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);border:1px solid var(--border);border-radius:18px;padding:36px 20px;text-align:center}
+.rest-panel-icon{font-size:32px;margin-bottom:10px}
+.rest-panel-title{font-size:16px;font-weight:700;color:#eee;margin-bottom:6px}
+.rest-panel-sub{color:var(--muted);font-size:13px;line-height:1.6}
+
+.warmup-pill{display:inline-block;background:var(--bg3);border:1px solid var(--border-hi);border-radius:8px;padding:9px 13px;font-size:12.5px;color:var(--muted);margin-bottom:14px;line-height:1.5;width:100%}
+.warmup-pill strong{color:#bbb;font-weight:600}
+
+/* ── EXERCISE ROWS (collapsible: name/sets/reps/muscle/status always visible,
+   weight/reps/RPE/notes/difficulty tucked behind an expand arrow) ── */
+.ex-row{border-bottom:1px solid var(--border)}
+.ex-row:last-child{border-bottom:none}
+.ex-head{display:flex;align-items:center;gap:10px;padding:13px 0;cursor:pointer;user-select:none}
+.ex-head:focus-visible{outline:2px solid var(--lime2);outline-offset:2px;border-radius:8px}
+.ex-head-main{flex:1;min-width:0}
+.ex-name{font-size:14px;font-weight:700;color:#e8e8e8}
+.ex-muscle{font-size:11.5px;color:var(--muted);font-weight:500;margin-top:1px}
+.ex-load-note{font-size:11.5px;color:#a78bfa;font-weight:500;margin-top:4px;line-height:1.4}
+.ex-load-note-warn{color:#f59e0b}
+.ex-final-load{font-size:11.5px;color:#8983a8;margin-top:2px;line-height:1.4}
+.ex-final-load strong{color:#c084fc;font-weight:600}
+.ex-warmup-ramp{font-size:11px;color:var(--muted);margin-top:6px;padding:7px 10px;background:var(--bg3);border-radius:7px;line-height:1.5}
+.ex-warmup-ramp strong{color:#bbb;font-weight:600}
+.ex-adapt-note{font-size:11.5px;font-weight:500;margin-top:4px;line-height:1.4;color:#7dd3fc}
+.ex-adapt-note.ex-attention{color:#f87171}
+.day-conflict-note{margin-top:10px;background:var(--bg3);border-left:2px solid #f59e0b;border-radius:0 8px 8px 0;padding:9px 13px;font-size:11.5px;color:var(--muted);line-height:1.55}
+.day-conflict-note strong{color:#f59e0b;font-weight:600}
+.insight-item{padding:12px 14px;background:var(--bg3);border-radius:10px;margin-bottom:10px;font-size:12.5px;color:var(--muted);line-height:1.55}
+.insight-item:last-child{margin-bottom:0}
+.insight-item-title{font-size:11px;font-weight:700;color:#ddd;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.insight-badge{display:inline-block;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--bg4);color:#c084fc;margin-right:8px;letter-spacing:.3px}
+.insight-badge.warn{background:#f59e0b22;color:#f59e0b}
+.insight-badge.ok{background:#22c55e22;color:#4ade80}
+.insight-empty{font-size:12px;color:var(--dim);font-style:italic;padding:16px;text-align:center}
+.ex-meta-right{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:nowrap}
+.ex-sets-total{background:var(--lime-glow);border:1px solid var(--lime);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;color:var(--lime);white-space:nowrap}
+.ex-status{font-size:9.5px;font-weight:700;color:var(--muted);white-space:nowrap;letter-spacing:.3px}
+.ex-status.done{color:#4ade80}
+.ex-chevron{width:26px;height:26px;border-radius:8px;background:var(--bg3);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--muted);transition:color .2s,background .2s,border-color .2s}
+.ex-chevron svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform .3s var(--ease)}
+.ex-row.ex-open .ex-chevron{background:var(--lime-glow);border-color:var(--lime);color:var(--lime2)}
+.ex-row.ex-open .ex-chevron svg{transform:rotate(180deg)}
+
+.ex-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s var(--ease)}
+.ex-row.ex-open .ex-body{grid-template-rows:1fr}
+.ex-body-inner{overflow:hidden;min-height:0}
+.ex-body-content{padding:2px 0 16px;opacity:0;transition:opacity .25s var(--ease) .05s}
+.ex-row.ex-open .ex-body-content{opacity:1}
+
+.set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.set-cell{background:var(--glass-hi);border:1px solid var(--border-hi);border-radius:12px;padding:10px 12px;transition:border-color .2s,background .2s,transform .2s}
+.set-cell:hover{border-color:#a855f755;background:#a855f70a;transform:translateY(-1px)}
+.set-cell-label{font-size:9.5px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.set-field-row{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.set-field-row label{font-size:9.5px;color:var(--muted);font-weight:700;width:34px;flex-shrink:0;text-transform:uppercase;letter-spacing:.3px}
+.set-field-row input{
+  width:100%;min-width:0;background:var(--bg4);border:1px solid var(--border-hi);border-radius:7px;
+  color:#fff;font-size:12px;font-weight:600;padding:5px 6px;text-align:center;
+  font-family:inherit;-moz-appearance:textfield;transition:border-color .15s,box-shadow .15s;
+}
+.set-field-row input::-webkit-outer-spin-button,.set-field-row input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.set-field-row input:focus{outline:none;border-color:var(--lime);box-shadow:0 0 0 3px #a855f733}
+.set-stars-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.set-stars-row .set-cell-hint{font-size:9px;color:var(--dim);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.set-overachieve-warning{display:none;font-size:9px;font-weight:700;color:#f87171;margin-top:6px;line-height:1.3}
+.set-stars{font-size:15px;letter-spacing:2px;user-select:none;display:flex;gap:1px}
+.set-stars .star,.ex-stars .star{color:var(--dim);cursor:pointer;transition:color .12s,transform .12s}
+.set-stars .star.filled,.ex-stars .star.filled{color:var(--lime2);text-shadow:0 0 8px #a855f766}
+.set-stars .star:hover,.ex-stars .star:hover{transform:scale(1.2)}
+.ex-stars{font-size:15px;letter-spacing:2px;user-select:none;display:flex;gap:1px}
+.ex-stars-row{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+
+.ex-notes{margin-top:12px}
+.ex-notes label{display:block;font-size:9.5px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.ex-notes textarea{
+  width:100%;min-height:52px;resize:vertical;background:var(--glass-hi);border:1px solid var(--border-hi);
+  border-radius:10px;color:#eee;font-size:12.5px;font-family:inherit;padding:9px 11px;line-height:1.5;
+  transition:border-color .15s,box-shadow .15s;
+}
+.ex-notes textarea:focus{outline:none;border-color:var(--lime);box-shadow:0 0 0 3px #a855f733}
+
+.feedback-bar{
+  position:sticky;bottom:12px;margin-top:18px;background:rgba(21,15,36,.78);backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%);
+  border:1px solid var(--border-hi);border-radius:18px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;
+  gap:14px;flex-wrap:wrap;box-shadow:0 20px 48px -20px #000c;
+}
+.feedback-copy{font-size:12.5px;color:var(--muted);line-height:1.5;max-width:520px}
+.feedback-copy strong{color:#ddd}
+.feedback-submit{
+  background:linear-gradient(100deg,#7c3aed,#3b82f6);color:#fff;border:none;border-radius:12px;
+  padding:12px 22px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;
+  transition:opacity .15s,transform .15s,box-shadow .15s;box-shadow:0 8px 24px -10px #7c3aed77;
+}
+.feedback-submit:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 12px 30px -10px #7c3aed99}
+.feedback-submit:active:not(:disabled){transform:translateY(0)}
+.feedback-submit:disabled{opacity:.6;cursor:default}
+.feedback-status{font-size:12px;font-weight:600;flex-shrink:0}
+.feedback-status.ok{color:#4ade80}
+.feedback-status.err{color:#f87171}
+.feedback-adaptations{width:100%;margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.adaptation-note{font-size:12.5px;line-height:1.5;padding:9px 12px;border-radius:8px;background:#1e2130;border:1px solid #333857}
+.adaptation-note.attention{background:#3a1f22;border-color:#7c2d31;color:#fca5a5}
+.adaptation-note strong{color:#e5e7eb}
+.adaptation-note.attention strong{color:#fca5a5}
+
+.ci-label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.ci-input{width:100%;background:var(--bg3);border:1px solid var(--border-hi);border-radius:10px;padding:10px 12px;color:#e8e8e8;font-size:13.5px;font-family:inherit}
+.ci-input:focus{outline:none;border-color:#a855f7}
+.ci-pill{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border-hi);border-radius:20px;padding:7px 12px;font-size:12.5px;color:var(--muted);cursor:pointer;user-select:none}
+.ci-pill input{accent-color:#a855f7}
+.ci-pill:has(input:checked){color:#e8e8e8;border-color:#a855f7}
+
+.safety-note{margin-top:12px;background:var(--bg3);border-left:2px solid var(--lime);border-radius:0 8px 8px 0;padding:9px 13px;font-size:11.5px;color:var(--muted);line-height:1.55}
+.safety-note strong{color:#aaa;font-weight:600}
+
+/* ── MEAL TABS (Diet) ── */
+.meal-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:14px;scrollbar-width:none}
+.meal-tabs::-webkit-scrollbar{display:none}
+.mtab{flex-shrink:0;padding:8px 15px;border-radius:20px;border:1px solid var(--border-hi);background:var(--glass-hi);color:var(--muted);font-size:11.5px;font-weight:600;cursor:pointer;transition:all .2s var(--ease);letter-spacing:.3px}
+.mtab:hover{color:#ddd;border-color:#a855f755}
+.mtab.active{background:linear-gradient(100deg,#7c3aed,#3b82f6);color:#fff;border-color:transparent;box-shadow:0 6px 18px -8px #7c3aed88}
+
+.meal-panel{display:none}
+.meal-panel.active{display:block}
+.diet-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:12px}
+
+.meal-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);transition:padding-left .2s var(--ease)}
+.meal-row:hover{padding-left:4px}
+.meal-row:last-child{border-bottom:none}
+.opt-num{width:28px;height:28px;border-radius:8px;background:var(--bg3);border:1px solid var(--border-hi);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0}
+.meal-info{flex:1;min-width:0}
+.meal-name{font-size:13.5px;font-weight:600;color:#e0e0e0;margin-bottom:3px}
+.meal-macros{font-size:11.5px;color:var(--muted)}
+.mac-hi{color:var(--lime2);font-weight:700}
+.kcal-hi{color:#999;font-weight:600}
+
+/* ── RECOVERY / PROGRESS ── */
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:12px}
+.rec-item{background:var(--glass);backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);border:1px solid var(--border);border-radius:16px;padding:16px 14px;transition:transform .25s var(--ease),border-color .25s,box-shadow .25s}
+.rec-item:hover{transform:translateY(-3px);border-color:var(--border-hi);box-shadow:0 16px 32px -20px #000c}
+.rec-icon{font-size:20px;margin-bottom:9px;filter:drop-shadow(0 0 6px #a855f755)}
+.rec-val{font-size:18px;font-weight:800;color:#fff;margin-bottom:2px;font-variant-numeric:tabular-nums}
+.rec-label{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+
+.tip-list{background:var(--glass);backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);border:1px solid var(--border);border-radius:18px;padding:4px 18px}
+.tip-row{display:flex;align-items:flex-start;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:#c0c0d0;line-height:1.5;transition:padding-left .2s var(--ease)}
+.tip-row:hover{padding-left:4px}
+.tip-row:last-child{border-bottom:none}
+.tip-dot{width:5px;height:5px;border-radius:50%;background:var(--lime2);box-shadow:0 0 6px #a855f799;flex-shrink:0;margin-top:7px}
+
+/* ── OVERVIEW WEEK ── */
+.week-row{display:flex;flex-direction:column;gap:5px;padding:9px 0;border-bottom:1px solid var(--border)}
+.week-row:last-child{border-bottom:none}
+.week-row-main{display:flex;align-items:center;gap:10px}
+.wday{width:28px;font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0}
+.wbar-bg{flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.wbar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--lime),var(--lime2));transition:width .8s cubic-bezier(.34,1.56,.64,1);width:0}
+.wbar.pf-over{background:linear-gradient(90deg,#22c55e,#16a34a)}
+.wbar.pf-under{background:linear-gradient(90deg,#f97316,#ef4444)}
+.wbar.pf-fatigue{background:linear-gradient(90deg,#ef4444,#b91c1c)}
+.wrest{background:var(--dim)}
+.wlabel{font-size:11px;color:var(--muted);font-weight:500;text-align:right;width:80px;flex-shrink:0}
+.wlabel.active-day{color:var(--lime2);font-weight:700}
+.wpct{font-size:10.5px;color:var(--dim);font-weight:600;padding-left:38px}
+.wpct.pf-over-text{color:#22c55e}
+.wpct.pf-under-text{color:#f97316}
+.wpct.pf-fatigue-text{color:#f87171;font-weight:700}
+
+/* ══════════ RESPONSIVE ══════════ */
+
+/* Tablet — sidebar auto-collapses to icon rail */
+@media (max-width:1024px){
+  .sidebar{position:fixed;left:0;top:0}
+  .sidebar:not(.collapsed){width:var(--sidebar-w)}
+  .app-shell{padding-left:0}
+  .main{margin-left:var(--sidebar-w-collapsed) !important}
+  .sidebar.collapsed + .sb-overlay{display:none}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .rec-grid{grid-template-columns:repeat(2,1fr)}
+}
+
+/* Phone — sidebar becomes a full slide-in drawer, hamburger always visible */
+@media (max-width:768px){
+  .app-shell{padding-left:0}
+  .main{margin-left:0 !important}
+  .hamburger{display:flex}
+  .sidebar{position:fixed;left:0;top:0;height:100vh;height:100dvh;transform:translateX(-100%);width:250px !important;z-index:300}
+  .sidebar.mobile-open{transform:translateX(0)}
+  .sidebar.collapsed{width:250px}
+  .sidebar.collapsed .sb-label,.sidebar.collapsed .sb-brand span,.sidebar.collapsed .sb-progress-wrap,
+  .sidebar.collapsed .sb-collapse-btn span{display:block}
+  .sidebar .sb-collapse-btn{display:none}
+  .topbar{padding:0 14px 0 62px;gap:10px}
+  .tb-goal-title{font-size:13.5px}
+  .tb-username{display:none}
+  .tb-stars{display:none}
+  .content{padding:16px 14px 70px}
+  .day-strip{padding:12px 14px}
+  .dt{width:clamp(80px,26vw,104px)}
+  .stats{grid-template-columns:repeat(2,1fr);gap:8px}
+  .rec-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .set-grid{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+  .ex-head{flex-wrap:wrap;row-gap:6px}
+  .ex-meta-right{flex-basis:100%;justify-content:flex-start;padding-left:0}
+}
+@media (max-width:480px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .set-grid{grid-template-columns:1fr 1fr;gap:8px}
+}
+@media (max-width:340px){
+  .set-grid{grid-template-columns:1fr}
+  .dt{width:clamp(72px,30vw,92px)}
+}
+</style>
+</head>
+<body>
+<script>
+  window.CURRENT_CYCLE = {{ cycle_number | default(1) }};
+  window.BACKEND_BASE = "https://ai-project-login.onrender.com";
+</script>
+
+<div class="bg-aurora"><div class="bg-grid"></div><div class="bg-noise"></div></div>
+<div class="spotlight" id="spotlight"></div>
+
+<div class="app-shell">
+
+  <div class="sb-overlay" id="sbOverlay"></div>
+
+  <!-- Mobile nav toggle lives OUTSIDE the topbar on purpose: the topbar is a
+       lower stacking context than the sidebar drawer, so a hamburger nested
+       inside it gets physically covered by the drawer once it slides open
+       and becomes untappable. As a fixed sibling of the sidebar it always
+       stays on top and clickable, whether the drawer is open or closed. -->
+  <button class="hamburger" id="hamburgerBtn" aria-label="Open navigation menu" aria-expanded="false">
+    <svg class="ic-burger" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    <svg class="ic-close" viewBox="0 0 24 24"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>
+  </button>
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-brand">
+      <div class="sb-brand-icon">💪</div>
+      <span>{{ plan.goal_label }}</span>
+    </div>
+
+    <div class="sb-progress-wrap">
+      <div class="sb-progress-day">Reps vs target</div>
+      <div class="sb-progress-track"><div class="sb-progress-fill" id="sbProgressFill" style="width:0%"></div></div>
+      <div class="sb-progress-frac" id="sbProgressFrac">No reps logged yet</div>
+    </div>
+
+    <nav class="sb-nav" aria-label="Dashboard sections">
+      <button class="sb-item active" data-sec="overview" aria-current="page">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span class="sb-label">Overview</span>
+      </button>
+      <button class="sb-item" data-sec="workout">
+        <svg viewBox="0 0 24 24"><path d="M6 4v16M18 4v16M6 12h12M3 7l3-3M21 7l-3-3M3 17l3 3M21 17l-3 3"/></svg>
+        <span class="sb-label">Workouts</span>
+      </button>
+      <button class="sb-item" data-sec="diet">
+        <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M5 8h13v9a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8z"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="8" y1="3" x2="16" y2="3"/></svg>
+        <span class="sb-label">Diet</span>
+      </button>
+      <button class="sb-item" data-sec="recovery">
+        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <span class="sb-label">Progress</span>
+      </button>
+      <button class="sb-item" data-sec="insights">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <span class="sb-label">Coaching Insights</span>
+      </button>
+      <button class="sb-item" data-sec="checkin" id="checkinNavBtn" style="display:none">
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span class="sb-label">Biweekly Check-in</span>
+      </button>
+    </nav>
+
+    <button class="sb-collapse-btn" id="collapseBtn" aria-label="Collapse sidebar">
+      <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      <span>Collapse</span>
+    </button>
+  </aside>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div class="main">
+
+    <div class="topbar">
+      <div class="tb-goal">
+        <span class="tb-goal-label">{{ plan.goal_label }}</span>
+        <span class="tb-goal-title">Overall Progress</span>
+      </div>
+      <div class="tb-diff">
+        <div class="tb-diff-ring" style="--ring-pct:70%"></div>
+        <div>
+          <div class="tb-diff-label">Difficulty</div>
+          <div class="tb-stars">★★★★☆</div>
+        </div>
+      </div>
+      <div class="tb-user">
+        <div class="tb-avatar">{{ user.name[0] | default('U') }}</div>
+        <span class="tb-username">{{ user.name }}</span>
+      </div>
+    </div>
+
+    <!-- ══════════ DAY STRIP ══════════ -->
+    <div class="day-strip" id="dayStrip">
+      {% for day in workout.days %}
+      <div class="dt{% if loop.index0 == 0 %} active{% endif %}{% if day.is_rest %} dt-rest{% endif %}" data-day-index="{{ loop.index0 }}">
+        <div class="dt-date">{{ day.short }} {{ day.name }}</div>
+        <div class="dt-bar"><div class="dt-bar-fill" style="width:{% if day.is_rest %}0{% else %}75{% endif %}%"></div></div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="content">
+
+      <!-- ══════════ OVERVIEW ══════════ -->
+      <div class="section active" id="sec-overview">
+        <div class="stats">
+          <div class="sc">
+            <div class="sc-label">Current weight</div>
+            <div class="sc-val">{{ user.current_weight }} kg</div>
+            <div class="sc-sub">Starting point</div>
+          </div>
+          <div class="sc">
+            <div class="sc-label">Target weight</div>
+            <div class="sc-val accent">{{ user.target_weight }} kg</div>
+            <div class="sc-sub">{{ plan.weight_to_lose }}</div>
+          </div>
+          <div class="sc">
+            <div class="sc-label">Daily calories</div>
+            <div class="sc-val">{{ plan.daily_calories }}</div>
+            <div class="sc-sub">{{ plan.calorie_phase }}</div>
+          </div>
+          <div class="sc">
+            <div class="sc-label">Daily protein</div>
+            <div class="sc-val accent">{{ plan.daily_protein_g }}g</div>
+            <div class="sc-sub">Muscle retention</div>
+          </div>
+        </div>
+
+        <div class="sec-label">Weekly split</div>
+        <div class="card">
+          {% for day in workout.days %}
+          <div class="week-row" data-day-index="{{ loop.index0 }}">
+            <div class="week-row-main">
+              <div class="wday">{{ day.short }}</div>
+              <div class="wbar-bg">
+                <div class="wbar{% if day.is_rest %} wrest{% endif %}" style="width:{{ day.bar_width }}%"></div>
+              </div>
+              <span class="wlabel{% if not day.is_rest %} active-day{% endif %}">{{ day.label }}</span>
+            </div>
+            {% if not day.is_rest %}
+            <div class="wpct" data-wpct>No reps logged yet</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="sec-label">Daily non-negotiables</div>
+        <div class="rec-grid">
+          {% for item in recovery.daily_nonneg %}
+          <div class="rec-item">
+            <div class="rec-icon">{{ item.icon }}</div>
+            <div class="rec-val">{{ item.value }}</div>
+            <div class="rec-label">{{ item.label }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- ══════════ WORKOUT (with sets / weight / difficulty) ══════════ -->
+      <div class="section" id="sec-workout">
+        <div class="workout-day-panels" id="workoutPanels">
+          {% for day in workout.days %}
+          {% set day_idx = loop.index0 %}
+          {% if day.is_rest %}
+          <div class="day-panel{% if day_idx == 0 %} active{% endif %}" data-day-index="{{ day_idx }}">
+            <div class="rest-panel">
+              <div class="rest-panel-icon">🌙</div>
+              <div class="rest-panel-title">{{ day.name }}</div>
+              <div class="rest-panel-sub">{{ day.type }} — no workout scheduled, recovery day.</div>
+            </div>
+          </div>
+          {% else %}
+          <div class="day-panel{% if day_idx == 0 %} active{% endif %}" data-day-index="{{ day_idx }}">
+            <div class="day-panel-header">
+              <div class="day-panel-title">{{ day.name }}</div>
+              <div class="day-panel-sub">{{ day.type }}</div>
+            </div>
+            <div class="warmup-pill"><strong>Warmup:</strong> {{ day.warmup_exercises | join(' · ') }}</div>
+            {% for ex in day.exercises %}
+            {% set ex_idx = loop.index0 %}
+            <div class="ex-row">
+              <div class="ex-head" role="button" tabindex="0" aria-expanded="false"
+                   onclick="toggleExercise(this.closest('.ex-row'))"
+                   onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleExercise(this.closest('.ex-row'));}">
+                <div class="ex-head-main">
+                  <div class="ex-name">{{ ex.name }}</div>
+                  <div class="ex-muscle">{{ ex.muscle }}</div>
+                  {% if ex._load_note %}
+                  <div class="ex-load-note{% if ex._load_action == 'flag_pain' %} ex-load-note-warn{% endif %}">{{ ex._load_note }}</div>
+                  {% endif %}
+                  {% if ex._final_load_kg %}
+                  <div class="ex-final-load">Suggested working weight: <strong>{{ ex._final_load_kg }} kg</strong>{% if ex._load_basis %} ({{ ex._load_basis.replace('_', ' ') }}){% endif %}</div>
+                  {% endif %}
+                  {% if ex._intra_cycle_adaptation %}
+                  <div class="ex-adapt-note{% if ex._requires_attention %} ex-attention{% endif %}">
+                    {% if ex._requires_attention %}⚠ {% endif %}{{ ex._intra_cycle_adaptation.replace('_', ' ') | capitalize }}
+                  </div>
+                  {% endif %}
+                </div>
+                <div class="ex-meta-right">
+                  <span class="ex-sets-total">{{ ex.sets }} × {{ ex.reps }}</span>
+                  <span class="ex-status" data-ex-status>0/{{ ex.sets }} logged</span>
+                  <span class="ex-chevron" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                  </span>
+                </div>
+              </div>
+              <div class="ex-body">
+                <div class="ex-body-inner">
+                  <div class="ex-body-content">
+                    {% if ex._warmup_ramp and ex._warmup_ramp.ramp_sets %}
+                    <div class="ex-warmup-ramp">
+                      <strong>Warm-up ramp:</strong>
+                      {% for rs in ex._warmup_ramp.ramp_sets %}{{ rs.weight_kg }}kg×{{ rs.reps }}{% if not loop.last %} → {% endif %}{% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="set-grid">
+                      {% for i in range(ex.sets) %}
+                      <div class="set-cell"
+                           data-day-index="{{ day_idx }}"
+                           data-day-name="{{ day.name }}"
+                           data-exercise="{{ ex.name }}"
+                           data-set-number="{{ i + 1 }}"
+                           data-recommended-reps="{{ ex.reps }}">
+                        <div class="set-cell-label">Set {{ i + 1 }}</div>
+                        <div class="set-field-row">
+                          <label>Kg</label>
+                          <input type="number" inputmode="decimal" step="0.5" min="0" class="weight-input" placeholder="0" oninput="updateExerciseStatus(this)">
+                        </div>
+                        <div class="set-field-row">
+                          <label>Reps</label>
+                          <input type="text" inputmode="numeric" class="reps-input" placeholder="{{ ex.reps }}" oninput="updateExerciseStatus(this); checkSetOverachieve(this)">
+                        </div>
+                        <div class="set-overachieve-warning" data-set-warning></div>
+                      </div>
+                      {% endfor %}
+                    </div>
+                    <div class="set-stars-row ex-stars-row">
+                      <span class="set-cell-hint">Difficulty (whole exercise)</span>
+                      <div class="ex-stars" data-rating="0">
+                        {% for s in range(5) %}<span class="star" data-value="{{ s + 1 }}">★</span>{% endfor %}
+                      </div>
+                    </div>
+                    <div class="ex-notes">
+                      <label for="notes-{{ day_idx }}-{{ ex_idx }}">Notes / comments</label>
+                      <textarea id="notes-{{ day_idx }}-{{ ex_idx }}" class="exercise-notes" placeholder="Optional — form cues, pain, how it felt…"></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+            {% if day._validation and day._validation.warnings %}
+            <div class="day-conflict-note"><strong>Note:</strong> {{ day._validation.warnings | join(' ') }}</div>
+            {% endif %}
+            <div class="safety-note"><strong>Safety:</strong> {{ day.safety }}</div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+
+        <div class="feedback-bar">
+          <div class="feedback-copy">
+            <strong>Done with today's session?</strong> Fill in the weight and reps you actually used, then rate how hard the exercise felt overall — submit, and your next plan gets tuned off this instead of starting from scratch.
+          </div>
+          <span class="feedback-status" id="feedbackStatus"></span>
+          <button class="feedback-submit" id="submitFeedbackBtn">Submit Daily Feedback</button>
+          <div class="feedback-adaptations" id="feedbackAdaptations" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- ══════════ DIET ══════════ -->
+      <div class="section" id="sec-diet">
+        <div class="meal-tabs" id="mealTabs">
+          {% for meal in diet.meals %}
+          <button class="mtab{% if loop.first %} active{% endif %}" data-meal="{{ meal.id }}">{{ meal.tab_label }}</button>
+          {% endfor %}
+        </div>
+
+        {% for meal in diet.meals %}
+        <div class="meal-panel{% if loop.first %} active{% endif %}" id="meal-{{ meal.id }}">
+          <div class="card">
+            <div class="card-title">{{ meal.title }} · ~{{ meal.kcal_range }} kcal</div>
+            <div class="diet-grid">
+              {% for opt in meal.options %}
+              <div class="meal-row">
+                <div class="opt-num">{{ loop.index }}</div>
+                <div class="meal-info">
+                  <div class="meal-name">{{ opt.food }}</div>
+                  <div class="meal-macros">
+                    <span class="kcal-hi">{{ opt.kcal }} kcal</span>
+                    &nbsp;·&nbsp;
+                    <span class="mac-hi">{{ opt.protein_g }}g</span> protein
+                    &nbsp;·&nbsp;
+                    <span class="mac-hi">{{ opt.carb_g }}g</span> carbs
+                    &nbsp;·&nbsp;
+                    <span class="mac-hi">{{ opt.fat_g }}g</span> fat
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- ══════════ RECOVERY / PROGRESS ══════════ -->
+      <div class="section" id="sec-recovery">
+        <div class="sec-label">Key numbers</div>
+        <div class="rec-grid">
+          {% for item in recovery.key_numbers %}
+          <div class="rec-item">
+            <div class="rec-icon">{{ item.icon }}</div>
+            <div class="rec-val">{{ item.value }}</div>
+            <div class="rec-label">{{ item.label }}</div>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% for section in recovery.tip_sections %}
+        <div class="sec-label">{{ section.title }}</div>
+        <div class="tip-list">
+          {% for tip in section.tips %}
+          <div class="tip-row"><div class="tip-dot"></div>{{ tip }}</div>
+          {% endfor %}
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- ══════════ COACHING INSIGHTS — real engine output that was ══════════
+           computed every generation since this app's early sessions but had
+           nowhere to render until now. Every binding below uses the exact
+           field names each engine actually returns (checked against real
+           calls, not guessed) — .note is each engine's own plain-language
+           summary, used as the primary text; the categorical field next to
+           it (fatigue_zone, session_decision, etc.) becomes the badge. -->
+      <div class="section" id="sec-insights">
+        {% if explanations %}
+        <div class="sec-label">Why your plan looks this way</div>
+        <div class="card">
+          {% for exp in explanations %}
+          <div class="insight-item">
+            <div class="insight-item-title">{{ exp.recommendation }}</div>
+            {{ exp.user_message }}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="sec-label">Recovery & readiness</div>
+        <div class="card">
+          {% if fatigue %}
+          <div class="insight-item">
+            <span class="insight-badge{% if fatigue.fatigue_zone in ('high','very_high') %} warn{% else %} ok{% endif %}">{{ fatigue.fatigue_zone | capitalize }} fatigue</span>
+            {{ fatigue.note }}
+          </div>
+          {% endif %}
+          {% if autoregulation %}
+          <div class="insight-item">
+            <span class="insight-badge{% if autoregulation.session_decision != 'proceed' %} warn{% else %} ok{% endif %}">{{ autoregulation.session_decision | capitalize }}</span>
+            {{ autoregulation.note }}
+          </div>
+          {% endif %}
+          {% if not fatigue and not autoregulation %}
+          <div class="insight-empty">No readiness data yet — this fills in once you've logged a few workouts.</div>
+          {% endif %}
+        </div>
+
+        <div class="sec-label">Progress trajectory</div>
+        <div class="card">
+          {% if adaptation %}
+          <div class="insight-item">
+            <span class="insight-badge{% if adaptation.adaptation_status == 'insufficient_data' %} warn{% endif %}">{{ adaptation.adaptation_status.replace('_',' ') | capitalize }}</span>
+            {{ adaptation.note }}
+          </div>
+          {% endif %}
+          {% if prediction %}
+          <div class="insight-item">
+            <span class="insight-badge">{{ prediction.recommendation | capitalize }}</span>
+            {{ prediction.note }}
+          </div>
+          {% endif %}
+          {% if not adaptation and not prediction %}
+          <div class="insight-empty">Not enough completed cycles yet to project a trend.</div>
+          {% endif %}
+        </div>
+
+        {% if diet.phase %}
+        <div class="sec-label">Diet phase reasoning</div>
+        <div class="card">
+          <div class="insight-item">
+            <span class="insight-badge">{{ diet.phase.phase | capitalize }}</span>
+            Target {{ diet.phase.target_kcal }} kcal/day, {{ diet.phase.macro_split.protein_g }}g protein — based on your current recovery capacity and goal.
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- ══════════ BIWEEKLY CHECK-IN (Phase 6) ══════════ -->
+      <div class="section" id="sec-checkin">
+        <div class="card" id="checkinLockedCard">
+          <div class="card-title">Biweekly Progress Check-in</div>
+          <p style="color:var(--muted);font-size:13.5px;line-height:1.6" id="checkinLockedMsg">
+            Checking eligibility…
+          </p>
+        </div>
+
+        <div class="card" id="checkinFormCard" style="display:none">
+          <div class="card-title">Biweekly Progress Check-in</div>
+          <p style="color:var(--muted);font-size:13px;margin-bottom:16px">
+            Takes about 3 minutes. Body measurements are optional.
+          </p>
+
+          <form id="checkinForm" style="display:flex;flex-direction:column;gap:16px">
+            <div>
+              <label class="ci-label">How's your recovery been?</label>
+              <select name="recovery" class="ci-input" required>
+                <option value="excellent">Excellent</option>
+                <option value="good" selected>Good</option>
+                <option value="average">Average</option>
+                <option value="poor">Poor</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="ci-label">How has the difficulty felt overall?</label>
+              <select name="difficulty" class="ci-input" required>
+                <option value="too_easy">Too easy</option>
+                <option value="easy">Easy</option>
+                <option value="just_right" selected>Just right</option>
+                <option value="hard">Hard</option>
+                <option value="too_hard">Too hard</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="ci-label">Current soreness level</label>
+              <select name="soreness" class="ci-input" required>
+                <option value="none" selected>None</option>
+                <option value="mild">Mild</option>
+                <option value="moderate">Moderate</option>
+                <option value="severe">Severe</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="ci-label">Any pain areas? (select all that apply)</label>
+              <div id="ciPainAreas" style="display:flex;flex-wrap:wrap;gap:8px">
+                {% for area in ["none","shoulder","elbow","wrist","lower_back","hip","knee","ankle","other"] %}
+                <label class="ci-pill">
+                  <input type="checkbox" name="pain_areas" value="{{ area }}" {% if area == "none" %}checked{% endif %}>
+                  <span>{{ area | replace("_", " ") | title }}</span>
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div>
+              <label class="ci-label">Pain notes (optional)</label>
+              <textarea name="pain_notes" class="ci-input" rows="2"></textarea>
+            </div>
+
+            <div class="sec-label" style="margin-top:4px">Body measurements (optional)</div>
+            <div class="set-grid">
+              <div><label class="ci-label">Weight (kg)</label><input type="number" step="0.1" name="body_weight_kg" class="ci-input"></div>
+              <div><label class="ci-label">Waist (cm)</label><input type="number" step="0.1" name="waist_cm" class="ci-input"></div>
+              <div><label class="ci-label">Chest (cm)</label><input type="number" step="0.1" name="chest_cm" class="ci-input"></div>
+              <div><label class="ci-label">Arms (cm)</label><input type="number" step="0.1" name="arms_cm" class="ci-input"></div>
+              <div><label class="ci-label">Thighs (cm)</label><input type="number" step="0.1" name="thighs_cm" class="ci-input"></div>
+              <div><label class="ci-label">Hips (cm)</label><input type="number" step="0.1" name="hips_cm" class="ci-input"></div>
+              <div><label class="ci-label">Body fat %</label><input type="number" step="0.1" name="body_fat_pct" class="ci-input"></div>
+            </div>
+
+            <button type="submit" class="feedback-submit" id="checkinSubmitBtn">Submit Check-in</button>
+            <div id="checkinStatus" class="feedback-status"></div>
+          </form>
+        </div>
+
+        <div class="card" id="checkinSuccessCard" style="display:none">
+          <div class="card-title">✓ Check-in submitted</div>
+          <p style="color:var(--muted);font-size:13.5px;line-height:1.6" id="checkinSuccessMsg">
+            Your next plan will reflect this check-in.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('sbOverlay');
+const collapseBtn = document.getElementById('collapseBtn');
+const hamburgerBtn = document.getElementById('hamburgerBtn');
+const docEl = document.documentElement;
+
+// Desktop/tablet: collapse to icon rail
+collapseBtn.addEventListener('click', () => {
+  sidebar.classList.toggle('collapsed');
+});
+
+// ── Mobile: slide-in drawer (body-scroll-locked while open, closes on
+// outside click, Escape, menu selection, or resizing past the breakpoint) ──
+function openMobileNav() {
+  sidebar.classList.add('mobile-open');
+  overlay.classList.add('show');
+  docEl.classList.add('nav-open');
+  hamburgerBtn.setAttribute('aria-expanded', 'true');
+}
+function closeMobileNav() {
+  sidebar.classList.remove('mobile-open');
+  overlay.classList.remove('show');
+  docEl.classList.remove('nav-open');
+  hamburgerBtn.setAttribute('aria-expanded', 'false');
+}
+hamburgerBtn.addEventListener('click', () => {
+  sidebar.classList.contains('mobile-open') ? closeMobileNav() : openMobileNav();
+});
+overlay.addEventListener('click', closeMobileNav);
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && sidebar.classList.contains('mobile-open')) closeMobileNav();
+});
+
+// Auto-collapse to icon rail on tablet widths, and always expand on real desktop width.
+// Only acts on genuine band transitions so a manual collapse/expand click within
+// the same band (e.g. a deliberate desktop collapse) isn't fought on every resize tick.
+function viewportBand() {
+  const w = window.innerWidth;
+  if (w <= 768) return 'mobile';
+  if (w <= 1024) return 'tablet';
+  return 'desktop';
+}
+function autoCollapseForViewport() {
+  const band = viewportBand();
+  if (band === 'tablet') sidebar.classList.add('collapsed');
+  else if (band === 'desktop') sidebar.classList.remove('collapsed');
+}
+autoCollapseForViewport();
+let lastBand = viewportBand();
+window.addEventListener('resize', () => {
+  const band = viewportBand();
+  if (band !== lastBand) { autoCollapseForViewport(); lastBand = band; }
+  if (window.innerWidth > 768) closeMobileNav();
+});
+
+// ── Sidebar nav → section switching ──
+document.querySelectorAll('.sb-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const sec = btn.dataset.sec;
+    document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('sec-' + sec).classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+    closeMobileNav();
+  });
+});
+
+// ── Meal tabs (Diet) ──
+document.getElementById('mealTabs').addEventListener('click', e => {
+  const tab = e.target.closest('.mtab');
+  if (!tab) return;
+  document.querySelectorAll('.mtab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.meal-panel').forEach(p => p.classList.remove('active'));
+  tab.classList.add('active');
+  document.getElementById('meal-' + tab.dataset.meal).classList.add('active');
+});
+
+/* ══════════ DAY STRIP ⇄ WORKOUT DAY PANEL — single source of truth ══════════
+   Clicking a day box in the top strip shows ONLY that day's workout panel below
+   (everything else is hidden, not just collapsed) — and highlights the matching
+   box. Both directions always go through this one function so they can't drift
+   out of sync. */
+function selectDay(idx, opts) {
+  opts = opts || {};
+  const panel = document.querySelector('.day-panel[data-day-index="' + idx + '"]');
+  if (!panel) return;
+
+  document.querySelectorAll('.day-panel').forEach(p => p.classList.toggle('active', p === panel));
+
+  document.querySelectorAll('.dt').forEach(d => {
+    d.classList.toggle('active', d.dataset.dayIndex === String(idx));
+  });
+  if (opts.center !== false) {
+    const activeDt = document.querySelector('.dt[data-day-index="' + idx + '"]');
+    if (activeDt) activeDt.scrollIntoView({ behavior: opts.smooth === false ? 'auto' : 'smooth', inline: 'center', block: 'nearest' });
+  }
+}
+function goToWorkoutTab() {
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.querySelector('.sb-item[data-sec="workout"]').classList.add('active');
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-workout').classList.add('active');
+}
+
+// Top day-strip → jump to Workout tab and show only that day's panel
+document.getElementById('dayStrip').addEventListener('click', e => {
+  const dt = e.target.closest('.dt');
+  if (!dt) return;
+  goToWorkoutTab();
+  selectDay(dt.dataset.dayIndex);
+});
+
+// Mouse-wheel: let vertical wheel scroll the day-strip horizontally (touch already
+// scrolls natively; this just adds desktop trackpad/wheel support).
+(function () {
+  const strip = document.getElementById('dayStrip');
+  if (!strip) return;
+  strip.addEventListener('wheel', e => {
+    if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // let native horizontal wheel/trackpad through
+    e.preventDefault();
+    strip.scrollLeft += e.deltaY;
+  }, { passive: false });
+})();
+
+// ── Exercise rows: independent expand/collapse (multiple can be open) ──
+function toggleExercise(row) {
+  const open = row.classList.toggle('ex-open');
+  const head = row.querySelector('.ex-head');
+  if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+// Live "X/N logged" completion status per exercise, recalculated from its own set-cells.
+// Note: this only refreshes the small logged-count badge as you type. The
+// reps-vs-target progress bars (sidebar, day-strip, weekly split) are
+// intentionally NOT recalculated here anymore — they only update when you
+// click "Submit Daily Feedback", so the bar reflects your last submitted
+// state rather than jumping around mid-typing.
+function updateExerciseStatus(fieldEl) {
+  const row = fieldEl.closest('.ex-row');
+  if (row) refreshExerciseStatus(row);
+}
+function refreshExerciseStatus(row) {
+  const statusEl = row.querySelector('[data-ex-status]');
+  if (!statusEl) return;
+  const cells = row.querySelectorAll('.set-cell');
+  let logged = 0;
+  cells.forEach(cell => {
+    const weight = cell.querySelector('.weight-input');
+    const reps = cell.querySelector('.reps-input');
+    const touched = (weight && weight.value !== '') || (reps && reps.value !== '');
+    if (touched) logged++;
+  });
+  statusEl.textContent = logged + '/' + cells.length + ' logged';
+  statusEl.classList.toggle('done', cells.length > 0 && logged === cells.length);
+}
+
+// Parses a recommended/actual reps value into a comparable number.
+// Handles plain numbers ("10"), ranges ("8-12", "8–12", "8 to 12" — averaged),
+// and non-numeric targets like "AMRAP" or "failure" (returns null — those
+// can't be compared against a number, so they're excluded from the ratio).
+function parseReps(val) {
+  if (val === null || val === undefined) return null;
+  const s = String(val).trim();
+  if (s === '') return null;
+  const range = s.match(/(\d+(?:\.\d+)?)\s*(?:-|–|to)\s*(\d+(?:\.\d+)?)/i);
+  if (range) return (parseFloat(range[1]) + parseFloat(range[2])) / 2;
+  const single = s.match(/(\d+(?:\.\d+)?)/);
+  return single ? parseFloat(single[1]) : null;
+}
+
+// Per-SET overachievement warning — fires as soon as one set's logged reps
+// go well past its own target (>150%), independent of the day/week bar
+// (which now caps each set's contribution so it can't be distorted by one
+// outlier — see computeAndRenderProgress). This is the direct, per-set
+// signal: "you did way more reps on THIS set than prescribed", shown right
+// under that set's reps field instead of only surfacing in the aggregate.
+function checkSetOverachieve(repsInput) {
+  const cell = repsInput.closest('.set-cell');
+  if (!cell) return;
+  const warnEl = cell.querySelector('[data-set-warning]');
+  if (!warnEl) return;
+
+  const recommended = parseReps(cell.dataset.recommendedReps);
+  const rawVal = repsInput.value.trim();
+  if (recommended === null || recommended <= 0 || rawVal === '') {
+    warnEl.style.display = 'none';
+    warnEl.textContent = '';
+    return;
+  }
+  const actual = parseReps(rawVal);
+  if (actual === null) {
+    warnEl.style.display = 'none';
+    warnEl.textContent = '';
+    return;
+  }
+  const pct = Math.round((actual / recommended) * 100);
+  if (pct > 150) {
+    warnEl.textContent = '⚠ ' + pct + '% of this set\'s target (' + recommended + ' reps) — well above prescribed, consider adding weight instead of extra reps';
+    warnEl.style.display = 'block';
+  } else {
+    warnEl.style.display = 'none';
+    warnEl.textContent = '';
+  }
+}
+
+// Overall progress: for every set with a numeric recommended-reps target,
+// sum the WHOLE DAY's target reps (every set, touched or not) vs whatever
+// has actually been logged — this shows real progress through the day's
+// full workout, not just whichever single set happens to have a value.
+// Sidebar bar = whole plan; each day-strip pill's own bar = just that day.
+// Recalculated once on load (after saved data is pulled in from Supabase)
+// and again only after a successful "Submit Daily Feedback" — not on
+// every keystroke — so the bar reflects your last submitted state.
+function computeAndRenderProgress() {
+  const perDay = {};
+  let recAll = 0, actAll = 0, anyAll = false;
+
+  document.querySelectorAll('.set-cell').forEach(cell => {
+    const recommended = parseReps(cell.dataset.recommendedReps);
+    if (recommended === null || recommended <= 0) return; // no valid target for this set at all
+
+    // Every set in the day counts toward the day's total target, whether or
+    // not the user has logged it yet. Only the ACTUAL side is 0 for
+    // untouched sets. This is what makes the bar reflect the whole day's
+    // workout instead of just whichever single set happens to be filled in.
+    const repsInput = cell.querySelector('.reps-input');
+    const rawVal = repsInput ? repsInput.value.trim() : '';
+    const touched = rawVal !== '';
+    const rawActual = touched ? (parseReps(rawVal) || 0) : 0;
+    // Cap what a SINGLE set can contribute to the day/week total at 150% of
+    // that set's own target (same ceiling used for the fatigue-risk label
+    // below). Without this, a user who does nothing but one exercise —
+    // say 100 reps on one set instead of the recommended 10 — could push
+    // the whole day's bar up as if most of the workout were done, since the
+    // raw excess reps get summed in uncapped and count against every OTHER
+    // set's target too. Capping per-set means overachieving one set can
+    // only ever fill that one set's own slice of the bar, never someone
+    // else's, so skipped exercises still correctly show up as incomplete.
+    const actual = Math.min(rawActual, recommended * 1.5);
+
+    const di = cell.dataset.dayIndex;
+    if (!perDay[di]) perDay[di] = { rec: 0, act: 0, any: false };
+    perDay[di].rec += recommended;
+    perDay[di].act += actual;
+    if (touched) perDay[di].any = true;
+    recAll += recommended;
+    actAll += actual;
+    if (touched) anyAll = true;
+  });
+
+  renderProgressBar(
+    document.getElementById('sbProgressFill'),
+    document.getElementById('sbProgressFrac'),
+    recAll, actAll, anyAll
+  );
+
+  document.querySelectorAll('.dt').forEach(dt => {
+    const barFill = dt.querySelector('.dt-bar-fill');
+    if (!barFill) return;
+    if (dt.classList.contains('dt-rest')) { barFill.style.width = '0%'; return; }
+    const stats = perDay[dt.dataset.dayIndex];
+    renderProgressBar(barFill, null, stats ? stats.rec : 0, stats ? stats.act : 0, !!(stats && stats.any));
+  });
+
+  // Overview → "Weekly split" bars: same per-day reps-vs-target data, just
+  // rendered next to each day-of-week row instead of the day-strip pill.
+  // Rest days keep their original server-rendered bar (there's nothing to
+  // log against on a rest day) and are left alone.
+  document.querySelectorAll('.week-row').forEach(row => {
+    const bar = row.querySelector('.wbar');
+    if (!bar || bar.classList.contains('wrest')) return;
+    const pctEl = row.querySelector('[data-wpct]');
+    const stats = perDay[row.dataset.dayIndex];
+    renderProgressBar(bar, pctEl, stats ? stats.rec : 0, stats ? stats.act : 0, !!(stats && stats.any));
+  });
+}
+
+// Run once immediately so every progress bar (sidebar, day-strip, and the
+// Overview weekly-split rows) starts from the real reps-vs-target state
+// rather than the server's placeholder width, before the async Supabase
+// load below (or the entrance animations further down) get a chance to run.
+computeAndRenderProgress();
+
+// Shared renderer for both the sidebar bar and each day-strip pill's bar.
+// Bar visually caps at 100% width (so overachieving doesn't overflow the
+// track), but the percentage in the label keeps going past 100 so the
+// number itself communicates "how much" over/under target. Past 150% the
+// bar and label flip to a fatigue warning — that much beyond the
+// prescribed reps is more likely overtraining/bad rep-counting than a
+// genuine strength gain, worth flagging rather than just praising.
+function renderProgressBar(fillEl, fracEl, recommended, actual, hasData) {
+  if (!fillEl) return;
+  fillEl.classList.remove('pf-over', 'pf-under', 'pf-fatigue');
+  if (fracEl) fracEl.classList.remove('pf-fatigue-text', 'pf-over-text', 'pf-under-text');
+  if (!hasData || recommended <= 0) {
+    fillEl.style.width = '0%';
+    if (fracEl) fracEl.textContent = 'No reps logged yet';
+    return;
+  }
+  const pct = Math.round((actual / recommended) * 100);
+  fillEl.style.width = Math.min(pct, 100) + '%';
+  if (pct > 150) fillEl.classList.add('pf-fatigue');
+  else if (pct >= 100) fillEl.classList.add('pf-over');
+  else if (pct < 90) fillEl.classList.add('pf-under');
+  if (fracEl) {
+    if (pct > 150) {
+      fracEl.textContent = '⚠ ' + pct + '% of target reps — fatigue risk, consider adding weight instead';
+      fracEl.classList.add('pf-fatigue-text');
+    } else if (pct > 100) {
+      fracEl.textContent = pct + '% of target reps — overachieving';
+      fracEl.classList.add('pf-over-text');
+    } else if (pct >= 90) {
+      fracEl.textContent = pct + '% of target reps — on track';
+    } else {
+      fracEl.textContent = pct + '% of target reps — below target';
+      fracEl.classList.add('pf-under-text');
+    }
+  }
+}
+
+// ── Interactive difficulty stars (one rating per exercise, not per set) ──
+document.querySelectorAll('.ex-stars').forEach(group => {
+  group.addEventListener('click', e => {
+    const star = e.target.closest('.star');
+    if (!star) return;
+    const value = parseInt(star.dataset.value, 10);
+    group.dataset.rating = value;
+    group.querySelectorAll('.star').forEach(s => {
+      s.classList.toggle('filled', parseInt(s.dataset.value, 10) <= value);
+    });
+  });
+});
+
+// ── Submit Daily Feedback ──
+// This runs INSIDE the srcdoc iframe. Since srcdoc documents inherit the
+// parent's origin, this page's own localStorage is the SAME storage
+// dashbord.html already wrote the memberToken into — so we can read it
+// directly here, no postMessage bridge to the parent page needed. Members
+// authenticate via the backend-issued memberToken (Bearer auth), not
+// Supabase Auth — there is no Supabase session to read here.
+(function () {
+  const btn = document.getElementById('submitFeedbackBtn');
+  const status = document.getElementById('feedbackStatus');
+  const adaptBox = document.getElementById('feedbackAdaptations');
+  if (!btn) return;
+
+  // Renders the classify_feedback() + _apply_intra_cycle_adaptation()
+  // results that /api/workout-feedback/exercises already computes and
+  // returns — previously captured into a JS variable and then discarded,
+  // so pain flags and auto-substitutions happened silently with nothing
+  // shown on screen. Called after every successful submit.
+  function renderAdaptationNotes(classifications, adaptations) {
+    if (!adaptBox) return;
+    const notes = [];
+
+    (classifications || []).forEach(c => {
+      if (c.classification === 'possible_pain_flag') {
+        notes.push({
+          attention: true,
+          html: `<strong>${escapeHtml(c.exercise_id || 'This exercise')}:</strong> flagged as possible pain from your notes — we'll look at swapping it for a safer variant next time this day comes around.`,
+        });
+      }
+    });
+
+    (adaptations || []).forEach(a => {
+      const verb = a.action === 'substitute' ? 'Swapped in' : 'Kept';
+      const target = a.action === 'substitute' ? (a.exercise || 'a substitute exercise') : (a.exercise || 'this exercise');
+      let reasonText = '';
+      if (a.reason === 'pain_flagged_last_time_regressed_to_safer_variant') {
+        reasonText = 'you flagged pain last time, so this is regressed to an easier variant.';
+      } else if (a.reason === 'rated_too_easy_last_time_progressed_to_harder_variant') {
+        reasonText = 'you rated it too easy last time, so this is a harder variant.';
+      } else if (a.reason === 'pain_flagged_no_safe_substitute_on_file_reduce_load_or_consult_trainer') {
+        reasonText = 'pain was flagged, but there\'s no in-app substitute on file for this movement — please reduce load or check with a trainer before your next session.';
+      } else {
+        reasonText = (a.reason || '').replace(/_/g, ' ') || 'adjusted based on your last feedback.';
+      }
+      notes.push({
+        attention: !!a.requires_attention,
+        html: `<strong>${verb} ${escapeHtml(target)}</strong> for day ${Number(a.day_index) + 1} — ${escapeHtml(reasonText)}`,
+      });
+    });
+
+    if (notes.length === 0) {
+      adaptBox.style.display = 'none';
+      adaptBox.innerHTML = '';
+      return;
+    }
+
+    adaptBox.innerHTML = notes
+      .map(n => `<div class="adaptation-note${n.attention ? ' attention' : ''}">${n.html}</div>`)
+      .join('');
+    adaptBox.style.display = 'flex';
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[ch]));
+  }
+
+  function feedbackAuthHeaders() {
+    const token = localStorage.getItem('memberToken');
+    const slug = localStorage.getItem('gymSlug');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (slug) headers['X-Gym-Slug'] = slug;
+    return headers;
+  }
+
+  // On load: pull back whatever this member already saved (previous session
+  // or earlier today) and prefill the fields, so the progress bar and
+  // "X/N logged" counts are correct immediately, not just after a fresh
+  // submit. Uses the same memberToken auth as the submit handler below.
+  (async function loadSavedProgress() {
+    try {
+      const token = localStorage.getItem('memberToken');
+      if (!token) return; // not logged in yet — nothing to prefill
+
+      const res = await fetch(
+        window.BACKEND_BASE + '/api/workout-feedback?cycle=' + (window.CURRENT_CYCLE || 1),
+        { headers: feedbackAuthHeaders() }
+      );
+      if (!res.ok) throw new Error('Could not load saved progress (status ' + res.status + ')');
+      const data = await res.json();
+      const setRows = data.sets || [];
+      const exRows = data.exercises || [];
+
+      (setRows || []).forEach(row => {
+        const cell = document.querySelector(
+          '.set-cell[data-day-index="' + row.day_index + '"][data-exercise="' + CSS.escape(row.exercise) + '"][data-set-number="' + row.set_number + '"]'
+        );
+        if (!cell) return;
+        const weightInput = cell.querySelector('.weight-input');
+        const repsInput = cell.querySelector('.reps-input');
+        if (weightInput && row.weight_kg !== null && row.weight_kg !== undefined) weightInput.value = row.weight_kg;
+        if (repsInput && row.reps_used !== null && row.reps_used !== undefined) {
+          repsInput.value = row.reps_used;
+          checkSetOverachieve(repsInput);
+        }
+      });
+
+      (exRows || []).forEach(row => {
+        document.querySelectorAll('.ex-row').forEach(exRow => {
+          const anyCell = exRow.querySelector('.set-cell[data-day-index="' + row.day_index + '"][data-exercise="' + CSS.escape(row.exercise) + '"]');
+          if (!anyCell) return;
+          if (row.difficulty) {
+            const starsEl = exRow.querySelector('.ex-stars');
+            if (starsEl) {
+              starsEl.dataset.rating = row.difficulty;
+              starsEl.querySelectorAll('.star').forEach(s => {
+                s.classList.toggle('filled', parseInt(s.dataset.value, 10) <= row.difficulty);
+              });
+            }
+          }
+          const notesEl = exRow.querySelector('.exercise-notes');
+          if (notesEl && row.notes) notesEl.value = row.notes;
+        });
+      });
+
+      document.querySelectorAll('.ex-row').forEach(refreshExerciseStatus);
+    } catch (err) {
+      console.warn('Could not load saved progress:', err.message || err);
+    } finally {
+      // Always (re)compute so the bar is correct even if there was nothing
+      // to load, or the load failed partway through.
+      computeAndRenderProgress();
+    }
+  })();
+
+  btn.addEventListener('click', async () => {
+    // Set-level rows: just weight + reps, one row per set actually filled in.
+    const setEntries = [];
+    document.querySelectorAll('.set-cell').forEach(cell => {
+      const weightInput = cell.querySelector('.weight-input');
+      const repsInput = cell.querySelector('.reps-input');
+      const weight = weightInput && weightInput.value !== '' ? parseFloat(weightInput.value) : null;
+      const repsUsed = repsInput && repsInput.value !== '' ? repsInput.value.trim() : null;
+      if (weight === null && repsUsed === null) return; // skip untouched sets
+
+      setEntries.push({
+        day_index: parseInt(cell.dataset.dayIndex, 10),
+        day_name: cell.dataset.dayName,
+        exercise: cell.dataset.exercise,
+        set_number: parseInt(cell.dataset.setNumber, 10),
+        weight_kg: weight,
+        reps_used: repsUsed,
+        cycle_number: window.CURRENT_CYCLE || 1,
+      });
+    });
+
+    // Exercise-level rows: one difficulty rating + one notes field per exercise (not per set).
+    const exerciseEntries = [];
+    document.querySelectorAll('.ex-row').forEach(row => {
+      const starsEl = row.querySelector('.ex-stars');
+      const notesEl = row.querySelector('.exercise-notes');
+      const anySetCell = row.querySelector('.set-cell');
+      if (!anySetCell) return;
+
+      const rating = starsEl ? parseInt(starsEl.dataset.rating || '0', 10) : 0;
+      const notes = notesEl && notesEl.value.trim() !== '' ? notesEl.value.trim() : null;
+      if (rating === 0 && notes === null) return; // skip untouched exercises
+
+      exerciseEntries.push({
+        day_index: parseInt(anySetCell.dataset.dayIndex, 10),
+        day_name: anySetCell.dataset.dayName,
+        exercise: anySetCell.dataset.exercise,
+        difficulty: rating || null,
+        notes: notes,
+        cycle_number: window.CURRENT_CYCLE || 1,
+      });
+    });
+
+    if (setEntries.length === 0 && exerciseEntries.length === 0) {
+      status.textContent = 'Fill in at least one set first';
+      status.className = 'feedback-status err';
+      return;
+    }
+
+    btn.disabled = true;
+    status.textContent = 'Saving…';
+    status.className = 'feedback-status';
+
+    try {
+      const token = localStorage.getItem('memberToken');
+      if (!token) throw new Error('Session expired — go back and log in again.');
+
+      // Two backend endpoints (backed by the workout_set_feedback /
+      // workout_exercise_feedback tables) — both upsert keyed to this
+      // member's id, so resubmitting the same day just overwrites rather
+      // than duplicating. Auth is the backend-issued memberToken, not
+      // Supabase Auth.
+      let adaptations = [];
+      let classifications = [];
+      if (setEntries.length > 0) {
+        const setRes = await fetch(window.BACKEND_BASE + '/api/workout-feedback/sets', {
+          method: 'POST',
+          headers: feedbackAuthHeaders(),
+          body: JSON.stringify({ entries: setEntries }),
+        });
+        if (!setRes.ok) throw new Error('Could not save set feedback (status ' + setRes.status + ')');
+      }
+
+      if (exerciseEntries.length > 0) {
+        const exRes = await fetch(window.BACKEND_BASE + '/api/workout-feedback/exercises', {
+          method: 'POST',
+          headers: feedbackAuthHeaders(),
+          body: JSON.stringify({ entries: exerciseEntries }),
+        });
+        if (!exRes.ok) throw new Error('Could not save exercise feedback (status ' + exRes.status + ')');
+        // classifications/adaptations (from feedback_engine.classify_feedback
+        // + _apply_intra_cycle_adaptation) are now actually shown to the
+        // member via renderAdaptationNotes() below, not just captured and
+        // dropped.
+        const exData = await exRes.json().catch(() => ({}));
+        adaptations = exData.adaptations || [];
+        classifications = exData.classifications || [];
+      }
+
+      status.textContent = `✓ Saved ${setEntries.length} sets, ${exerciseEntries.length} exercise ratings`;
+      status.className = 'feedback-status ok';
+      renderAdaptationNotes(classifications, adaptations);
+      computeAndRenderProgress(); // bars only refresh on a successful submit, not while typing
+    } catch (err) {
+      status.textContent = '✗ ' + (err.message || 'Something went wrong');
+      status.className = 'feedback-status err';
+      if (adaptBox) { adaptBox.style.display = 'none'; adaptBox.innerHTML = ''; }
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+
+// ══════════ PHASE 6: BIWEEKLY CHECK-IN (additive — does not alter any logic above) ══════════
+(async function () {
+  const navBtn = document.getElementById('checkinNavBtn');
+  const lockedCard = document.getElementById('checkinLockedCard');
+  const lockedMsg = document.getElementById('checkinLockedMsg');
+  const formCard = document.getElementById('checkinFormCard');
+  const successCard = document.getElementById('checkinSuccessCard');
+  if (!navBtn) return;
+
+  // Members authenticate with the backend-issued memberToken (see
+  // login.html / dashbord.html), not Supabase Auth — members never sign up
+  // through Supabase at all post-refactor. This used to call
+  // supabase.auth.getSession(), which always returned null for members,
+  // silently short-circuiting checkEligibility() below before it ever
+  // reached /api/checkin/eligibility. Kept the same `{ access_token }`
+  // shape so the other call sites didn't need to change.
+  async function getSession() {
+    const token = localStorage.getItem('memberToken');
+    return token ? { access_token: token } : null;
+  }
+
+  async function checkEligibility() {
+    try {
+      const session = await getSession();
+      if (!session) return;
+
+      const res = await fetch(window.BACKEND_BASE + '/api/checkin/eligibility', {
+        headers: { 'Authorization': 'Bearer ' + session.access_token },
+      });
+      if (!res.ok) throw new Error('eligibility check failed');
+      const data = await res.json();
+
+      if (data.already_submitted) {
+        navBtn.style.display = '';
+        lockedCard.style.display = 'none';
+        formCard.style.display = 'none';
+        successCard.style.display = '';
+        return;
+      }
+
+      if (data.eligible) {
+        navBtn.style.display = '';
+        lockedCard.style.display = 'none';
+        formCard.style.display = '';
+        successCard.style.display = 'none';
+      } else {
+        // Stays hidden until eligible — nav item and section remain out of
+        // the way rather than showing a disabled/locked state up front.
+        navBtn.style.display = 'none';
+        if (data.next_eligible_at) {
+          const d = new Date(data.next_eligible_at);
+          lockedMsg.textContent = 'Your next check-in unlocks on ' + d.toLocaleDateString() + '.';
+        }
+      }
+    } catch (err) {
+      console.warn('Could not check biweekly eligibility:', err.message || err);
+    }
+  }
+
+  checkEligibility();
+  // Re-check periodically so the nav item/form appear once eligible
+  // without the member having to reload the page.
+  setInterval(checkEligibility, 30000);
+
+  const form = document.getElementById('checkinForm');
+  if (!form) return;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('checkinSubmitBtn');
+    const status = document.getElementById('checkinStatus');
+    btn.disabled = true;
+    status.textContent = 'Saving…';
+    status.className = 'feedback-status';
+
+    try {
+      const session = await getSession();
+      if (!session) throw new Error('Session expired — go back and log in again.');
+
+      const fd = new FormData(form);
+      const numOrNull = (v) => (v === '' || v === null ? null : parseFloat(v));
+      const payload = {
+        recovery: fd.get('recovery'),
+        difficulty: fd.get('difficulty'),
+        soreness: fd.get('soreness'),
+        pain_areas: fd.getAll('pain_areas'),
+        pain_notes: fd.get('pain_notes') || null,
+        body_weight_kg: numOrNull(fd.get('body_weight_kg')),
+        waist_cm: numOrNull(fd.get('waist_cm')),
+        chest_cm: numOrNull(fd.get('chest_cm')),
+        arms_cm: numOrNull(fd.get('arms_cm')),
+        thighs_cm: numOrNull(fd.get('thighs_cm')),
+        hips_cm: numOrNull(fd.get('hips_cm')),
+        body_fat_pct: numOrNull(fd.get('body_fat_pct')),
+      };
+
+      const res = await fetch(window.BACKEND_BASE + '/api/checkin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + session.access_token,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.detail || 'Could not submit check-in');
+      }
+      const result = await res.json();
+
+      // ── Skip the dashboard round-trip: regenerate the plan right now,
+      // off the member's stored intake (POST /api/checkin already expired
+      // the active plan above), and replace THIS document's content
+      // directly with the fresh HTML. This script runs inside the srcdoc
+      // iframe, so replacing our own document is how we "swap the iframe
+      // content" — no window.location navigation to dashbord.html or
+      // result.html, and no reliance on sessionStorage for this flow.
+      status.textContent = 'Saved — generating your updated plan…';
+      status.className = 'feedback-status';
+
+      const regenRes = await fetch(window.BACKEND_BASE + '/api/regenerate', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + session.access_token },
+      });
+
+      if (regenRes.ok) {
+        const newHtml = await regenRes.text();
+        if (window.frameElement) {
+          // We're inside the parent's iframe — reassigning srcdoc triggers a
+          // real navigation, giving us a brand-new JS realm/global object.
+          // (document.open()/write()/close() reuses the CURRENT realm, so
+          // any top-level const/let from the old script — e.g. `sidebar` —
+          // is still declared when the new script runs, throwing
+          // "Identifier has already been declared" and silently killing
+          // every script on the page, which is why tabs stopped working
+          // and only Overview ever showed.)
+          window.frameElement.srcdoc = newHtml;
+        } else {
+          // Fallback if this document isn't embedded in an iframe.
+          document.open();
+          document.write(newHtml);
+          document.close();
+        }
+        return; // document has been fully replaced — nothing left to update below
+      }
+
+      // Regeneration failed — the check-in itself still saved successfully,
+      // so surface that plainly rather than pretending nothing happened.
+      const errBody = await regenRes.json().catch(() => ({}));
+      formCard.style.display = 'none';
+      successCard.style.display = '';
+      const successMsg = document.getElementById('checkinSuccessMsg');
+      if (successMsg) {
+        successMsg.textContent = 'Progress: ' + result.progress_state +
+          (result.is_deload ? ' — a deload is recommended next cycle.' : '.') +
+          ' Check-in saved, but your plan could not be regenerated automatically' +
+          (errBody.detail ? ' (' + errBody.detail + ')' : '') +
+          ' — please refresh to try again.';
+      }
+    } catch (err) {
+      status.textContent = '✗ ' + (err.message || 'Something went wrong');
+      status.className = 'feedback-status err';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+
+// ══════════ PREMIUM POLISH (additive — does not alter any logic above) ══════════
+
+// Defensive sync on load: the day-strip and the workout day-panel are both
+// server-rendered with the same "today" index active already, but this keeps
+// them from ever drifting if that assumption changes.
+(function () {
+  const activeDt = document.querySelector('.dt.active');
+  const idx = activeDt ? activeDt.dataset.dayIndex : '0';
+  selectDay(idx, { smooth: false });
+})();
+
+// Day-strip: mouse-drag horizontal scrolling (touch already scrolls natively)
+// NOTE: this used to call setPointerCapture() on the strip on every mousedown,
+// which on desktop browsers can suppress/retarget the synthetic click that
+// should fire on the actual .dt child — that's why weekday taps worked on
+// mobile (pointerType 'touch' was excluded from this whole block) but not
+// with a mouse on desktop. Switched to plain mouse events with no pointer
+// capture so real clicks are never intercepted.
+(function () {
+  const strip = document.getElementById('dayStrip');
+  if (!strip) return;
+  let isDown = false, startX = 0, startScroll = 0, moved = false;
+  strip.addEventListener('mousedown', e => {
+    isDown = true; moved = false;
+    startX = e.clientX; startScroll = strip.scrollLeft;
+  });
+  document.addEventListener('mousemove', e => {
+    if (!isDown) return;
+    const dx = e.clientX - startX;
+    if (Math.abs(dx) > 4) moved = true;
+    strip.scrollLeft = startScroll - dx;
+  });
+  document.addEventListener('mouseup', () => { isDown = false; });
+  // Suppress the click-to-select a day only if the mouse actually dragged
+  strip.addEventListener('click', e => {
+    if (moved) { e.stopPropagation(); e.preventDefault(); }
+    moved = false;
+  }, true);
+})();
+
+// Cursor spotlight (desktop only, respects reduced-motion)
+(function () {
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const spot = document.getElementById('spotlight');
+  if (!spot || prefersReduced || window.matchMedia('(pointer:coarse)').matches) return;
+  window.addEventListener('pointermove', e => {
+    spot.style.setProperty('--sx', e.clientX + 'px');
+    spot.style.setProperty('--sy', e.clientY + 'px');
+  }, { passive: true });
+})();
+
+// Animate weekly split bars + count up stat numbers on first paint.
+// Only the rest-day bars (.wrest) still use this — the workout-day bars are
+// now driven live by computeAndRenderProgress() based on actual reps logged,
+// so animating them from a stale server-rendered width here would fight that.
+(function () {
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.wbar.wrest').forEach(bar => {
+      const target = bar.style.width;
+      if (!target) return;
+      if (prefersReduced) return;
+      bar.style.width = '0%';
+      requestAnimationFrame(() => { bar.style.width = target; });
+    });
+  });
+
+  document.querySelectorAll('.sc-val, .rec-val').forEach(el => {
+    const raw = el.textContent.trim();
+    const match = raw.match(/^(-?\d+(?:\.\d+)?)(.*)$/);
+    if (!match || prefersReduced) return;
+    const end = parseFloat(match[1]);
+    const suffix = match[2] || '';
+    const decimals = (match[1].split('.')[1] || '').length;
+    const dur = 700, start = performance.now();
+    function tick(now) {
+      const p = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = (end * eased).toFixed(decimals) + suffix;
+      if (p < 1) requestAnimationFrame(tick);
+      else el.textContent = raw;
+    }
+    requestAnimationFrame(tick);
+  });
+})();
+
+// GSAP entrance sequence (falls back silently to CSS fadeIn if GSAP hasn't loaded yet)
+window.addEventListener('load', () => {
+  if (typeof gsap === 'undefined') return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  gsap.set(['.sidebar', '.topbar', '.day-strip', '#sec-overview .sc, #sec-overview .card'], { clearProps: 'none' });
+  const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+  tl.from('.sidebar', { x: -24, opacity: 0, duration: .5 })
+    .from('.topbar', { y: -12, opacity: 0, duration: .4 }, '-=.35')
+    .from('.day-strip .dt', { y: 10, opacity: 0, duration: .4, stagger: .04 }, '-=.25')
+    .from('#sec-overview .sc', { y: 14, opacity: 0, duration: .45, stagger: .06 }, '-=.2')
+    .from('#sec-overview .card', { y: 14, opacity: 0, duration: .45 }, '-=.25')
+    .eventCallback('onComplete', () => {
+      // GSAP's .from() leaves inline transform/opacity on these elements after
+      // the tween finishes. Inline styles beat CSS class selectors, so on mobile
+      // that leftover inline transform can fight the .mobile-open drawer class
+      // (and the .collapsed rail class) and make the sidebar appear stuck /
+      // not actually visible even though its overlay shows. Clear GSAP's own
+      // inline styles once the intro is done so the CSS classes fully control
+      // the sidebar again for the rest of the page's life.
+      gsap.set('.sidebar', { clearProps: 'transform,opacity' });
+    });
+});
+
+// Lucide icon set init (safe no-op if the CDN script hasn't attached yet)
+if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+else { window.addEventListener('load', () => { if (typeof lucide !== 'undefined') lucide.createIcons(); }); }
+
+// Subtle press-ripple on primary buttons
+document.querySelectorAll('.feedback-submit, .mtab, .dt').forEach(el => {
+  el.addEventListener('pointerdown', function (e) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const rect = this.getBoundingClientRect();
+    const ripple = document.createElement('span');
+    const size = Math.max(rect.width, rect.height) * 1.4;
+    ripple.style.cssText = `position:absolute;left:${e.clientX - rect.left - size/2}px;top:${e.clientY - rect.top - size/2}px;
+      width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle,#ffffff33,transparent 70%);
+      pointer-events:none;transform:scale(0);opacity:1;transition:transform .5s ease,opacity .5s ease;z-index:5;`;
+    if (getComputedStyle(this).position === 'static') this.style.position = 'relative';
+    ripple.style.clipPath = 'inset(0 round 999px)';
+    this.appendChild(ripple);
+    requestAnimationFrame(() => { ripple.style.transform = 'scale(1)'; ripple.style.opacity = '0'; });
+    setTimeout(() => ripple.remove(), 520);
+  });
+});
+</script>
+</body>
+</html>
