@@ -112,7 +112,28 @@ class ManualCORS(BaseHTTPMiddleware):
                 headers["Access-Control-Allow-Origin"] = allowed_origin
             return JSONResponse(content={}, headers=headers)
 
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception:
+            # An unhandled exception here (e.g. a Supabase query against a
+            # table that doesn't exist) previously skipped every line below
+            # entirely, so the browser got a response with NO CORS headers
+            # at all — which shows up client-side as a generic "Failed to
+            # fetch" and hides the real error. Log it and return a proper
+            # JSON 500 WITH CORS headers, so the frontend's fetch() actually
+            # resolves and the real status/message reach the UI instead of
+            # being swallowed as a network-level failure.
+            traceback.print_exc()
+            response = JSONResponse(
+                status_code=500,
+                content={"detail": "Internal server error"},
+            )
+            if allowed_origin:
+                response.headers["Access-Control-Allow-Origin"] = allowed_origin
+                response.headers["Access-Control-Allow-Methods"] = "*"
+                response.headers["Access-Control-Allow-Headers"] = "*"
+            return response
+
         if allowed_origin:
             response.headers["Access-Control-Allow-Origin"] = allowed_origin
             response.headers["Access-Control-Allow-Methods"] = "*"
