@@ -317,6 +317,11 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
 .feedback-status{font-size:12px;font-weight:600;flex-shrink:0}
 .feedback-status.ok{color:#4ade80}
 .feedback-status.err{color:#f87171}
+.feedback-adaptations{width:100%;margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.adaptation-note{font-size:12.5px;line-height:1.5;padding:9px 12px;border-radius:8px;background:#1e2130;border:1px solid #333857}
+.adaptation-note.attention{background:#3a1f22;border-color:#7c2d31;color:#fca5a5}
+.adaptation-note strong{color:#e5e7eb}
+.adaptation-note.attention strong{color:#fca5a5}
 
 .ci-label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
 .ci-input{width:100%;background:var(--bg3);border:1px solid var(--border-hi);border-radius:10px;padding:10px 12px;color:#e8e8e8;font-size:13.5px;font-family:inherit}
@@ -694,6 +699,7 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
           </div>
           <span class="feedback-status" id="feedbackStatus"></span>
           <button class="feedback-submit" id="submitFeedbackBtn">Submit Daily Feedback</button>
+          <div class="feedback-adaptations" id="feedbackAdaptations" style="display:none"></div>
         </div>
       </div>
 
@@ -1262,7 +1268,63 @@ document.querySelectorAll('.ex-stars').forEach(group => {
 (function () {
   const btn = document.getElementById('submitFeedbackBtn');
   const status = document.getElementById('feedbackStatus');
+  const adaptBox = document.getElementById('feedbackAdaptations');
   if (!btn) return;
+
+  // Renders the classify_feedback() + _apply_intra_cycle_adaptation()
+  // results that /api/workout-feedback/exercises already computes and
+  // returns — previously captured into a JS variable and then discarded,
+  // so pain flags and auto-substitutions happened silently with nothing
+  // shown on screen. Called after every successful submit.
+  function renderAdaptationNotes(classifications, adaptations) {
+    if (!adaptBox) return;
+    const notes = [];
+
+    (classifications || []).forEach(c => {
+      if (c.classification === 'possible_pain_flag') {
+        notes.push({
+          attention: true,
+          html: `<strong>${escapeHtml(c.exercise_id || 'This exercise')}:</strong> flagged as possible pain from your notes — we'll look at swapping it for a safer variant next time this day comes around.`,
+        });
+      }
+    });
+
+    (adaptations || []).forEach(a => {
+      const verb = a.action === 'substitute' ? 'Swapped in' : 'Kept';
+      const target = a.action === 'substitute' ? (a.exercise || 'a substitute exercise') : (a.exercise || 'this exercise');
+      let reasonText = '';
+      if (a.reason === 'pain_flagged_last_time_regressed_to_safer_variant') {
+        reasonText = 'you flagged pain last time, so this is regressed to an easier variant.';
+      } else if (a.reason === 'rated_too_easy_last_time_progressed_to_harder_variant') {
+        reasonText = 'you rated it too easy last time, so this is a harder variant.';
+      } else if (a.reason === 'pain_flagged_no_safe_substitute_on_file_reduce_load_or_consult_trainer') {
+        reasonText = 'pain was flagged, but there\'s no in-app substitute on file for this movement — please reduce load or check with a trainer before your next session.';
+      } else {
+        reasonText = (a.reason || '').replace(/_/g, ' ') || 'adjusted based on your last feedback.';
+      }
+      notes.push({
+        attention: !!a.requires_attention,
+        html: `<strong>${verb} ${escapeHtml(target)}</strong> for day ${Number(a.day_index) + 1} — ${escapeHtml(reasonText)}`,
+      });
+    });
+
+    if (notes.length === 0) {
+      adaptBox.style.display = 'none';
+      adaptBox.innerHTML = '';
+      return;
+    }
+
+    adaptBox.innerHTML = notes
+      .map(n => `<div class="adaptation-note${n.attention ? ' attention' : ''}">${n.html}</div>`)
+      .join('');
+    adaptBox.style.display = 'flex';
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[ch]));
+  }
 
   function feedbackAuthHeaders() {
     const token = localStorage.getItem('memberToken');
@@ -1396,6 +1458,7 @@ document.querySelectorAll('.ex-stars').forEach(group => {
       // than duplicating. Auth is the backend-issued memberToken, not
       // Supabase Auth.
       let adaptations = [];
+      let classifications = [];
       if (setEntries.length > 0) {
         const setRes = await fetch(window.BACKEND_BASE + '/api/workout-feedback/sets', {
           method: 'POST',
@@ -1412,19 +1475,23 @@ document.querySelectorAll('.ex-stars').forEach(group => {
           body: JSON.stringify({ entries: exerciseEntries }),
         });
         if (!exRes.ok) throw new Error('Could not save exercise feedback (status ' + exRes.status + ')');
-        // Preserve whatever the endpoint returns (classifications/adaptations
-        // from _apply_intra_cycle_adaptation) in case it's useful to surface,
-        // without requiring it for the save to be considered successful.
+        // classifications/adaptations (from feedback_engine.classify_feedback
+        // + _apply_intra_cycle_adaptation) are now actually shown to the
+        // member via renderAdaptationNotes() below, not just captured and
+        // dropped.
         const exData = await exRes.json().catch(() => ({}));
         adaptations = exData.adaptations || [];
+        classifications = exData.classifications || [];
       }
 
       status.textContent = `✓ Saved ${setEntries.length} sets, ${exerciseEntries.length} exercise ratings`;
       status.className = 'feedback-status ok';
+      renderAdaptationNotes(classifications, adaptations);
       computeAndRenderProgress(); // bars only refresh on a successful submit, not while typing
     } catch (err) {
       status.textContent = '✗ ' + (err.message || 'Something went wrong');
       status.className = 'feedback-status err';
+      if (adaptBox) { adaptBox.style.display = 'none'; adaptBox.innerHTML = ''; }
     } finally {
       btn.disabled = false;
     }

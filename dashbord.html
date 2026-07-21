@@ -88,6 +88,13 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 pre { white-space: pre-wrap; background: #0f0a1c; color: var(--fg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; font-size: 12px; line-height: 1.55; max-height: 380px; overflow: auto; margin: 0; }
 .mt { margin-top: 12px; }
 .info-tip { font-size: 11px; color: var(--muted); background: rgba(139,92,246,.08); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-top: 8px; }
+#intakeWarnings {
+  margin-bottom: 12px; padding: 12px 16px; border-radius: 12px;
+  background: #fff8ec; border: 1px solid #f0d9a8; color: #7a5c1e;
+  font-size: 12.5px; line-height: 1.6;
+}
+#intakeWarnings strong { display: block; margin-bottom: 4px; color: #6b4c10; }
+#intakeWarnings ul { margin: 0; padding-left: 18px; }
 </style>
 </head>
 <body>
@@ -309,6 +316,8 @@ pre { white-space: pre-wrap; background: #0f0a1c; color: var(--fg); border: 1px 
   <div class="mt"><input id="otherAllergy" placeholder="Any other allergy or food to avoid (optional)" /></div>
   <div class="mt"><label class="lbl">Other medical / dietary notes (optional)</label><textarea id="notes" placeholder="e.g. knee injury, thyroid condition, diabetic, intermittent fasting"></textarea></div>
 </div>
+
+<div id="intakeWarnings" style="display:none"></div>
 
 <button class="submit" style="animation-delay:.4s" onclick="handleSubmit()">📈 Generate My Plan</button>
 
@@ -757,6 +766,31 @@ expRules.dropSets !== "Not recommended at beginner level — prioritise learning
   return { promptText: lines.filter(l => l !== null).join("\n"), bmi: b, macros: m };
 }
 
+function escapeHtmlBasic(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, ch => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[ch]));
+}
+
+// Shows /api/validate-intake's findings (DV001/DV002/DV004 — missing
+// required fields, out-of-range numbers, unrecognized enum values) as a
+// heads-up, not a blocker. The endpoint itself is explicitly designed as
+// informational-only (see validation_engine.py) — generation always
+// proceeds regardless of what this shows.
+function renderIntakeWarnings(warnings) {
+  const box = $("intakeWarnings");
+  if (!box) return;
+  if (!warnings || warnings.length === 0) {
+    box.style.display = "none";
+    box.innerHTML = "";
+    return;
+  }
+  box.innerHTML = `<strong>Heads up before we generate:</strong><ul>${
+    warnings.map(w => `<li>${escapeHtmlBasic(w)}</li>`).join("")
+  }</ul>`;
+  box.style.display = "block";
+}
+
 let _isGenerating = false;
 
 async function handleSubmit() {
@@ -815,6 +849,48 @@ async function handleSubmit() {
     const token = await window.__getAccessToken();
     if (!token) {
       throw new Error("Your session expired — please log in again.");
+    }
+
+    // Backend has a dedicated intake validator (DV001-DV004: missing
+    // required fields, out-of-range values, unrecognized enum values) at
+    // /api/validate-intake — built but never actually called from here
+    // until now. Deliberately best-effort and non-blocking: the engine's
+    // own design is "every finding is a WARNING, not something that stops
+    // generation" (see validation_engine.py), so a slow/failed validation
+    // call must never delay or prevent the real submission below. Uses the
+    // RAW pre-default values (not main.py's own Form(...) defaults) since
+    // that's the only way DV001's "missing field" check can ever mean
+    // anything — checked against the same shape validate_intake() expects.
+    try {
+      const validateRes = await fetch(`${BACKEND_BASE}/api/validate-intake`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          ...window.__gymHeaders(),
+        },
+        body: JSON.stringify({
+          goal: $("goal").value,
+          experience: $("experience").value,
+          activity_key: $("activity").value,
+          diet_pref: $("diet").value,
+          equipment: [...availableEquipment].join(", ") || "full gym",
+          age: $("age").value,
+          height_cm: $("height").value,
+          weight_kg: $("weight").value,
+          target_weight_kg: $("target").value,
+        }),
+      });
+      if (validateRes.ok) {
+        const v = await validateRes.json();
+        if (v.warnings && v.warnings.length) {
+          console.warn("Intake validation warnings (non-blocking):", v.warnings);
+        }
+        renderIntakeWarnings(v.warnings || []);
+      }
+    } catch (validateErr) {
+      // Never let a validation-call failure block real generation.
+      console.warn("Could not reach /api/validate-intake (non-blocking):", validateErr);
     }
 
     // Render's free tier can sleep after inactivity — the first request after
