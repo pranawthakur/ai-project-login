@@ -1487,6 +1487,40 @@ async def result_page(
 # most recent plan's plan_json["_intake"] (persisted above) instead of
 # Form(...) fields, so the frontend can regenerate immediately after a
 # check-in with no dashboard round-trip and no re-typed intake.
+def _apply_latest_checkin_to_profile(member_id: str, profile: dict) -> dict:
+    """Overlays the member's most recent biweekly check-in body stats onto
+    the stored intake profile before regeneration. Without this, /api/
+    regenerate was cloning `_intake` verbatim on every cycle, so a member's
+    current_weight_kg/measurements stayed frozen at whatever they typed on
+    their very first sign-up form forever — the check-in form collected
+    fresh numbers but nothing ever read them back into plan generation.
+
+    Only overwrites a field when the check-in actually has a non-null
+    value for it, so a member skipping optional measurements on a given
+    check-in doesn't blank out a previously-known stat. Fails soft (same
+    posture as progression_context.py) — if this optional read errors out,
+    generation proceeds on the stored intake exactly as before.
+    """
+    try:
+        reassessment = progression_context._get_latest_reassessment(member_id)
+        if not reassessment:
+            return profile
+        checkin = progression_context._get_checkin_by_id(reassessment.get("checkin_id"))
+        if not checkin:
+            return profile
+
+        if checkin.get("body_weight_kg") is not None:
+            profile["current_weight_kg"] = checkin["body_weight_kg"]
+        # Keep the raw measurements too — available to the template/engines
+        # for progress-over-time display, not just the headline weight.
+        for field in ("waist_cm", "chest_cm", "arms_cm", "thighs_cm", "hips_cm", "body_fat_pct"):
+            if checkin.get(field) is not None:
+                profile[field] = checkin[field]
+    except Exception as e:
+        print(f"[regenerate_plan] could not apply latest check-in to profile for member={member_id}: {e}")
+    return profile
+
+
 @app.post("/api/regenerate", response_class=HTMLResponse)
 async def regenerate_plan(member: dict = Depends(get_current_member)):
     prev_plan = _get_latest_plan_any_status(member["id"])
@@ -1505,5 +1539,6 @@ async def regenerate_plan(member: dict = Depends(get_current_member)):
     # `_xxx` computed keys as it runs, and we don't want that leaking back
     # into the stored intake dict itself.
     profile = dict(intake)
+    profile = _apply_latest_checkin_to_profile(member["id"], profile)
 
     return await _generate_and_save_plan(member, profile, source_label="regenerate")

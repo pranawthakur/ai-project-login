@@ -1625,9 +1625,22 @@ document.querySelectorAll('.ex-stars').forEach(group => {
 
       if (regenRes.ok) {
         const newHtml = await regenRes.text();
-        document.open();
-        document.write(newHtml);
-        document.close();
+        if (window.frameElement) {
+          // We're inside the parent's iframe — reassigning srcdoc triggers a
+          // real navigation, giving us a brand-new JS realm/global object.
+          // (document.open()/write()/close() reuses the CURRENT realm, so
+          // any top-level const/let from the old script — e.g. `sidebar` —
+          // is still declared when the new script runs, throwing
+          // "Identifier has already been declared" and silently killing
+          // every script on the page, which is why tabs stopped working
+          // and only Overview ever showed.)
+          window.frameElement.srcdoc = newHtml;
+        } else {
+          // Fallback if this document isn't embedded in an iframe.
+          document.open();
+          document.write(newHtml);
+          document.close();
+        }
         return; // document has been fully replaced — nothing left to update below
       }
 
