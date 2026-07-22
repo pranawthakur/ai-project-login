@@ -1343,6 +1343,58 @@ def _build_weekly_template(sequence: list, training_days_per_week: int) -> list:
     return template
 
 
+import copy as _copy
+
+
+def expand_days_to_biweekly(data: dict) -> dict:
+    """
+    Mirrors the already-finalized 7-day week into a 14-day list so the
+    rendered plan (day-strip, workout panels, Weekly split rows, and every
+    reps-vs-target progress bar) spans the FULL biweekly cycle instead of
+    just week 1 — and so a member can log week 2's sets separately from
+    week 1's instead of the second week's submissions silently overwriting
+    the first (workout_set_feedback/workout_exercise_feedback are keyed by
+    `day_index`, and day_index only ever went 0-6 before this).
+
+    Deliberately called LAST, after every engine that consumes
+    data["workout"]["days"] for real programming math (volume_allocation,
+    plateau, fatigue, coaching_explanation, etc. in main.py's
+    _generate_and_save_plan) has already run on the canonical 7-day week.
+    Those engines' muscle-frequency/volume assumptions are per real
+    calendar week; duplicating days BEFORE they ran would silently double
+    every frequency count. Duplicating here, purely for rendering/logging,
+    avoids that entirely — no engine ever sees more than 7 days.
+
+    No new SQL table or column: day_index 0-6 is week 1, 7-13 is week 2,
+    same (member_id, cycle_number, day_index, exercise, set_number) key
+    the feedback tables already use disambiguates the two automatically.
+    """
+    days = data.get("workout", {}).get("days", [])
+    if len(days) != 7:
+        # Already expanded, or an unexpected shape (e.g. the emergency
+        # safety-block template) — don't touch it.
+        return data
+
+    week1 = days
+    week2 = []
+    for day in days:
+        d = _copy.deepcopy(day)
+        if not d.get("is_rest") and d.get("name"):
+            d["name"] = f"{d['name']} · Week 2"
+        d["_week"] = 2
+        week2.append(d)
+    for d in week1:
+        d["_week"] = 1
+
+    data["workout"]["days"] = week1 + week2
+
+    schedule = data.get("workout", {}).get("weekly_schedule", [])
+    if len(schedule) == 7:
+        data["workout"]["weekly_schedule"] = schedule + _copy.deepcopy(schedule)
+
+    return data
+
+
 def apply_deterministic_day_labels(data: dict, template: list) -> dict:
     """
     Overwrite name/type/short/is_rest for all 7 days (and weekly_schedule)

@@ -81,6 +81,20 @@
   } else {
     loadFromApi();
   }
+
+  // After a biweekly check-in, the iframe (Templates/result.html) posts the
+  // freshly-regenerated plan HTML up here rather than trying to replace its
+  // own document from inside itself (see that file's checkin handler for
+  // why that self-replacement was unreliable). This reuses the exact same
+  // srcdoc-assignment path as the normal page load above, from a place
+  // (the parent) that isn't itself being torn down and replaced.
+  window.addEventListener("message", (event) => {
+    const data = event.data;
+    if (!data || data.type !== "fitforge:planUpdated" || typeof data.html !== "string") return;
+    document.getElementById("frameWrap").style.display = "block";
+    document.getElementById("empty").style.display = "none";
+    document.getElementById("planFrame").srcdoc = data.html;
+  });
 </script>
 
 </body>

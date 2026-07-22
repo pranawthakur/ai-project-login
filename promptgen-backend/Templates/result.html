@@ -1625,22 +1625,36 @@ document.querySelectorAll('.ex-stars').forEach(group => {
 
       if (regenRes.ok) {
         const newHtml = await regenRes.text();
-        if (window.frameElement) {
-          // We're inside the parent's iframe — reassigning srcdoc triggers a
-          // real navigation, giving us a brand-new JS realm/global object.
-          // (document.open()/write()/close() reuses the CURRENT realm, so
-          // any top-level const/let from the old script — e.g. `sidebar` —
-          // is still declared when the new script runs, throwing
-          // "Identifier has already been declared" and silently killing
-          // every script on the page, which is why tabs stopped working
-          // and only Overview ever showed.)
-          window.frameElement.srcdoc = newHtml;
-        } else {
-          // Fallback if this document isn't embedded in an iframe.
-          document.open();
-          document.write(newHtml);
-          document.close();
+
+        // Ask the PARENT page to swap the iframe's srcdoc, rather than
+        // trying to replace our own document from inside itself.
+        //
+        // Two things this avoids, both of which caused real breakage:
+        //  1. document.open()/write()/close() reuses the CURRENT JS realm,
+        //     so any top-level const/let from the old script (e.g.
+        //     `sidebar`) was still declared when the new script ran,
+        //     throwing "Identifier has already been declared" and killing
+        //     every script on the page — tabs stopped working, only
+        //     Overview ever showed.
+        //  2. Self-reassigning window.frameElement.srcdoc from inside the
+        //     very iframe it belongs to is a known-flaky self-navigation
+        //     pattern — some browsers blank the frame instead of loading
+        //     the new content, which is what produced the white page.
+        //
+        // The parent already does exactly this successfully on every
+        // normal page load (see result.html's loadFromApi()), so this
+        // reuses that same proven path instead of a new one.
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'fitforge:planUpdated', html: newHtml }, '*');
+          return;
         }
+
+        // Fallback if this document somehow isn't embedded in the parent
+        // iframe (e.g. opened standalone) — same realm-reuse caveat as
+        // note 1 above applies here, but there's no parent to hand off to.
+        document.open();
+        document.write(newHtml);
+        document.close();
         return; // document has been fully replaced — nothing left to update below
       }
 

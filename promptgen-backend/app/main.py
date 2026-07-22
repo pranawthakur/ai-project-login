@@ -26,6 +26,7 @@ from app.fitness_generator import (
     enforce_schema,
     render_dashboard,
     apply_deterministic_day_labels,
+    expand_days_to_biweekly,
     build_and_review_workout_days,
     build_deterministic_workout_days,
     build_deterministic_plan_data,
@@ -1328,6 +1329,12 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
 
         if weekly_template:
             data = apply_deterministic_day_labels(data, weekly_template)
+
+        # Render the full biweekly cycle (14 days), not just week 1 — see
+        # expand_days_to_biweekly()'s docstring. Every engine above this
+        # line already ran its real programming math on the canonical
+        # 7-day week, so this is purely a render-time expansion.
+        data = expand_days_to_biweekly(data)
 
         return data, render_dashboard(data)
 
