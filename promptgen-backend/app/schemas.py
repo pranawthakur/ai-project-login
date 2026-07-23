@@ -86,6 +86,13 @@ class CheckinSubmission(BaseModel):
     pain_areas: list[str] = []   # shoulder, elbow, wrist, lower_back, hip, knee, ankle, other
     pain_notes: str | None = None
 
+    # Optional free-text "food problems" note — e.g. an ingredient that's
+    # causing issues, or a new intolerance noticed since the last check-in.
+    # Feeds diet_engine.parse_food_feedback_exclusions() /
+    # parse_allergies() on the next plan regeneration; skipped entirely if
+    # left blank, same posture as pain_notes above.
+    food_feedback: str | None = None
+
     # Optional body measurements — program must continue normally if skipped.
     body_weight_kg: float | None = None
     waist_cm:       float | None = None

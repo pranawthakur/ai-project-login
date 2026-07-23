@@ -92,6 +92,7 @@ def store_checkin(member_id: str, cycle_number: int, payload: dict) -> dict:
         "soreness":       payload["soreness"],
         "pain_areas":     payload.get("pain_areas", []),
         "pain_notes":     payload.get("pain_notes"),
+        "food_feedback":  payload.get("food_feedback"),
         "body_weight_kg": payload.get("body_weight_kg"),
         "waist_cm":       payload.get("waist_cm"),
         "chest_cm":       payload.get("chest_cm"),

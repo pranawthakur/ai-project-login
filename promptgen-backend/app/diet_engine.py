@@ -24,21 +24,36 @@ from __future__ import annotations
 from app.food_database import INGREDIENTS, is_usable, resolve_diet_tier
 
 # Fraction of the day's total calories (and, for simplicity, protein) each
-# slot targets. Sums to 1.0.
+# slot targets. Covers every slot name MEAL_SLOTS_BY_COUNT (fitness_generator.py)
+# can produce for meals_per_day 2-6, not just the old fixed 5-slot set.
+# Fractions within each meals_per_day combination don't need to sum to
+# exactly 1.0 across every possible slot — only the slots actually selected
+# for a given meals_per_day are used, and build_diet_meals() re-normalizes
+# against whichever subset is passed in.
 SLOT_KCAL_FRACTION = {
-    "breakfast": 0.22,
-    "mid":       0.10,
-    "lunch":     0.28,
-    "post":      0.15,
-    "dinner":    0.25,
+    "breakfast":          0.25,
+    "mid_morning_snack":  0.10,
+    "mid":                0.10,   # legacy alias for mid_morning_snack
+    "lunch":              0.30,
+    "pre_workout":        0.10,
+    "post_workout":       0.15,
+    "post":               0.15,   # legacy alias for post_workout
+    "dinner":             0.25,
 }
 SLOT_LABELS = {
-    "breakfast": "Breakfast",
-    "mid":       "Mid-Morning Snack",
-    "lunch":     "Lunch",
-    "post":      "Post-Workout",
-    "dinner":    "Dinner",
+    "breakfast":          "Breakfast",
+    "mid_morning_snack":  "Mid-Morning Snack",
+    "mid":                "Mid-Morning Snack",
+    "lunch":              "Lunch",
+    "pre_workout":        "Pre-Workout Meal",
+    "post_workout":       "Post-Workout Meal",
+    "post":               "Post-Workout Meal",
+    "dinner":             "Dinner",
 }
+
+# Default slot list used only if the caller doesn't pass one in — kept for
+# back-compat with any existing caller that doesn't yet pass meal_slots.
+DEFAULT_MEAL_SLOTS = ["breakfast", "mid", "lunch", "post", "dinner"]
 
 # Per slot: ordered protein-source priority (best/most-typical first), an
 # ordered carb-source priority (None if the slot has no carb component), and
@@ -63,6 +78,12 @@ MEAL_TEMPLATES = {
         "carb_priority": ["white_rice_cooked", "brown_rice_cooked", "roti", "quinoa_cooked"],
         "side": "mixed_sabzi",
     },
+    "pre_workout": {
+        "protein_priority": ["greek_yogurt", "curd_plain", "whey_protein",
+                             "peanut_butter", "almonds"],
+        "carb_priority": ["banana", "oats_dry", "whole_wheat_bread"],
+        "side": None,
+    },
     "post": {
         "protein_priority": ["whey_protein", "egg_whole", "chicken_breast_cooked",
                              "greek_yogurt", "soy_chunks_dry"],
@@ -76,6 +97,10 @@ MEAL_TEMPLATES = {
         "side": "salad_raw",
     },
 }
+# Aliases so every slot name MEAL_SLOTS_BY_COUNT can hand us resolves to a
+# real template without duplicating the dict entries above.
+MEAL_TEMPLATES["mid_morning_snack"] = MEAL_TEMPLATES["mid"]
+MEAL_TEMPLATES["post_workout"] = MEAL_TEMPLATES["post"]
 
 # Sensible rounding per unit type, so portions read like something a person
 # would actually measure out rather than an arbitrary decimal.
@@ -131,18 +156,23 @@ def _eligible(priority_list, user_tier, allergy_set, budget_tier, exclude=()):
 
 
 def _build_option(slot_config, target_kcal, target_protein_g, user_tier, allergy_set,
-                   budget_tier, used_proteins, used_carbs):
+                   budget_tier, used_proteins, used_carbs, variant_offset=0,
+                   extra_exclude_ids=frozenset()):
     proteins = _eligible(slot_config["protein_priority"], user_tier, allergy_set, budget_tier,
-                          exclude=used_proteins)
+                          exclude=set(used_proteins) | extra_exclude_ids)
     if not proteins:
         return None
-    protein_id = proteins[0]
+    # variant_offset rotates the starting pick (wrapping) instead of always
+    # taking proteins[0] — this is what gives "regenerate my diet" (biweekly
+    # food-feedback flow) and repeat cycles genuinely different combinations
+    # rather than recomputing the identical top-of-list choice every time.
+    protein_id = proteins[variant_offset % len(proteins)]
 
     side_id = slot_config.get("side")
     side_component = None
     remaining_kcal = target_kcal
     remaining_protein = target_protein_g
-    if side_id and is_usable(side_id, user_tier, allergy_set, budget_tier):
+    if side_id and side_id not in extra_exclude_ids and is_usable(side_id, user_tier, allergy_set, budget_tier):
         side_grams = INGREDIENTS[side_id]["unit_grams"]
         side_component = _scale(side_id, side_grams)
         remaining_kcal -= side_component["kcal"]
@@ -168,7 +198,7 @@ def _build_option(slot_config, target_kcal, target_protein_g, user_tier, allergy
     carb_id = None
     if slot_config.get("carb_priority"):
         carbs = _eligible(slot_config["carb_priority"], user_tier, allergy_set, budget_tier,
-                           exclude=used_carbs)
+                           exclude=set(used_carbs) | extra_exclude_ids)
         if carbs:
             carb_id = carbs[0]
             carb_ing = INGREDIENTS[carb_id]
@@ -202,26 +232,63 @@ def _build_option(slot_config, target_kcal, target_protein_g, user_tier, allergy
 
 
 def build_diet_meals(daily_kcal: int, daily_protein_g: int, diet_pref_raw: str,
-                      allergy_set: set, budget_tier: str) -> list:
+                      allergy_set: set, budget_tier: str,
+                      meal_slots: list | None = None,
+                      variant_offset: int = 0,
+                      extra_exclude_ids: set | None = None) -> list:
     """
-    Returns the full `diet.meals` array (5 slots, up to 3 options each) built
-    entirely in Python. Drop-in replacement for what Gemini used to generate
-    for this part of the schema.
+    Returns the full `diet.meals` array (one entry per slot in `meal_slots`,
+    up to 3 options each) built entirely in Python. Drop-in replacement for
+    what Gemini used to generate for this part of the schema.
+
+    meal_slots: ordered slot-id list for the member's chosen meals_per_day
+    (see fitness_generator.MEAL_SLOTS_BY_COUNT — pass that straight through).
+    Defaults to the original fixed 5-slot layout if not given, so any older
+    caller that hasn't been updated yet keeps working unchanged.
+
+    variant_offset: rotates which priority-list entry each slot tries first
+    (0 = original behaviour). Used to give repeat "regenerate my diet" calls
+    (biweekly check-in food-feedback flow) genuinely different combinations
+    instead of recomputing the exact same top-of-list picks every time.
+
+    extra_exclude_ids: specific ingredient ids to hard-exclude regardless of
+    allergy/diet/budget filtering — see parse_food_feedback_exclusions()
+    below, which derives this set from a member's free-text "food problems"
+    note on the biweekly check-in.
     """
     user_tier = resolve_diet_tier(diet_pref_raw)
+    exclude_ids = extra_exclude_ids or frozenset()
+    slots = meal_slots or DEFAULT_MEAL_SLOTS
+    # De-dupe while preserving order, in case a caller accidentally passes
+    # both an alias and its canonical name (e.g. "mid" and "mid_morning_snack").
+    seen_slots = set()
+    ordered_slots = []
+    for s in slots:
+        if s not in seen_slots and s in MEAL_TEMPLATES:
+            seen_slots.add(s)
+            ordered_slots.append(s)
+
+    total_frac = sum(SLOT_KCAL_FRACTION.get(s, 0.2) for s in ordered_slots) or 1.0
     meals = []
 
-    for slot, label in SLOT_LABELS.items():
+    for slot in ordered_slots:
         cfg = MEAL_TEMPLATES[slot]
-        frac = SLOT_KCAL_FRACTION[slot]
+        label = SLOT_LABELS.get(slot, slot.replace("_", " ").title())
+        # Normalize against only the slots actually in play, so e.g. a
+        # 3-meal day (breakfast/lunch/dinner) still adds up to ~100% of
+        # daily_kcal instead of the ~80% those three fractions summed to
+        # in the original fixed 5-slot table.
+        frac = SLOT_KCAL_FRACTION.get(slot, 0.2) / total_frac
         target_kcal = daily_kcal * frac
         target_protein = daily_protein_g * frac
 
         options = []
         used_proteins, used_carbs = [], []
-        for _ in range(3):
+        for i in range(3):
             opt = _build_option(cfg, target_kcal, target_protein, user_tier,
-                                 allergy_set, budget_tier, used_proteins, used_carbs)
+                                 allergy_set, budget_tier, used_proteins, used_carbs,
+                                 variant_offset=variant_offset + i,
+                                 extra_exclude_ids=exclude_ids)
             if opt is None:
                 break
             used_proteins.append(opt["_protein_id"])
@@ -263,6 +330,27 @@ def parse_allergies(allergies_raw: str) -> set:
     if not text or text.strip() == "none":
         return set()
     return {tag for tag, kws in ALLERGY_KEYWORDS.items() if any(kw in text for kw in kws)}
+
+
+# ── Free-text "food problems" parsing (biweekly check-in) ──────────────────
+# Two independent things a member might mean by "food problem" on check-in:
+#   1. A category-level issue matching the same tags as the intake-form
+#      allergies field ("started reacting to dairy") — reuse parse_allergies
+#      on this text too rather than inventing a second keyword table.
+#   2. A specific ingredient dislike/issue ("the paneer options upset my
+#      stomach", "sick of chicken breast every day") — matched here directly
+#      against every ingredient's display name, so it gets hard-excluded by
+#      id regardless of allergy/diet-tier/budget filtering.
+def parse_food_feedback_exclusions(food_feedback_raw: str) -> set:
+    text = (food_feedback_raw or "").lower().strip()
+    if not text or text == "none":
+        return set()
+    excluded = set()
+    for ingredient_id, ing in INGREDIENTS.items():
+        name = ing["name"].lower()
+        if name in text or ingredient_id.replace("_", " ") in text:
+            excluded.add(ingredient_id)
+    return excluded
 
 
 def resolve_budget_tier(budget_raw: str) -> str:

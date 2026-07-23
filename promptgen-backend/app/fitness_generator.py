@@ -2084,23 +2084,30 @@ def build_deterministic_plan_data(profile: dict) -> dict:
         weight_to_lose = "—"
 
     allergy_set = diet_engine.parse_allergies(profile.get("allergies", "none"))
+    # Also fold biweekly-checkin "food problems" free text into the same
+    # tag set (e.g. "started reacting to dairy") — see
+    # diet_engine.parse_food_feedback_exclusions's own docstring for why
+    # this is handled separately from the specific-ingredient half of that
+    # function, which is applied via extra_exclude_ids below instead.
+    allergy_set |= diet_engine.parse_allergies(profile.get("food_feedback_notes", "none"))
     budget_tier = diet_engine.resolve_budget_tier(profile.get("budget", "medium"))
-    # KNOWN LIMITATION, not silently worked around: build_diet_meals()
-    # always returns exactly 5 meal slots — it has no meals_per_day
-    # parameter, unlike the old LLM-based path which was (loosely) steered
-    # toward the requested count via the prompt. If profile["meals_per_day"]
-    # isn't 5, enforce_schema()'s existing _meal_count_warning check (see
-    # below in this file) will correctly flag the mismatch — surfaced
-    # honestly rather than hidden. Supporting variable meal counts would
-    # mean genuinely extending diet_engine's slot-merging logic, not a
-    # quick parameter add; left as a real follow-up, not bundled into this
-    # change.
+    food_exclude_ids = diet_engine.parse_food_feedback_exclusions(
+        profile.get("food_feedback_notes", "none")
+    )
+    # meals_per_day now genuinely drives which named slots get built (2-6,
+    # via the same MEAL_SLOTS_BY_COUNT table the workout side already used)
+    # instead of build_diet_meals() always returning a fixed 5 slots
+    # regardless of what the member picked on the dashboard.
+    meal_slots = _meal_slots_for_count(profile.get("meals_per_day", 5))
     meals = diet_engine.build_diet_meals(
         daily_kcal=m["target_kcal"],
         daily_protein_g=m["protein_g_mid"],
         diet_pref_raw=profile.get("diet_pref", "non-vegetarian"),
         allergy_set=allergy_set,
         budget_tier=budget_tier,
+        meal_slots=meal_slots,
+        variant_offset=profile.get("_cycle_number", 1) - 1,
+        extra_exclude_ids=food_exclude_ids,
     )
 
     recovery = recovery_tips_engine.build_recovery_section(
@@ -2181,12 +2188,13 @@ def enforce_schema(data: dict, profile: dict | None = None) -> dict:
                     f"below the requested minimum of {min_expected}. Consider regenerating."
                 )
 
-    # STEP (Meals-Per-Day Enforcement): the prompt now asks for an exact,
-    # named set of meal slots derived from profile["meals_per_day"] (see
-    # _meal_slots_for_count / MEAL_SLOTS_BY_COUNT above), but the LLM can
-    # still ignore that and return the wrong number of meals. Flag it here,
-    # the same way low exercise counts / missing warmups are flagged, so a
-    # mismatch is visible instead of silently shipping the wrong meal count.
+    # STEP (Meals-Per-Day Enforcement): diet.meals is now built deterministically
+    # by diet_engine.build_diet_meals() using meal_slots derived from
+    # profile["meals_per_day"] (see _meal_slots_for_count / MEAL_SLOTS_BY_COUNT
+    # above), so this should always match — this check stays as a safety net
+    # (e.g. a slot silently dropped because every ingredient option for it got
+    # filtered out by allergy/budget/diet-tier constraints) rather than
+    # something expected to fire under normal conditions.
     if profile is not None and "meals_per_day" in profile:
         try:
             expected_meals = len(_meal_slots_for_count(profile.get("meals_per_day", 5)))
@@ -2195,7 +2203,8 @@ def enforce_schema(data: dict, profile: dict | None = None) -> dict:
         if expected_meals is not None and len(data["diet"].get("meals", [])) != expected_meals:
             data["diet"]["_meal_count_warning"] = (
                 f"Requested {expected_meals} meals/day but {len(data['diet'].get('meals', []))} "
-                f"meal slot(s) were generated — the LLM did not honour meals_per_day."
+                f"meal slot(s) were generated — one or more slots may have been dropped due to "
+                f"allergy/diet/budget filtering leaving no eligible ingredients."
             )
 
     # Ensure each meal has full macro fields

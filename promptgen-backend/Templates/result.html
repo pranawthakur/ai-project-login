@@ -933,6 +933,12 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
               <textarea name="pain_notes" class="ci-input" rows="2"></textarea>
             </div>
 
+            <div>
+              <label class="ci-label">Any food problems? (optional)</label>
+              <textarea name="food_feedback" class="ci-input" rows="2"
+                        placeholder="e.g. paneer upsets my stomach, developed a dairy issue, tired of chicken breast..."></textarea>
+            </div>
+
             <div class="sec-label" style="margin-top:4px">Body measurements (optional)</div>
             <div class="set-grid">
               <div><label class="ci-label">Weight (kg)</label><input type="number" step="0.1" name="body_weight_kg" class="ci-input"></div>
@@ -1623,6 +1629,7 @@ document.querySelectorAll('.ex-stars').forEach(group => {
         soreness: fd.get('soreness'),
         pain_areas: fd.getAll('pain_areas'),
         pain_notes: fd.get('pain_notes') || null,
+        food_feedback: fd.get('food_feedback') || null,
         body_weight_kg: numOrNull(fd.get('body_weight_kg')),
         waist_cm: numOrNull(fd.get('waist_cm')),
         chest_cm: numOrNull(fd.get('chest_cm')),

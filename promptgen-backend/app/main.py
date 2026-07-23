@@ -33,6 +33,7 @@ from app.fitness_generator import (
     build_deterministic_workout_days,
     build_deterministic_plan_data,
     ACTIVITY_LABEL,
+    _meal_slots_for_count,
 )
 from app.safety_engine import (
     safety_gate,
@@ -1325,7 +1326,12 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
         # guessed.
         phase_data = data["diet"]["phase"]
         allergy_set = diet_engine.parse_allergies(profile.get("allergies", "none"))
+        allergy_set |= diet_engine.parse_allergies(profile.get("food_feedback_notes", "none"))
         budget_tier = diet_engine.resolve_budget_tier(profile.get("budget", "medium"))
+        food_exclude_ids = diet_engine.parse_food_feedback_exclusions(
+            profile.get("food_feedback_notes", "none")
+        )
+        meal_slots = _meal_slots_for_count(profile.get("meals_per_day", 5))
         protein_g = phase_data["macro_split"]["protein_g"]
         data["diet"]["meals"] = diet_engine.build_diet_meals(
             daily_kcal=phase_data["target_kcal"],
@@ -1333,6 +1339,9 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
             diet_pref_raw=profile.get("diet_pref", "non-vegetarian"),
             allergy_set=allergy_set,
             budget_tier=budget_tier,
+            meal_slots=meal_slots,
+            variant_offset=cycle_number - 1,
+            extra_exclude_ids=food_exclude_ids,
         )
         data.setdefault("plan", {})["daily_calories"] = phase_data["target_kcal"]
         data["plan"]["daily_protein_g"] = protein_g
@@ -1539,6 +1548,14 @@ def _apply_latest_checkin_to_profile(member_id: str, profile: dict) -> dict:
         for field in ("waist_cm", "chest_cm", "arms_cm", "thighs_cm", "hips_cm", "body_fat_pct"):
             if checkin.get(field) is not None:
                 profile[field] = checkin[field]
+        # Same idea for diet: a member's "food problems" note from their
+        # most recent check-in should actually reach the next plan's
+        # diet.meals build (see diet_engine.parse_allergies /
+        # parse_food_feedback_exclusions, both read via profile
+        # ["food_feedback_notes"] in build_deterministic_plan_data and the
+        # phase-driven diet.meals rebuild further down in _run()).
+        if checkin.get("food_feedback"):
+            profile["food_feedback_notes"] = checkin["food_feedback"]
     except Exception as e:
         print(f"[regenerate_plan] could not apply latest check-in to profile for member={member_id}: {e}")
     return profile
