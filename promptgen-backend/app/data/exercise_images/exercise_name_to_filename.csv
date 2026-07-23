@@ -1,0 +1,355 @@
+exercise_name,expected_filename
+"21s Bicep Curl",21s_curl.webp
+"Ab Wheel Rollout",ab_wheel_rollout.webp
+"Adductor Ball Squeeze",adductor_squeeze.webp
+"Archer Pull-Up",archer_pull_up.webp
+"Arnold Press",arnold_press.webp
+"Assisted Dip Machine",assisted_dips_machine.webp
+"Assisted Pistol Squat",assisted_pistol_squat.webp
+"Assisted Pull-Up Machine",assisted_pull_up.webp
+"Assisted Split Squat",assisted_split_squat.webp
+"Back Extension (Hyperextension)",back_extension.webp
+"Band Calf Raise",banded_calf_raise.webp
+"Band Chest Fly",banded_fly.webp
+"Band Chest Press",resistance_band_chest_press.webp
+"Band Curl",band_curl.webp
+"Band External Rotation",band_external_rotation.webp
+"Band Face Pull",band_face_pull.webp
+"Band Glute Bridge",banded_glute_bridge.webp
+"Band Good Morning",banded_good_morning.webp
+"Band Hip Abduction (Lateral Walk)",band_hip_abduction.webp
+"Band Internal Rotation",band_internal_rotation.webp
+"Band Lat Pulldown",banded_pulldown.webp
+"Band Lateral Raise",band_lateral_raise.webp
+"Band Overhead Press",band_shoulder_press.webp
+"Band Pallof Press",band_pallof_press.webp
+"Band Pull-Apart",banded_pull_apart.webp
+"Band Row",resistance_band_row.webp
+"Band Shoulder Dislocate (Mobility)",banded_shoulder_dislocate.webp
+"Band Triceps Pushdown",band_pushdown.webp
+"Band-Assisted Pistol Squat",resistance_band_pistol_squat.webp
+"Band-Assisted Pull-Up",band_assisted_pull_up.webp
+"Band-Resisted Hip Thrust",banded_hip_thrust.webp
+"Band-Resisted Squat",banded_squat.webp
+"Banded Lateral Squat Walk",banded_lateral_squat_walk.webp
+"Banded Lateral Walk",banded_walk.webp
+"Banded Monster Walk",banded_terminal_knee_ext_walk.webp
+"Barbell Back Squat",barbell_back_squat.webp
+"Barbell Bench Press",barbell_bench_press.webp
+"Barbell Bent-Over Row",barbell_bent_over_row.webp
+"Barbell Curl",barbell_curl.webp
+"Barbell Front Squat",barbell_front_squat.webp
+"Barbell Hip Thrust",hip_thrust.webp
+"Barbell Overhead Press",overhead_press.webp
+"Barbell Shrug",shrug.webp
+"Barbell Walking Lunge",barbell_walking_lunge.webp
+"Barbell Wrist Curl",wrist_curl.webp
+"Belt Squat",belt_squat.webp
+"Bench Dip",bench_dip.webp
+"Bent-Over Lateral Raise",bent_over_lateral_raise.webp
+"Bicycle Crunch",bicycle_crunch.webp
+"Bird Dog",bird_dog.webp
+"Bodyweight Calf Raise",bodyweight_calf_raise.webp
+"Bodyweight Squat",bodyweight_squat.webp
+"Bottoms-Up Kettlebell Press",bottoms_up_kb_press.webp
+"Box Squat",box_squat.webp
+"Box Step-Down",box_step_down.webp
+"Bulgarian Split Squat",bulgarian_split_squat.webp
+"Cable Chest Press",cable_chest_press.webp
+"Cable Concentration Curl",cable_concentration_curl.webp
+"Cable Crunch",cable_crunch.webp
+"Cable Curl",cable_curl.webp
+"Cable External Rotation",external_rotation_cable.webp
+"Cable Fly",cable_fly.webp
+"Cable Glute Kickback",glute_kickback.webp
+"Cable Hammer Curl (Rope)",cable_hammer_curl.webp
+"Cable Internal Rotation",internal_rotation_cable.webp
+"Cable Lateral Raise",cable_lateral_raise.webp
+"Cable Overhead Press",cable_shoulder_press.webp
+"Cable Overhead Triceps Extension (Rope)",cable_overhead_tricep_rope.webp
+"Cable Pull-Through",cable_pull_through.webp
+"Cable Pull-Through (Glute Focus)",cable_pull_through_glute.webp
+"Cable Pullover",cable_pullover.webp
+"Cable Rear Delt Fly",cable_rear_delt_fly.webp
+"Cable Reverse Crunch",cable_reverse_crunch.webp
+"Cable Row (Neutral Grip)",cable_row_wide_neutral.webp
+"Cable Shrug",cable_shrug.webp
+"Cable Side Bend",cable_side_bend.webp
+"Cable Triceps Kickback",cable_kickback.webp
+"Cable Woodchop",cable_woodchop.webp
+"Cable Y-Raise",cable_y_raise.webp
+"Calf Press (Machine)",calf_press_machine.webp
+"Chest Dips",dips_chest.webp
+"Chest-Supported Dumbbell Row",chest_supported_db_row.webp
+"Chest-Supported Row Machine",machine_row.webp
+"Chest-Supported T-Bar Row",chest_supported_t_bar_row.webp
+"Chest-to-Bar Pull-Up",chest_to_bar_pull_up.webp
+"Chin-Up",chin_up.webp
+"Chin-Up (Bicep Emphasis)",chin_up_bicep_focus.webp
+"Clamshell",clamshell.webp
+"Close-Grip Bench Press",close_grip_bench_press.webp
+"Close-Grip Bench Press (Triceps Focus)",close_grip_bench.webp
+"Close-Grip Lat Pulldown",close_grip_lat_pulldown.webp
+"Close-Grip Push-Up",close_grip_push_up.webp
+"Combo Lat-Row Machine",machine_lat_row_combo.webp
+"Concentration Curl",concentration_curl.webp
+"Copenhagen Plank",copenhagen_plank.webp
+"Cossack Squat",cossack_squat.webp
+"Cross-Body Hammer Curl",cross_body_hammer_curl.webp
+"Crunch",crunch.webp
+"Curtsy Lunge",curtsy_lunge.webp
+"Cyclist (Heel-Elevated) Squat",cyclist_squat.webp
+"Dead Bug",dead_bug.webp
+"Dead Hang",dead_hang.webp
+"Decline Bench Press",decline_bench_press.webp
+"Decline Push-Up",decline_push_up.webp
+"Decline Sit-Up",decline_sit_up.webp
+"Deficit Reverse Lunge",deficit_reverse_lunge.webp
+"Diamond Push-Up",diamond_push_up.webp
+"Diamond Push-Up (Triceps Focus)",diamond_push_up_triceps.webp
+"Donkey Calf Raise",donkey_calf_raise.webp
+"Drag Curl",drag_curl.webp
+"Dumbbell 21s Curl",db_curl_21s.webp
+"Dumbbell Bench Press",dumbbell_bench_press.webp
+"Dumbbell Calf Raise",dumbbell_calf_raise.webp
+"Dumbbell Curl",dumbbell_curl.webp
+"Dumbbell Fly",dumbbell_fly.webp
+"Dumbbell Lateral Raise",lateral_raise.webp
+"Dumbbell Pullover",pullover.webp
+"Dumbbell Shoulder Press",dumbbell_shoulder_press.webp
+"Dumbbell Shrug",dumbbell_shrug.webp
+"Dumbbell Side Bend",dumbbell_side_bend.webp
+"Dumbbell Step-Through Lunge",dumbbell_step_through_lunge.webp
+"Dumbbell W-Press",dumbbell_w_press.webp
+"Dumbbell Wrist Curl",dumbbell_wrist_curl.webp
+"EZ-Bar Curl",ez_bar_curl.webp
+"Face Pull",face_pull.webp
+"Fat-Grip Barbell Curl",fat_bar_curl.webp
+"Feet-High Leg Press (Glute Focus)",cyclist_leg_press.webp
+"Fire Hydrant",fire_hydrant.webp
+"Floor Press",floor_press.webp
+"Flutter Kick",flutter_kick.webp
+"Forward Lunge",forward_lunge.webp
+"French Press (Seated Overhead)",french_press.webp
+"Frog Pump",frog_pump.webp
+"Front Rack Carry",front_rack_carry.webp
+"Front Raise",front_raise.webp
+"Front-Foot-Elevated Split Squat",front_foot_elevated_split_squat.webp
+"Glute Bridge",glute_bridge.webp
+"Goblet Box Squat",goblet_box_squat.webp
+"Goblet Good Morning",goblet_good_morning.webp
+"Goblet Pulse Squat",goblet_pulse_squat.webp
+"Goblet Squat",goblet_squat.webp
+"Good Morning",good_morning.webp
+"Gorilla Row (Kettlebell)",gorilla_row.webp
+"Guillotine Press",guillotine_press.webp
+"Hack Squat (Machine)",hack_squat_machine.webp
+"Half-Kneeling Landmine Anti-Rotation Press",landmine_press_core.webp
+"Half-Kneeling Landmine Press",half_kneeling_landmine_press.webp
+"Hammer Curl",hammer_curl.webp
+"Hand Gripper Squeeze",gripper_squeeze.webp
+"Handstand Push-Up",handstand_push_up.webp
+"Hanging Knee Raise",hanging_knee_raise.webp
+"Hanging Leg Raise",hanging_leg_raise.webp
+"Hex Press (Squeeze Press)",hex_press.webp
+"High Bar Back Squat",high_bar_back_squat.webp
+"High-to-Low Cable Fly",high_to_low_cable_fly.webp
+"Hinge-Pattern Row Hold",meadows_row_hinge.webp
+"Hip Abduction Machine",hip_abduction_machine.webp
+"Hip Adduction Machine",hip_adduction_machine.webp
+"Hip Thrust Machine",hip_thrust_machine.webp
+"Hollow Body Hold",hollow_body_hold.webp
+"Incline Barbell Bench Press",incline_barbell_bench_press.webp
+"Incline Bench Y-Raise",incline_y_raise.webp
+"Incline Dumbbell Curl",incline_dumbbell_curl.webp
+"Incline Dumbbell Fly",incline_dumbbell_fly.webp
+"Incline Dumbbell Press",incline_db_press.webp
+"Incline Push-Up",incline_push_up.webp
+"Inverted Row",inverted_row.webp
+"Isolated Dumbbell Pullover (Lat Focus)",dumbbell_pullover_iso.webp
+"Isometric Split Squat Hold",elevated_split_squat_iso_hold.webp
+"JM Press",jm_press.webp
+"Jump Rope (Calf Endurance)",jump_rope_calf.webp
+"Jump Squat",jump_squat.webp
+"Kettlebell Curl",kettlebell_curl.webp
+"Kettlebell Front Squat (Double)",kb_front_squat.webp
+"Kettlebell Goblet Reverse Lunge",kb_goblet_reverse_lunge.webp
+"Kettlebell Goblet Squat",kettlebell_goblet_squat.webp
+"Kettlebell Overhead Press",kettlebell_overhead_press.webp
+"Kettlebell Reverse Lunge",kb_reverse_lunge.webp
+"Kettlebell Side Bend",weighted_side_bend_kb.webp
+"Kettlebell Swing",kettlebell_swing.webp
+"Kipping Pull-Up",kipping_pull_up.webp
+"Knee Plank",knee_plank.webp
+"Kroc Row",kroc_row.webp
+"L-Sit Pull-Up",l_sit_pull_up.webp
+"Landmine Press",landmine_press.webp
+"Landmine Rotation (360)",landmine_rotation.webp
+"Landmine Row",landmine_row.webp
+"Landmine Shoulder Press",landmine_shoulder_press.webp
+"Landmine Squat",landmine_squat.webp
+"Landmine Triceps Extension",landmine_triceps_extension.webp
+"Lat Pulldown",lat_pulldown.webp
+"Lateral Lunge",lateral_lunge.webp
+"Lateral Step-Up",lateral_step_up.webp
+"Leaning Cable Lateral Raise",leaning_lateral_raise.webp
+"Leg Extension",leg_extension.webp
+"Leg Press",leg_press.webp
+"Leg Press Calf Raise",leg_press_calf_raise.webp
+"Low Bar Back Squat",low_bar_back_squat.webp
+"Low-to-High Cable Fly",low_to_high_cable_fly.webp
+"Lying Leg Curl",leg_curl_lying.webp
+"Lying Leg Raise",lying_leg_raise.webp
+"Machine Chest Press",machine_chest_press.webp
+"Machine Decline Chest Press",machine_decline_press.webp
+"Machine Glute Kickback",glute_kickback_machine.webp
+"Machine High Row",machine_high_row.webp
+"Machine Hip Thrust",machine_hip_thrust.webp
+"Machine Incline Chest Press",machine_incline_press.webp
+"Machine Lat Pullover",machine_lat_pullover.webp
+"Machine Lateral Raise",machine_lateral_raise.webp
+"Machine Preacher Curl",machine_preacher_curl.webp
+"Machine Pulldown (Plate-Loaded)",machine_pulldown.webp
+"Machine Rear Delt Row",machine_rear_delt_row.webp
+"Machine Shoulder Press",machine_shoulder_press.webp
+"Machine Squat Press",machine_squat_press.webp
+"Machine Triceps Extension",machine_triceps_extension.webp
+"Machine-Assisted Row",machine_assisted_row.webp
+"Meadows Row",meadows_row.webp
+"Mountain Climber",mountain_climber.webp
+"Neutral-Grip Dumbbell Shoulder Press",db_shoulder_press_neutral_grip.webp
+"Neutral-Grip Pulldown",neutral_grip_pulldown.webp
+"Nordic Hamstring Curl",nordic_curl.webp
+"Overhead Squat",overhead_squat.webp
+"Overhead Triceps Extension",overhead_triceps_extension.webp
+"Pallof Press",pallof_press.webp
+"Paused Back Squat",paused_back_squat.webp
+"Paused Bench Press",paused_bench_press.webp
+"Pec Deck / Chest Fly Machine",pec_deck.webp
+"Pendlay Row",pendlay_row.webp
+"Pendulum Squat Machine",pendulum_squat.webp
+"Pike Push-Up",pike_push_up.webp
+"Pistol Squat",pistol_squat.webp
+"Plank",plank.webp
+"Plank Shoulder Tap",plank_shoulder_tap.webp
+"Plate Front Raise",plate_front_raise.webp
+"Plate Front Raise (Iso Hold)",plate_front_raise_iso.webp
+"Plate Pinch Hold",plate_pinch.webp
+"Plate Squeeze Press",plate_squeeze_press.webp
+"Preacher Curl",preacher_curl.webp
+"Preacher Hammer Curl",preacher_hammer_curl.webp
+"Prone T-Raise",prone_t_raise.webp
+"Prone Y-Raise (Rotator Cuff)",prone_y_raise.webp
+"Pull-Up",pull_up.webp
+"Push Press",push_press.webp
+"Push-Up",push_up.webp
+"Rear Delt Fly",rear_delt_fly.webp
+"Rear-Delt Focused Row",rear_delt_row.webp
+"Renegade Row",renegade_row.webp
+"Reverse Crunch",reverse_crunch.webp
+"Reverse Curl",reverse_curl.webp
+"Reverse Hyperextension",reverse_hyperextension.webp
+"Reverse Lunge",reverse_lunge.webp
+"Reverse Pec Deck",reverse_pec_deck.webp
+"Reverse Wrist Curl",reverse_wrist_curl.webp
+"Reverse-Grip Triceps Pushdown",reverse_grip_pushdown.webp
+"Rice Bucket Training",rice_bucket_training.webp
+"Russian Twist",russian_twist.webp
+"Safety Bar Squat",safety_bar_squat.webp
+"Sandbag Carry",sandbag_carry.webp
+"Scapular Pull-Up",scapular_pull_up.webp
+"Scott (Cuban) Press",scott_press.webp
+"Seal Row",seal_row.webp
+"Seated Band Calf Raise",seated_band_calf_raise.webp
+"Seated Barbell Overhead Press",seated_barbell_press.webp
+"Seated Cable Row",cable_row.webp
+"Seated Calf Raise",seated_calf_raise.webp
+"Seated Dumbbell Shoulder Press",seated_dumbbell_press.webp
+"Seated Leg Curl",leg_curl_seated.webp
+"Side Plank",side_plank.webp
+"Single-Arm Cable Fly",single_arm_cable_fly.webp
+"Single-Arm Cable Row",single_arm_cable_row.webp
+"Single-Arm Dumbbell Bench Press",single_arm_db_press.webp
+"Single-Arm Dumbbell Overhead Press",single_arm_db_press_vertical.webp
+"Single-Arm Dumbbell Row",dumbbell_row.webp
+"Single-Arm Dumbbell Skull Crusher",db_skull_crusher_single_arm.webp
+"Single-Arm Kettlebell Swing",single_arm_kb_swing.webp
+"Single-Arm Lat Pulldown",single_arm_lat_pulldown.webp
+"Single-Arm Triceps Pushdown",single_arm_pushdown.webp
+"Single-Leg Box Squat",box_squat_single_leg.webp
+"Single-Leg Calf Raise",single_leg_calf_raise.webp
+"Single-Leg Glute Bridge",single_leg_glute_bridge.webp
+"Single-Leg Hip Thrust",single_leg_hip_thrust.webp
+"Single-Leg Leg Press",single_leg_leg_press.webp
+"Single-Leg Weighted Calf Raise",single_leg_weighted_calf_raise.webp
+"Sissy Squat",sissy_squat.webp
+"Skull Crusher (Lying Triceps Extension)",skull_crusher.webp
+"Smith Machine Bench Press",smith_machine_bench_press.webp
+"Smith Machine Calf Raise",smith_machine_calf_raise.webp
+"Smith Machine Incline Press",smith_incline_press.webp
+"Smith Machine Lunge",smith_machine_lunge.webp
+"Smith Machine Shoulder Press",smith_machine_shoulder_press.webp
+"Smith Machine Split Squat",smith_machine_split_squat.webp
+"Smith Machine Squat",smith_machine_squat.webp
+"Spanish Squat",spanish_squat.webp
+"Spider Curl",spider_curl.webp
+"Split Squat",split_squat.webp
+"Stability Ball Leg Curl",swiss_ball_leg_curl.webp
+"Stability Ball Pike",stability_ball_pike.webp
+"Stability Ball Stir-the-Pot",stir_the_pot.webp
+"Standing Cable Crunch",standing_cable_crunch.webp
+"Standing Cable Hip Abduction",cable_hip_abduction.webp
+"Standing Calf Raise",standing_calf_raise.webp
+"Standing Single-Arm Cable Press",standing_cable_press.webp
+"Standing Single-Leg Curl",standing_leg_curl.webp
+"Step-Up",step_up.webp
+"Straight-Arm Lat Pulldown (Rope)",straight_arm_pulldown_lats.webp
+"Straight-Arm Pulldown",straight_arm_pulldown.webp
+"Straight-Bar Triceps Pushdown",straight_bar_pushdown.webp
+"Suitcase Carry",suitcase_carry.webp
+"Suitcase Carry (Anti-Lateral-Flexion)",suitcase_carry_core.webp
+"Sumo Squat",sumo_squat.webp
+"Sumo Squat Machine",machine_adduction_squat.webp
+"Suspension Trainer Pull-Up Row",suspension_pull_up.webp
+"Suspension Trainer Push-Up",suspension_trainer_push_up.webp
+"Suspension Trainer Row",suspension_row.webp
+"Svend Press",svend_press.webp
+"T-Bar Row",t_bar_row.webp
+"Tate Press",tate_press.webp
+"Tempo Back Squat (3-1-1)",tempo_back_squat.webp
+"Terminal Knee Extension (Band)",terminal_knee_extension.webp
+"Tibialis Raise",tibialis_raise.webp
+"Toe Touch",toe_touch.webp
+"Towel Grip Pull-Up",towel_pull_up.webp
+"Trap Bar Carry",trap_bar_carry.webp
+"Triceps Dips",dips_triceps.webp
+"Triceps Kickback",kickback.webp
+"Triceps Pushdown (Rope)",triceps_pushdown.webp
+"Unilateral Leg Press",single_leg_press.webp
+"Upright Row",upright_row.webp
+"V-Bar Triceps Pushdown",v_bar_pushdown.webp
+"V-Squat Machine",v_squat_machine.webp
+"V-Up",v_up.webp
+"Viking Press (Machine)",viking_press_machine.webp
+"Waiter Curl",waiter_curl.webp
+"Walking Lunge",walking_lunge.webp
+"Wall Sit",wall_sit.webp
+"Wall Slide (Shoulder Mobility)",wall_slide.webp
+"Weighted Back Extension",weighted_back_extension.webp
+"Weighted Chin-Up",weighted_chin_up.webp
+"Weighted Crunch",weighted_crunch.webp
+"Weighted Dead Hang",weighted_dead_hang.webp
+"Weighted Hanging Leg Raise",weighted_hanging_leg_raise.webp
+"Weighted Inverted Row",weighted_inverted_row.webp
+"Weighted Plank",weighted_plank.webp
+"Weighted Pull-Up",weighted_pull_up.webp
+"Weighted Push-Up",weighted_push_up.webp
+"Weighted Russian Twist",weighted_russian_twist.webp
+"Weighted Side Plank",weighted_side_plank.webp
+"Wide-Grip Cable Row",wide_grip_cable_row.webp
+"Wide-Grip Lat Pulldown",wide_grip_lat_pulldown.webp
+"Wrist Roller",wrist_roller.webp
+"Y-Raise",y_raise.webp
+"Z-Press",z_press.webp
+"Zercher Squat",zercher_squat.webp
+"Zottman Curl",zottman_curl.webp

@@ -1,7 +1,9 @@
 import asyncio
+import os
 import traceback
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Depends, HTTPException, Request, Form, Header, Body
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import settings
@@ -144,6 +146,20 @@ class ManualCORS(BaseHTTPMiddleware):
 
 app = FastAPI(title="Prompt Generator API")
 app.add_middleware(ManualCORS)
+
+# ── Exercise reference images ───────────────────────────────────────────────
+# Static webP images, one per exercise, named after that exercise's
+# `_exercise_id` slug (e.g. barbell_back_squat.webp). Served read-only;
+# missing files are expected (not every exercise has art yet) and are
+# handled client-side via the <img onerror> fallback in Templates/result.html,
+# not here.
+_EXERCISE_IMAGES_DIR = os.path.join(os.path.dirname(__file__), "data", "exercise_images")
+os.makedirs(_EXERCISE_IMAGES_DIR, exist_ok=True)
+app.mount(
+    "/static/exercise-images",
+    StaticFiles(directory=_EXERCISE_IMAGES_DIR),
+    name="exercise_images",
+)
 
 # ── In-flight request dedup ─────────────────────────────────────────────────
 # Keyed by user id. If the same user's browser fires a second /result request
