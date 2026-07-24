@@ -27,6 +27,7 @@ Changes vs original:
 ──────────────────────────────────────────────────────────────────────────────
 """
 
+import hashlib
 import json
 import math
 import random
@@ -1104,12 +1105,61 @@ def build_deterministic_workout_days(profile: dict, weekly_template: list, vol: 
 # still calls build_deterministic_workout_days() directly and has no
 # Trainer Review pass — that's a separate, non-API code path, not the
 # live /result route).
+def _review_input_fingerprint(days: list, profile: dict, condition_flags: dict) -> str:
+    """Deterministic hash of everything that actually influences Trainer
+    Review's answer: the deterministic days (name/muscle/sets/reps per
+    exercise, day-by-day) plus the profile fields review_prompt actually
+    reads (goal/experience/equipment/medical_notes) plus condition_flags.
+    Two generations with an identical fingerprint are guaranteed to
+    produce the same deterministic candidate whitelist and therefore the
+    same review question — so a cached prior answer is still valid, not
+    just probably-still-valid.
+    """
+    day_summaries = []
+    for day in days:
+        if day.get("is_rest") or not day.get("exercises"):
+            continue
+        day_summaries.append([
+            {
+                "name": ex["name"],
+                "muscle": ex["muscle"],
+                "sets": ex.get("sets"),
+                "reps": ex.get("reps"),
+            }
+            for ex in day["exercises"]
+        ])
+
+    payload = {
+        "days": day_summaries,
+        "goal": profile.get("goal", ""),
+        "experience": profile.get("experience", ""),
+        "equipment": profile.get("equipment", ""),
+        "medical_notes": profile.get("medical_notes") or profile.get("notes") or "",
+        "condition_flags": condition_flags,
+    }
+    blob = json.dumps(payload, sort_keys=True, default=str)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
 async def build_and_review_workout_days(
     profile: dict, weekly_template: list, vol: dict, llm_caller,
+    prev_review_cache: dict | None = None,
 ) -> dict:
     """
     Full pipeline: build the deterministic workout days (unchanged core),
     then run them through Trainer Review and Python Review Validation.
+
+    `prev_review_cache`, if given, is the {"input_fingerprint": str,
+    "items": list} saved from the member's last generation (see
+    _review_input_fingerprint above). If the CURRENT deterministic days +
+    goal/experience/equipment/medical_notes fingerprint exactly matches
+    it, Trainer Review already answered this exact question last cycle —
+    Gemini is not called again; the same "items" (keep/substitute/flag
+    decisions) are re-validated fresh through review_validation.py against
+    THIS cycle's candidates before being applied, so nothing is trusted
+    blindly just because the input matched. A cache miss (no prior cache,
+    or anything changed) falls through to a normal live call, unchanged
+    from before.
 
     Returns:
         {
@@ -1117,7 +1167,11 @@ async def build_and_review_workout_days(
           "trainer_review": {
               "accepted": [...], "rejected": [...], "flags": [...],
               "parse_error": str | None,
+              "cached": bool,        # True if Gemini was skipped this cycle
           },
+          "review_cache": {"input_fingerprint": str, "items": list},
+              # hand this back in as prev_review_cache on the NEXT
+              # generation for this member
         }
 
     Fail-safe: if the Gemini call itself raises (network/timeout/API
@@ -1131,19 +1185,54 @@ async def build_and_review_workout_days(
     notes_raw = profile.get("medical_notes") or profile.get("notes") or ""
     condition_flags = get_condition_intensity_flags(notes_raw)
 
-    try:
-        review = await trainer_review_mod.review_workout(
-            days=days, profile=profile, condition_flags=condition_flags,
-            llm_caller=llm_caller,
-        )
-    except Exception as e:  # noqa: BLE001 — see fail-safe note above
-        return {
-            "days": days,
-            "trainer_review": {
-                "accepted": [], "rejected": [], "flags": [],
-                "parse_error": f"trainer_review_call_failed: {e}",
-            },
+    fingerprint = _review_input_fingerprint(days, profile, condition_flags)
+    cache_hit = bool(
+        prev_review_cache
+        and prev_review_cache.get("input_fingerprint") == fingerprint
+    )
+
+    if cache_hit:
+        # Same inputs as last cycle → same review question. Reuse the
+        # prior answer instead of paying for another Gemini call. Still
+        # goes through the full apply_review() re-validation below, same
+        # as a live response would — a cached "substitute" is re-checked
+        # against THIS cycle's equipment/injury/whitelist state exactly
+        # like a fresh one, so nothing bypasses review_validation.py.
+        # candidates_by_day is rebuilt fresh here (local/deterministic,
+        # not an API call) rather than cached, since apply_review() needs
+        # it to re-derive the whitelist independently either way.
+        equipment_raw = profile.get("equipment", "full gym")
+        rng = random.Random()
+        candidates_by_day = [
+            {} if day.get("is_rest") or not day.get("exercises")
+            else trainer_review_mod.build_candidates(day, equipment_raw, notes_raw, rng)
+            for day in days
+        ]
+        review = {
+            "items": prev_review_cache.get("items", []),
+            "candidates_by_day": candidates_by_day,
+            "parse_error": None,
         }
+        parse_error = None
+        cached = True
+    else:
+        try:
+            review = await trainer_review_mod.review_workout(
+                days=days, profile=profile, condition_flags=condition_flags,
+                llm_caller=llm_caller,
+            )
+        except Exception as e:  # noqa: BLE001 — see fail-safe note above
+            return {
+                "days": days,
+                "trainer_review": {
+                    "accepted": [], "rejected": [], "flags": [],
+                    "parse_error": f"trainer_review_call_failed: {e}",
+                    "cached": False,
+                },
+                "review_cache": prev_review_cache,
+            }
+        parse_error = review.get("parse_error")
+        cached = False
 
     result = review_validation_mod.apply_review(days=days, review=review, profile=profile)
     return {
@@ -1152,7 +1241,12 @@ async def build_and_review_workout_days(
             "accepted": result["accepted"],
             "rejected": result["rejected"],
             "flags": result["flags"],
-            "parse_error": review.get("parse_error"),
+            "parse_error": parse_error,
+            "cached": cached,
+        },
+        "review_cache": {
+            "input_fingerprint": fingerprint,
+            "items": review.get("items", []),
         },
     }
 

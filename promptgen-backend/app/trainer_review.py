@@ -15,7 +15,8 @@ HOW "GEMINI MUST NOT INVENT EXERCISES" IS ENFORCED
     build_deterministic_workout_days() already uses. Gemini is given only
     those candidate names to choose from per exercise — it cannot name
     anything outside that list, because the prompt frames substitution as
-    "pick one of these options, or 'keep'". review_validation.py then
+    "pick one of these options, or omit this exercise entirely (implicit
+    keep)". review_validation.py then
     re-checks every proposed substitution against that same whitelist
     server-side, so a model that ignores the instruction and answers with
     an arbitrary string is still caught, not just discouraged.
@@ -146,17 +147,20 @@ def build_review_prompt(
     system = (
         "You are a certified trainer performing a SAFETY REVIEW of an "
         "already-finalized workout. You are not the workout's author and "
-        "must not redesign it. For every exercise you may choose exactly "
-        "one action: \"keep\" (no issue), \"substitute\" (only to a name "
-        "listed in that exercise's substitution_candidates array — never "
-        "any other name), or \"flag\" (safety/sequencing concern worth a "
-        "human's attention, no exercise change). Never invent an exercise "
-        "name. Never change sets, reps, or exercise order. Respond with "
-        "ONLY a JSON object of this exact shape, no prose, no markdown "
-        "fences:\n"
+        "must not redesign it. Most exercises need no action at all — do "
+        "NOT list those; only include an exercise in \"reviews\" if it "
+        "needs \"substitute\" (only to a name listed in that exercise's "
+        "substitution_candidates array — never any other name) or "
+        "\"flag\" (safety/sequencing concern worth a human's attention, "
+        "no exercise change). Any exercise you leave out of \"reviews\" "
+        "is treated as reviewed-and-fine, so omit freely — do not pad "
+        "the list with entries that need no action. Never invent an "
+        "exercise name. Never change sets, reps, or exercise order. "
+        "Respond with ONLY a JSON object of this exact shape, no prose, "
+        "no markdown fences. If nothing needs attention, return an "
+        "empty reviews array:\n"
         '{"reviews": [{"day_index": int, "name": str, "action": '
-        '"keep"|"substitute"|"flag", "substitute_to": str|null, '
-        '"reason": str}]}'
+        '"substitute"|"flag", "substitute_to": str|null, "reason": str}]}'
     )
 
     user = json.dumps({

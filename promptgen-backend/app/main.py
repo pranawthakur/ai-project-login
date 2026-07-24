@@ -1,6 +1,7 @@
 import asyncio
 import os
 import traceback
+from collections import Counter
 from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, Depends, HTTPException, Request, Form, Header, Body
 from fastapi.staticfiles import StaticFiles
@@ -741,6 +742,22 @@ def get_analytics(member: dict = Depends(get_current_member)):
     )
     plans = plans_res.data or []
 
+    # Single query for ALL of this member's logged sets, instead of one
+    # workout_set_feedback query per cycle inside the loop below (N+1 —
+    # previously a member with 20 cycles meant 20 extra round-trips just
+    # to get counts). Only cycle_number is selected — this endpoint only
+    # ever needs a per-cycle count, never the row contents — then counted
+    # in Python with Counter, one pass over rows already in memory.
+    sets_logged_by_cycle: Counter = Counter()
+    if plans:
+        fb_res = (
+            supabase.table("workout_set_feedback")
+            .select("cycle_number")
+            .eq("member_id", member["id"])
+            .execute()
+        )
+        sets_logged_by_cycle = Counter(row["cycle_number"] for row in (fb_res.data or []))
+
     periods = []
     for plan in plans:
         days = ((plan.get("plan_json") or {}).get("workout") or {}).get("days", [])
@@ -749,14 +766,7 @@ def get_analytics(member: dict = Depends(get_current_member)):
             for day in days
             for ex in (day.get("exercises") or [])
         )
-        fb_res = (
-            supabase.table("workout_set_feedback")
-            .select("member_id", count="exact")
-            .eq("member_id", member["id"])
-            .eq("cycle_number", plan["cycle_number"])
-            .execute()
-        )
-        sets_logged = fb_res.count or 0
+        sets_logged = sets_logged_by_cycle.get(plan["cycle_number"], 0)
         periods.append({"sets_prescribed": sets_prescribed, "sets_logged": sets_logged})
 
     return analytics_engine.build_analytics_record(periods)
@@ -1160,10 +1170,17 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
             data = build_deterministic_plan_data(profile)
 
         data.setdefault("workout", {})
+        # Reuse last cycle's Trainer Review answer if nothing that
+        # actually affects it changed (see _review_input_fingerprint's
+        # docstring) — skips a Gemini call on an otherwise-identical
+        # regeneration instead of re-asking the same review question.
+        prev_review_cache = ((prev_plan or {}).get("plan_json") or {}).get("_review_cache")
         reviewed = await build_and_review_workout_days(
             profile, weekly_template, vol, generate_with_ollama,
+            prev_review_cache=prev_review_cache,
         )
         data["workout"]["days"] = reviewed["days"]
+        data["_review_cache"] = reviewed.get("review_cache")
         profile["_trainer_review"] = reviewed["trainer_review"]
 
         # ── Session 13 wiring: final synthesis layer (Engine 19).
