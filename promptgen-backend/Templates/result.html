@@ -230,6 +230,31 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
    weight/reps/RPE/notes/difficulty tucked behind an expand arrow) ── */
 .ex-row{border-bottom:1px solid var(--border)}
 .ex-row:last-child{border-bottom:none}
+
+/* ── Trainer Review pending placeholder: skeleton rows with the same
+   shimmer sweep already used on the sidebar progress bar (see
+   .sb-progress-fill::after / @keyframes shimmer above), so this reads as
+   "actively working," not just a static wait, and stays visually
+   consistent with the rest of the page rather than introducing a new
+   loading style. ── */
+.ex-row-pending{border-bottom:none;padding:4px 0 2px}
+.ex-pending-note{font-size:12.5px;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ex-pending-note::before{
+  content:"";width:13px;height:13px;border-radius:50%;flex-shrink:0;
+  border:2px solid var(--border-hi);border-top-color:var(--lime2);
+  animation:spin .8s linear infinite;
+}
+.ex-skel{position:relative;overflow:hidden;height:15px;border-radius:6px;
+  background:var(--bg3);margin-bottom:10px}
+.ex-skel::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(100deg,transparent,#ffffff14,transparent);
+  animation:shimmer 1.6s ease-in-out infinite}
+.ex-skel-name{width:62%}
+.ex-skel-meta{width:38%}
+.ex-skel-row{display:flex;align-items:center;gap:14px;padding:13px 0;
+  border-bottom:1px solid var(--border)}
+.ex-skel-row:last-child{border-bottom:none}
+.ex-skel-row .ex-skel{margin-bottom:0}
 .ex-head{display:flex;align-items:center;gap:10px;padding:13px 0;cursor:pointer;user-select:none}
 .ex-head:focus-visible{outline:2px solid var(--lime2);outline-offset:2px;border-radius:8px}
 .ex-head-main{flex:1;min-width:0}
@@ -462,6 +487,7 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
 <script>
   window.CURRENT_CYCLE = {{ cycle_number | default(1) }};
   window.BACKEND_BASE = "https://ai-project-login.onrender.com";
+  window.WORKOUT_REVIEW_PENDING = {{ 'true' if workout._review_pending else 'false' }};
 </script>
 
 <div class="bg-aurora"><div class="bg-grid"></div><div class="bg-noise"></div></div>
@@ -635,6 +661,21 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
               <div class="day-panel-sub">{{ day.type }}</div>
             </div>
             <div class="warmup-pill"><strong>Warmup:</strong> {{ day.warmup_exercises | join(' · ') }}</div>
+            {% if workout._review_pending %}
+            <div class="ex-row ex-row-pending">
+              <div class="ex-pending-note">
+                Finalizing your exercise list — running a quick safety check
+              </div>
+              {% for _ in range(day.exercises | length) %}
+              <div class="ex-skel-row">
+                <div style="flex:1">
+                  <div class="ex-skel ex-skel-name"></div>
+                  <div class="ex-skel ex-skel-meta"></div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
             {% for ex in day.exercises %}
             {% set ex_idx = loop.index0 %}
             <div class="ex-row">
@@ -722,6 +763,7 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
               </div>
             </div>
             {% endfor %}
+            {% endif %}
             {% if day._validation and day._validation.warnings %}
             <div class="day-conflict-note"><strong>Note:</strong> {{ day._validation.warnings | join(' ') }}</div>
             {% endif %}
@@ -968,6 +1010,56 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
 </div>
 
 <script>
+// ── Poll for Trainer Review completion ──────────────────────────────────
+// The workout section may render with a "verifying exercise safety"
+// placeholder (see this template's workout._review_pending branch) while
+// the backend's Trainer Review Gemini call finishes in the background —
+// see main.py's _finish_trainer_review. Everything else on this page
+// (diet, macros, recovery, program info) is already final regardless, so
+// only this poll — and only when the flag is actually set — runs.
+if (window.WORKOUT_REVIEW_PENDING) {
+  (function pollWorkoutReviewStatus() {
+    const token = localStorage.getItem('memberToken');
+    if (!token) return;
+
+    const POLL_INTERVAL_MS = 3000;
+    const MAX_ATTEMPTS = 20; // ~1 minute of polling, then give up quietly
+
+    let attempts = 0;
+
+    async function poll() {
+      attempts += 1;
+      try {
+        const slug = localStorage.getItem('gymSlug');
+        const headers = { 'Authorization': 'Bearer ' + token };
+        if (slug) headers['X-Gym-Slug'] = slug;
+
+        const res = await fetch(window.BACKEND_BASE + '/api/plan-workout-status', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (!data.pending && data.html) {
+            // Same hand-off path the check-in regenerate flow already uses
+            // (see this file's checkin handler) — ask the PARENT page to
+            // swap the iframe's srcdoc rather than replacing our own
+            // document from inside itself.
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage({ type: 'fitforge:planUpdated', html: data.html }, '*');
+            }
+            return; // done — stop polling
+          }
+        }
+      } catch (e) {
+        console.warn('plan-workout-status poll failed (will retry):', e);
+      }
+      if (attempts < MAX_ATTEMPTS) {
+        setTimeout(poll, POLL_INTERVAL_MS);
+      }
+    }
+
+    setTimeout(poll, POLL_INTERVAL_MS);
+  })();
+}
+
 const sidebar = document.getElementById('sidebar');
 const overlay = document.getElementById('sbOverlay');
 const collapseBtn = document.getElementById('collapseBtn');

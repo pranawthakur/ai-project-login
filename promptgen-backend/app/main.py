@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import os
 import traceback
 from collections import Counter
@@ -523,6 +524,26 @@ def my_plan(
     if plan:
         return {"has_plan": True, "html": plan["rendered_html"]}
     return {"has_plan": False}
+
+
+@app.get("/api/plan-workout-status")
+def plan_workout_status(member: dict = Depends(get_current_member)):
+    """Polled by Templates/result.html while the workout section is
+    showing its "verifying exercise safety" placeholder (see _run()'s
+    pre_review_days / _finish_trainer_review in _generate_and_save_plan).
+    Once the background Trainer Review pass patches the active plan row,
+    `_review_pending` flips to False and this starts returning the
+    updated HTML for the frontend to swap in — same rendered_html field
+    /api/my-plan already exposes, just gated on the pending flag so the
+    poll loop knows when it's actually done rather than re-fetching a
+    still-pending copy."""
+    plan = _get_active_plan(member["id"])
+    if not plan:
+        return {"pending": False, "has_plan": False}
+    pending = bool(((plan.get("plan_json") or {}).get("workout") or {}).get("_review_pending"))
+    if pending:
+        return {"pending": True}
+    return {"pending": False, "html": plan["rendered_html"]}
 
 
 # ── Adherence (Engine 15) — read-only, additive. Surfaces attendance/
@@ -1070,6 +1091,102 @@ def submit_exercise_feedback(
 
 
 # ── New: form POST → fitness_generator → Jinja2 dashboard ───────────────────
+async def _finish_trainer_review(
+    *, plan_row_id: str, profile: dict, pending_review_context: dict,
+    prev_review_cache: dict | None,
+) -> None:
+    """Runs AFTER a plan has already been saved with `_review_pending=True`
+    and returned to the member (see _run()'s pre_review_days comment in
+    _generate_and_save_plan). Does the actual Trainer Review Gemini call,
+    then patches the SAME plan row with the (possibly corrected) exercise
+    list and re-rendered HTML — never re-runs volume/plateau/goal/
+    periodization/program/decision-audit, all of which already ran once
+    against pre_review_days and are cycle-scoped (several explicitly
+    gated on cycle_number); running them again here would double-count
+    or violate their own per-cycle assumptions. Only the label/biweekly-
+    expansion/render steps are redone, against `data_pre_expansion` (the
+    snapshot taken right after enforce_schema, before those steps ran the
+    first time).
+
+    Best-effort: any failure here is logged and swallowed — the member
+    already has a usable plan from the fast path; a Trainer Review outage
+    at this stage must never surface as a user-facing error, matching the
+    fail-conservative pattern build_and_review_workout_days already uses
+    for a live-path Gemini failure.
+    """
+    try:
+        weekly_template = pending_review_context["weekly_template"]
+        vol = pending_review_context["vol"]
+
+        reviewed = await build_and_review_workout_days(
+            profile, weekly_template, vol, generate_with_ollama,
+            prev_review_cache=prev_review_cache,
+        )
+
+        data = copy.deepcopy(pending_review_context["data_pre_expansion"])
+        data["workout"]["days"] = reviewed["days"]
+        data["workout"]["_review_pending"] = False
+        data["_review_cache"] = reviewed.get("review_cache")
+
+        if weekly_template:
+            data = apply_deterministic_day_labels(data, weekly_template)
+        data = expand_days_to_biweekly(data)
+        html = render_dashboard(data)
+
+        supabase.table("plans").update(
+            {"plan_json": data, "rendered_html": html}
+        ).eq("id", plan_row_id).execute()
+    except Exception as e:  # noqa: BLE001 — background task, must never raise
+        print(f"[_finish_trainer_review] failed for plan_row_id={plan_row_id}: {e}")
+        traceback.print_exc()
+        # Fail-conservative fallback: Trainer Review itself failed (or the
+        # success path above raised before finishing), so keep the
+        # PRE-review days as final — same outcome a live Trainer Review
+        # failure always had — but still do a REAL re-render, not just a
+        # flag flip. Reusing only `patched["plan_json"]` and flipping
+        # `_review_pending` would leave the saved `rendered_html` showing
+        # the "verifying exercise safety" placeholder forever, even though
+        # polling would stop — the member would be stuck looking at an
+        # empty exercise section with no further updates coming. Redoing
+        # the same label/expand/render steps against
+        # pending_review_context's already-known-good pre_review_days
+        # guarantees a real, final page gets saved either way.
+        try:
+            weekly_template = pending_review_context["weekly_template"]
+            pre_review_days = pending_review_context["pre_review_days"]
+
+            data = copy.deepcopy(pending_review_context["data_pre_expansion"])
+            data["workout"]["days"] = pre_review_days
+            data["workout"]["_review_pending"] = False
+
+            if weekly_template:
+                data = apply_deterministic_day_labels(data, weekly_template)
+            data = expand_days_to_biweekly(data)
+            html = render_dashboard(data)
+
+            supabase.table("plans").update(
+                {"plan_json": data, "rendered_html": html}
+            ).eq("id", plan_row_id).execute()
+        except Exception as fallback_e:  # noqa: BLE001 — last resort, must never raise
+            print(f"[_finish_trainer_review] fallback re-render also failed for plan_row_id={plan_row_id}: {fallback_e}")
+            traceback.print_exc()
+            # Last-ditch effort: at least clear the pending flag on
+            # whatever is currently saved so the frontend's poll stops
+            # waiting, even though the placeholder text may linger in
+            # rendered_html in this (rare, double-failure) case.
+            try:
+                row_res = (
+                    supabase.table("plans").select("plan_json").eq("id", plan_row_id).limit(1).execute()
+                )
+                row = (row_res.data or [None])[0]
+                if row and row.get("plan_json"):
+                    patched = row["plan_json"]
+                    patched.setdefault("workout", {})["_review_pending"] = False
+                    supabase.table("plans").update({"plan_json": patched}).eq("id", plan_row_id).execute()
+            except Exception:
+                pass
+
+
 async def _generate_and_save_plan(member: dict, profile: dict, source_label: str = "form") -> HTMLResponse:
     """
     Shared plan-generation pipeline used by both POST /result (fresh intake
@@ -1145,7 +1262,7 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
         profile["_weekly_template"] = DEFAULT_SAFE_SEQUENCE
         profile["_vol"] = DEFAULT_SAFE_VOL
 
-    async def _run() -> tuple[dict, str]:
+    async def _run() -> tuple[dict, str, dict]:
         """Workout content (exercise selection, sets/reps/rest, warmups) is
         produced in Python — build_and_review_workout_days() fills them in
         using the curated exercise database, then runs Trainer Review (a
@@ -1170,18 +1287,25 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
             data = build_deterministic_plan_data(profile)
 
         data.setdefault("workout", {})
-        # Reuse last cycle's Trainer Review answer if nothing that
-        # actually affects it changed (see _review_input_fingerprint's
-        # docstring) — skips a Gemini call on an otherwise-identical
-        # regeneration instead of re-asking the same review question.
-        prev_review_cache = ((prev_plan or {}).get("plan_json") or {}).get("_review_cache")
-        reviewed = await build_and_review_workout_days(
-            profile, weekly_template, vol, generate_with_ollama,
-            prev_review_cache=prev_review_cache,
-        )
-        data["workout"]["days"] = reviewed["days"]
-        data["_review_cache"] = reviewed.get("review_cache")
-        profile["_trainer_review"] = reviewed["trainer_review"]
+        # FAST PATH: build the deterministic workout days without waiting
+        # on Trainer Review's Gemini call. Trainer Review only ever
+        # changes exercise IDENTITY (never sets/reps/pattern/volume — see
+        # its own module docstring), so every downstream engine below
+        # (volume/plateau/program synthesis) is safe to run against these
+        # pre-review days; nothing about their programming math changes
+        # if Trainer Review later swaps one exercise for a same-slot
+        # whitelisted substitute. The actual Gemini call is kicked off
+        # separately AFTER this plan is saved (see _finish_trainer_review
+        # below main.py's _generate_and_save_plan) — the member gets a
+        # complete plan in seconds instead of waiting on a review whose
+        # only possible visible effect is a rare same-slot exercise swap.
+        # `_review_pending=True` tells the template to show a "verifying
+        # exercise safety" placeholder instead of the exercise list until
+        # that background pass finishes and patches the saved plan.
+        pre_review_days = build_deterministic_workout_days(profile, weekly_template, vol)
+        data["workout"]["days"] = pre_review_days
+        data["workout"]["_review_pending"] = True
+        profile["_trainer_review"] = None
 
         # ── Session 13 wiring: final synthesis layer (Engine 19).
         # programming_engine.build_program() was built assuming callers for
@@ -1369,6 +1493,17 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
         data["cycle_number"] = next_cycle
         data["_intake"] = intake_snapshot
 
+        # Snapshot BEFORE day-label/biweekly-expansion — this is what the
+        # background Trainer Review pass (_finish_trainer_review) reuses
+        # once Gemini answers. Every engine above that only makes sense
+        # run ONCE per cycle (plateau/adherence/decision-audit — several
+        # are explicitly cycle_number-gated) has already run against
+        # pre_review_days by this point and must NOT run again; the
+        # background pass only redoes the label/expand/render steps below
+        # with corrected exercise names spliced in, never re-touches
+        # programming math.
+        data_pre_expansion = copy.deepcopy(data)
+
         if weekly_template:
             data = apply_deterministic_day_labels(data, weekly_template)
 
@@ -1378,7 +1513,14 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
         # 7-day week, so this is purely a render-time expansion.
         data = expand_days_to_biweekly(data)
 
-        return data, render_dashboard(data)
+        pending_review_context = {
+            "data_pre_expansion": data_pre_expansion,
+            "pre_review_days": pre_review_days,
+            "weekly_template": weekly_template,
+            "vol": vol,
+        }
+
+        return data, render_dashboard(data), pending_review_context
 
     user_key = str(member.get("id", "anonymous")) + (f":{source_label}" if source_label else "")
 
@@ -1391,7 +1533,7 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
         _inflight_results[user_key] = task
 
     try:
-        data, html = await task
+        data, html, pending_review_context = await task
     except RuntimeError as e:
         print(f"[_generate_and_save_plan:{source_label}] LLM error for user={user_key}: {e}")
         traceback.print_exc()
@@ -1436,7 +1578,7 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
 
     # Save so this doesn't get regenerated on the member's next login —
     # the lock check at the top of /result reads from this table.
-    supabase.table("plans").insert({
+    insert_res = supabase.table("plans").insert({
         "member_id": member["id"],
         "cycle_number": next_cycle,
         "plan_json": data,
@@ -1444,6 +1586,27 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
         "status": "active",
         "valid_until": (datetime.now(timezone.utc) + timedelta(days=configuration_engine.get_config("plan_validity_days"))).isoformat(),
     }).execute()
+
+    # Trainer Review's Gemini call was deliberately skipped in _run() above
+    # so the member gets this plan back in seconds instead of waiting on
+    # it — see pre_review_days's comment there. Run it now, in the
+    # background, against the exact days already saved; when it finishes,
+    # patch THIS row with the (possibly corrected) exercise list and
+    # re-rendered HTML. Never awaited by this request — a slow or failed
+    # Gemini call here can't block or break the response the member
+    # already got. Skipped entirely for the emergency/blocked path (no
+    # plan_row to patch) — that's handled by the earlier `block` return.
+    plan_row = (insert_res.data or [None])[0]
+    if plan_row and plan_row.get("id"):
+        prev_review_cache_for_bg = ((prev_plan or {}).get("plan_json") or {}).get("_review_cache")
+        asyncio.create_task(
+            _finish_trainer_review(
+                plan_row_id=plan_row["id"],
+                profile=profile,
+                pending_review_context=pending_review_context,
+                prev_review_cache=prev_review_cache_for_bg,
+            )
+        )
 
     # Engine 28 (Decision Audit): real record of this generation — input
     # is the intake profile actually used, output is the program/
