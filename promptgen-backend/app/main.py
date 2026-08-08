@@ -144,6 +144,13 @@ class ManualCORS(BaseHTTPMiddleware):
             response.headers["Access-Control-Allow-Origin"] = allowed_origin
             response.headers["Access-Control-Allow-Methods"] = "*"
             response.headers["Access-Control-Allow-Headers"] = "*"
+            # Custom response headers (e.g. X-Plan-Status, read by
+            # dashbord.html to decide whether to stash the background
+            # /result call's body) are invisible to cross-origin fetch()
+            # unless explicitly exposed here — without this, res.headers.get()
+            # always returns null in the browser even though the header is
+            # genuinely present on the wire.
+            response.headers["Access-Control-Expose-Headers"] = "*"
         return response
 
 
