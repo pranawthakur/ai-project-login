@@ -1751,6 +1751,7 @@ async def plan_diet_fast(
     experience: str = Form("Intermediate"),
     activity:   str = Form("moderate"),
     days:       str = Form("4"),
+    training_days: str = Form(""),  # weekday names from the calendar picker, e.g. "Monday,Wednesday,Friday"
     duration:   str = Form("45-60 min"),
     equipment:  str = Form("full gym"),
     diet:       str = Form("Non-vegetarian"),
@@ -1772,6 +1773,7 @@ async def plan_diet_fast(
         "experience":         experience,
         "activity_key":       activity,
         "days_per_week":      days or "4",
+        "training_days":      training_days,
         "session_duration":   duration,
         "equipment":          equipment or "full gym",
         "diet_pref":          diet,
@@ -1935,6 +1937,7 @@ async def result_page(
     # ── Training preferences ─────────────────────────────────────────────────
     activity:   str = Form("moderate"),       # sedentary/light/moderate/very_active/extreme
     days:       str = Form("4"),              # training days per week
+    training_days: str = Form(""),            # weekday names from the calendar picker, e.g. "Monday,Wednesday,Friday"
     duration:   str = Form("45-60 min"),
     equipment:  str = Form("full gym"),
     # ── Diet preferences ─────────────────────────────────────────────────────
@@ -1961,6 +1964,7 @@ async def result_page(
         # Training
         "activity_key":       activity,           # raw key used for factor lookup
         "days_per_week":      days or "4",
+        "training_days":      training_days,
         "session_duration":   duration,
         "equipment":          equipment or "full gym",
         # Diet — pass the RAW value so diet_token lookup can fuzzy-match it

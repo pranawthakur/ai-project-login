@@ -1347,6 +1347,26 @@ WARMUP_LIBRARY = {
 WEEKDAY_NAMES       = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 WEEKDAY_SHORT_UPPER = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]   # matches workout.days[].short
 WEEKDAY_SHORT_TITLE = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]   # matches weekly_schedule[].short
+_WEEKDAY_NAME_TO_INDEX = {name.lower(): i for i, name in enumerate(WEEKDAY_NAMES)}
+
+
+def _parse_training_day_indices(raw: str) -> set:
+    """
+    Parse the dashboard's weekday calendar picker (a comma-separated string
+    like "Monday,Wednesday,Friday", sent as profile["training_days"]) into a
+    set of 0-6 indices matching WEEKDAY_NAMES (Monday=0 ... Sunday=6).
+    Blank / unrecognised tokens are silently dropped so a malformed or
+    absent value just falls back to the old count-based spread in
+    _build_weekly_template rather than raising.
+    """
+    if not raw:
+        return set()
+    indices = set()
+    for token in raw.split(","):
+        key = token.strip().lower()
+        if key in _WEEKDAY_NAME_TO_INDEX:
+            indices.add(_WEEKDAY_NAME_TO_INDEX[key])
+    return indices
 
 TOKEN_TITLE = {
     "push":  "Push Day",
@@ -1403,14 +1423,36 @@ def _prettify_token(token: str) -> str:
     return " + ".join(w.capitalize() for w in words)
 
 
-def _build_weekly_template(sequence: list, training_days_per_week: int) -> list:
+def _build_weekly_template(sequence: list, training_days_per_week: int, training_day_indices=None) -> list:
     """
     Deterministically decide which of the 7 weekdays are training vs rest,
     and which split-day token each training slot gets — BEFORE the LLM ever
     runs. This is what removes "rest day placement" from the model's job
     entirely; it only has to fill in exercises for a schedule we've already
-    fixed. Rest days are spread as evenly as possible rather than bunched.
+    fixed.
+
+    If `training_day_indices` is given (a set/list of ints 0-6, Monday=0 ...
+    Sunday=6 — see WEEKDAY_NAMES) those exact weekdays become the training
+    days, matching what the member actually clicked on the dashboard's
+    calendar picker. Without it, rest days are spread as evenly as possible
+    across the week purely from the count (the old behaviour) — which is
+    also why picking a single day used to always land the workout on Sunday
+    (index 6) no matter which weekday the member picked: the count-only
+    algorithm below has no idea which day was actually selected.
     """
+    if training_day_indices:
+        valid = {i for i in training_day_indices if 0 <= i <= 6}
+        if valid:
+            template = []
+            seq_i = 0
+            for day_i in range(7):
+                if day_i in valid:
+                    template.append(sequence[seq_i % len(sequence)] if sequence else "full")
+                    seq_i += 1
+                else:
+                    template.append("rest")
+            return template
+
     training_days_per_week = max(0, min(7, training_days_per_week))
     rest_days = 7 - training_days_per_week
 
@@ -1810,6 +1852,14 @@ def build_user_prompt(profile: dict) -> str:
 
     # ── 5. Warmup hints per training days
     training_days_per_week = int(profile.get("days_per_week", 4))
+    # Exact weekdays the member clicked on the dashboard's calendar picker
+    # (e.g. "Monday,Wednesday,Friday"), if provided — takes priority over
+    # the plain count above so the workout lands on the days actually
+    # picked instead of wherever the even-spread algorithm puts them.
+    training_day_indices = _parse_training_day_indices(profile.get("training_days", ""))
+    if training_day_indices:
+        training_days_per_week = len(training_day_indices)
+    profile["_training_day_indices"] = training_day_indices
     duration    = profile.get("session_duration", "45–60 min")
     region      = profile.get("region", "India")
     budget      = profile.get("budget", "medium")
@@ -1864,7 +1914,7 @@ def build_user_prompt(profile: dict) -> str:
     #      Exposed on `profile` (mutated in place, same pattern as
     #      activity_level_factor above) so main.py can reuse the exact same
     #      template after generation to force-correct labels and validate content.
-    weekly_template = _build_weekly_template(split["sequence"], training_days_per_week)
+    weekly_template = _build_weekly_template(split["sequence"], training_days_per_week, training_day_indices)
     profile["_weekly_template"] = weekly_template
     profile["_vol"] = vol
     weekly_schedule_str = "\n".join(
@@ -2386,6 +2436,7 @@ def generate_dashboard(profile: dict, llm_caller) -> str:
             "activity_key": profile.get("activity_key", "moderate"),
         })["sequence"],
         int(profile.get("days_per_week", 4)),
+        profile.get("_training_day_indices"),
     )
     vol = profile.get("_vol") or EXERCISE_VOLUME[_resolve_exp_key(profile)]
 
@@ -2440,6 +2491,7 @@ async def generate_dashboard_with_review(profile: dict, llm_caller, review_llm_c
             "activity_key": profile.get("activity_key", "moderate"),
         })["sequence"],
         int(profile.get("days_per_week", 4)),
+        profile.get("_training_day_indices"),
     )
     vol = profile.get("_vol") or EXERCISE_VOLUME[_resolve_exp_key(profile)]
 

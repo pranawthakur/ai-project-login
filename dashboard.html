@@ -372,8 +372,8 @@ const BUDGET = {low:"Low (₹150–250/day on food)",medium:"Medium (₹250–45
 const PROTEIN_RANGE   = {Beginner:"1.0", Intermediate:"1.1–1.3", Advanced:"1.5–2.0"};
 const PROTEIN_MIDPOINT = {Beginner:1.0, Intermediate:1.2, Advanced:1.75};
 
-const WEEKDAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
-const WEEKDAY_SHORT = {Monday:"Mon",Tuesday:"Tue",Wednesday:"Wed",Thursday:"Thu",Friday:"Fri"};
+const WEEKDAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const WEEKDAY_SHORT = {Monday:"Mon",Tuesday:"Tue",Wednesday:"Wed",Thursday:"Thu",Friday:"Fri",Saturday:"Sat",Sunday:"Sun"};
 
 const availableEquipment = new Set(EQUIPMENT);
 const allergies = new Set();
@@ -885,6 +885,10 @@ async function handleSubmit() {
     experience: $("experience").value,
     activity: $("activity").value,
     days: $("days").value,
+    // Exact weekdays picked on the calendar (e.g. "Monday,Wednesday,Friday")
+    // so the backend puts the workout on the days actually selected instead
+    // of just spreading a plain day-count evenly across the week.
+    training_days: [...trainingDays].join(", "),
     duration: $("duration").value,
     diet: $("diet").value,
     meals: $("meals").value,
