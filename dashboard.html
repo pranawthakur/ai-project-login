@@ -78,6 +78,13 @@ input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 
 .chip { border: 1px solid var(--border); background: #150f24; color: var(--muted); font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer; transition: all .2s; animation: pop .3s cubic-bezier(.16,1,.3,1); }
 .chip:hover { transform: translateY(-2px); border-color: rgba(168,85,247,.5); color: var(--fg); }
 .chip.active { background: var(--grad-primary); color: #fff; border-color: transparent; box-shadow: var(--shadow-glow); }
+.day-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+.day-cell { width: 52px; height: 58px; border: 1px solid var(--border); background: #150f24; color: var(--muted); border-radius: 12px; cursor: pointer; transition: all .2s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-family: inherit; animation: pop .3s cubic-bezier(.16,1,.3,1); }
+.day-cell:hover { transform: translateY(-2px); border-color: rgba(168,85,247,.5); color: var(--fg); }
+.day-cell .dow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; opacity: .85; }
+.day-cell .dow-full { font-size: 13px; font-weight: 700; }
+.day-cell.active { background: var(--grad-primary); color: #fff; border-color: transparent; box-shadow: var(--shadow-glow); }
+.day-cell.active .dow { opacity: 1; }
 .submit { width: 100%; border: none; cursor: pointer; color: #fff; background: var(--grad-hero); font-size: 14px; font-weight: 700; padding: 14px; border-radius: 16px; box-shadow: var(--shadow-glow); display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .2s, filter .2s; animation: fadeUp .55s both; }
 .submit:hover { transform: translateY(-2px); filter: brightness(1.08); }
 .submit:active { transform: scale(.99); }
@@ -155,6 +162,12 @@ pre { white-space: pre-wrap; background: #0f0a1c; color: var(--fg); border: 1px 
     const initial = memberName.charAt(0).toUpperCase()
     document.getElementById('navInitial').textContent = initial
     document.getElementById('navName').textContent = memberName
+    // Pre-fill the intake form's Name field with the name the gym already
+    // has on file for this member, so the plan doesn't fall back to the
+    // backend's generic "User" default. Still fully editable/optional —
+    // this only sets a starting value, it doesn't lock the field.
+    const nameInput = document.getElementById('name')
+    if (nameInput && !nameInput.value) nameInput.value = memberName
   }
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     localStorage.removeItem('memberToken')
@@ -265,8 +278,11 @@ pre { white-space: pre-wrap; background: #0f0a1c; color: var(--fg); border: 1px 
 <!-- WORKOUT -->
 <div class="card" style="animation-delay:.24s">
   <div class="card-head"><span class="icon">🏋️</span><h3>Workout preferences</h3></div>
-  <div class="grid c2">
-    <div><label class="lbl">Training days / week: <span id="daysVal">4</span></label><input id="days" type="range" min="2" max="6" step="1" value="4" /></div>
+  <div class="mt"><label class="lbl">Which days will you train? <span id="daysVal">4</span> day(s)/week selected</label>
+    <div class="day-picker" id="dayPicker"></div>
+    <input type="hidden" id="days" value="4" />
+  </div>
+  <div class="grid c2 mt">
     <div><label class="lbl">Session duration</label>
       <select id="duration">
         <option>30–45 min</option>
@@ -356,8 +372,14 @@ const BUDGET = {low:"Low (₹150–250/day on food)",medium:"Medium (₹250–45
 const PROTEIN_RANGE   = {Beginner:"1.0", Intermediate:"1.1–1.3", Advanced:"1.5–2.0"};
 const PROTEIN_MIDPOINT = {Beginner:1.0, Intermediate:1.2, Advanced:1.75};
 
+const WEEKDAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
+const WEEKDAY_SHORT = {Monday:"Mon",Tuesday:"Tue",Wednesday:"Wed",Thursday:"Thu",Friday:"Fri"};
+
 const availableEquipment = new Set(EQUIPMENT);
 const allergies = new Set();
+// Calendar-style pick of exact weekdays instead of a generic "days/week"
+// number. Defaults to 4 days, matching the old slider's default value.
+const trainingDays = new Set(["Monday","Tuesday","Thursday","Friday"]);
 const $ = (id) => document.getElementById(id);
 
 function renderEquip() {
@@ -388,7 +410,29 @@ function renderAllergies() {
   });
 }
 
-renderEquip(); renderAllergies();
+function renderDayPicker() {
+  const box = $("dayPicker"); box.innerHTML = "";
+  WEEKDAYS.forEach(day => {
+    const c = document.createElement("button");
+    c.type = "button";
+    c.className = "day-cell" + (trainingDays.has(day) ? " active" : "");
+    c.innerHTML = `<span class="dow">${WEEKDAY_SHORT[day]}</span>`;
+    c.title = day;
+    c.setAttribute("aria-pressed", trainingDays.has(day) ? "true" : "false");
+    c.onclick = () => {
+      trainingDays.has(day) ? trainingDays.delete(day) : trainingDays.add(day);
+      renderDayPicker();
+    };
+    box.appendChild(c);
+  });
+  // Keep the hidden #days input (count) in sync — every downstream use of
+  // "days" (prompt text, payload sent to the backend) still just wants a
+  // number, same shape as the old range slider produced.
+  $("daysVal").textContent = trainingDays.size;
+  $("days").value = trainingDays.size;
+}
+
+renderEquip(); renderAllergies(); renderDayPicker();
 
 function computeBMI() {
   const h = parseFloat($("height").value), w = parseFloat($("weight").value);
@@ -460,7 +504,6 @@ function renderMacros() {
   if (el) el.addEventListener("input", () => { renderBMI(); });
 });
 
-$("days").addEventListener("input", e => $("daysVal").textContent = e.target.value);
 $("meals").addEventListener("input", e => $("mealsVal").textContent = e.target.value);
 
 // ─── DIET TYPE RULES ──────────────────────────────────────────────────────────
@@ -637,8 +680,9 @@ region
 "",
 "▸ WORKOUT SCHEDULE",
 `  Training days per week : ${days} days`,
+`  Training days selected : ${[...trainingDays].length ? [...trainingDays].join(", ") : "Not specified"}`,
 `  Session duration       : ${duration}`,
-`  → Design the split and rest days around exactly ${days} training days per week.`,
+`  → Design the split and rest days around exactly these training days: ${[...trainingDays].join(", ") || days + " days"}.`,
 `  → Each session must fit within ${duration} including warmup and cool-down.`,
 "",
 "▸ GYM EQUIPMENT",
