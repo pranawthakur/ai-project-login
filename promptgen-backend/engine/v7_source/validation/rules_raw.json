@@ -1,0 +1,20 @@
+{
+  "0_Master_Index_Versioning_and_Localization.md": [
+    "Each file carries an implicit version tied to its section numbers. Any edit that inserts/removes/renumbers a section is a **breaking change** for cross-references.",
+    "**Rule going forward:** cross-references should cite section *titles* in addition to numbers where practical (already applied in new files 11\u201315) so a renumber doesn't silently break the pointer \u2014 e.g., \"file 12 Section 3 (Pain Triage Decision Tree)\" instead of just \"file 12 Section 3.\"",
+    "When any file is edited such that section numbers shift, every other file's cross-references to it must be greped and updated in the same change \u2014 do not defer this.",
+    "Recommended (not yet implemented): add a one-line `<!-- schema_version: 1.x -->` HTML comment at the top of each file so a build script can flag mismatches automatically.",
+    "Nutrition guidance (file 7) should default to regionally appropriate food framing (home-cooked Indian meals, kirana-available ingredients) per existing product design \u2014 this file doesn't restate that logic, just flags that files 7 and 15 must both respect it rather than defaulting to Western food examples.",
+    "Referral language (file 12 Section 10) should be deliverable in the user's selected app language without losing the non-diagnostic, non-alarmist tone \u2014 flag for translation QA rather than literal machine translation, since urgency/caution phrasing is easy to mistranslate into either too weak or too alarming.",
+    "Coach-facing audit trail (file 14) can remain English/technical regardless of client-facing language, since it's an internal admin tool.",
+    "No explicit data retention/deletion schedule beyond the one edge case in file 11 Section 8 \u2014 a full data-governance file would be needed for actual compliance (India's DPDP Act) before production launch.",
+    "No explicit rate-limiting/session-frequency abuse logic (e.g., client trying to log 5 workouts in one day to game adherence scoring).",
+    "No multi-language content source-of-truth \u2014 assumed English-authored with translation layer, not natively multi-lingual rule content.",
+    "File 12's clinical content (Sections 2\u20136 especially) has not been reviewed by a licensed physician, PT, or CSCS \u2014 this remains the single highest-priority pre-launch action item."
+  ],
+  "11_Assessment_and_Intake_Engine.md": [
+    "Treating a single missed check-in as full disengagement (requires 2 cycles per rule).",
+    "Running true 1RM tests on untrained beginners during intake.",
+    "Ignoring pain-vs-limitation distinction in movement screen (pain always routes to file 12, never just \"programmed around\" silently)."
+  ]
+}

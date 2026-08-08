@@ -1,0 +1,19 @@
+{
+  "12_Safety_and_Medical_Red_Flag_Engine.md": [
+    "States what was observed/disclosed (not a diagnosis).",
+    "Recommends the appropriate professional type (physician, physical therapist, registered dietitian, mental health professional).",
+    "Avoids definitive claims (\"this means you have X\"); uses \"this pattern is worth having evaluated by a professional.\"",
+    "For emergency symptoms (Section 2) only: direct, urgent, unambiguous instruction to seek immediate care."
+  ],
+  "19_Chronic_Health_Condition_Management_Engine.md": [
+    "Resistance training and Zone 2 cardio both independently support insulin sensitivity; no modality is contraindicated by the condition itself.",
+    "Avoid unsupervised fasted high-intensity work if on glucose-lowering medication (file 12 Section 5).",
+    "Foot check reminder for clients with any diabetic neuropathy disclosure before high-impact/barefoot-adjacent work."
+  ],
+  "20_Acute_Symptom_and_First_Response_Triage_Engine.md": [
+    "\"Where exactly do you feel this?\"",
+    "\"Did this start after a specific movement/event, or gradually?\"",
+    "\"On a scale of 0-10, how much does it bother you right now?\"",
+    "\"Does it change with movement, rest, or time of day?\""
+  ]
+}

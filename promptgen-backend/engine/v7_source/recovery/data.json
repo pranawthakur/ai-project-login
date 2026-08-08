@@ -1,0 +1,281 @@
+{
+  "10_Recovery_and_Deload.md": [
+    {
+      "columns": [
+        "Sleep Duration",
+        "Impact",
+        "Programming Response"
+      ],
+      "rows": [
+        {
+          "Sleep Duration": "<6h",
+          "Impact": "Significantly impaired strength, recovery, and RIR accuracy; elevated injury risk",
+          "Programming Response": "Reduce volume 15-25%, avoid failure entirely, prioritize technique over intensity that session"
+        },
+        {
+          "Sleep Duration": "6-7h",
+          "Impact": "Mild-moderate impairment",
+          "Programming Response": "Standard programming but avoid maximal pushes (no PR attempts)"
+        },
+        {
+          "Sleep Duration": "7-8h",
+          "Impact": "Adequate for most adults",
+          "Programming Response": "Standard programming"
+        },
+        {
+          "Sleep Duration": "8-9h",
+          "Impact": "Optimal for most adults",
+          "Programming Response": "Full capacity, good day for pushing progression"
+        },
+        {
+          "Sleep Duration": "9h+",
+          "Impact": "Excellent (or may indicate under-recovery/illness if it's a sudden increase from baseline)",
+          "Programming Response": "Full capacity; if a sudden increase in sleep need appears, screen for overreaching/illness"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Factor",
+        "Guidance"
+      ],
+      "rows": [
+        {
+          "Factor": "Protein",
+          "Guidance": "1.6-2.2g/kg bodyweight for most goals; 2.0-2.6g/kg during a fat-loss phase to protect muscle"
+        },
+        {
+          "Factor": "Carbohydrates",
+          "Guidance": "Primary fuel for high-volume/high-intensity training; don't chronically under-fuel training days, especially in a deficit \u2014 carb timing around training can improve session quality and recovery perception"
+        },
+        {
+          "Factor": "Hydration",
+          "Guidance": "30-40ml/kg bodyweight/day as a general baseline, more with heavy sweat loss/heat"
+        },
+        {
+          "Factor": "Micronutrients",
+          "Guidance": "Ensure adequate intake, especially magnesium, zinc, vitamin D \u2014 deficiencies in these are common and can subtly impair recovery/sleep quality; whole-food-forward diet generally covers this without needing to prescribe supplements"
+        },
+        {
+          "Factor": "Alcohol",
+          "Guidance": "Impairs sleep quality and protein synthesis; occasional moderate use is compatible with progress, frequent/heavy use is a common hidden cause of stalled recovery"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Trigger",
+        "Description"
+      ],
+      "rows": [
+        {
+          "Trigger": "Scheduled (proactive)",
+          "Description": "Every 4-8 weeks depending on training age (beginners: 8-12wk; intermediate: 5-8wk; advanced: 4-6wk)"
+        },
+        {
+          "Trigger": "Reactive \u2014 performance",
+          "Description": "2+ consecutive sessions of unexpected strength/rep drop-off on multiple lifts"
+        },
+        {
+          "Trigger": "Reactive \u2014 soreness",
+          "Description": "DOMS that doesn't resolve within normal timeframe (48-72h) or is worsening session-to-session"
+        },
+        {
+          "Trigger": "Reactive \u2014 joint pain",
+          "Description": "New or worsening joint discomfort not attributable to a single acute incident"
+        },
+        {
+          "Trigger": "Reactive \u2014 motivation/mood",
+          "Description": "Persistent low motivation, dread of training, irritability"
+        },
+        {
+          "Trigger": "Reactive \u2014 sleep/HRV",
+          "Description": "Resting heart rate elevated, HRV depressed (if tracked), or subjectively poor sleep for 1+ week"
+        },
+        {
+          "Trigger": "Reactive \u2014 illness",
+          "Description": "Any active illness \u2014 always deload or fully rest, do not push through"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Method",
+        "Protocol",
+        "Best For"
+      ],
+      "rows": [
+        {
+          "Method": "Volume deload",
+          "Protocol": "Keep intensity (load) similar, cut sets ~40-50%",
+          "Best For": "Most common, preserves strength/skill while reducing fatigue"
+        },
+        {
+          "Method": "Intensity deload",
+          "Protocol": "Keep sets similar, reduce load ~40-50% (higher reps at lower RIR-demand)",
+          "Best For": "Good when joint/CNS fatigue is the primary issue"
+        },
+        {
+          "Method": "Combined deload",
+          "Protocol": "Reduce both volume and intensity moderately (~30% each)",
+          "Best For": "Simplest to program, good default"
+        },
+        {
+          "Method": "Complete rest",
+          "Protocol": "3-7 days off entirely",
+          "Best For": "Illness, high injury risk signs, severe burnout"
+        },
+        {
+          "Method": "Active recovery",
+          "Protocol": "Light movement, mobility work, easy cardio, no structured lifting",
+          "Best For": "Mental burnout cases, in-season athletic contexts"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Indicator",
+        "Normal Range",
+        "Warning Sign"
+      ],
+      "rows": [
+        {
+          "Indicator": "Session RPE vs planned",
+          "Normal Range": "Matches expectation",
+          "Warning Sign": "Consistently feels 1-2 points higher than expected for the same load"
+        },
+        {
+          "Indicator": "Bar speed (subjective/velocity-tracked)",
+          "Normal Range": "Consistent for given %1RM",
+          "Warning Sign": "Noticeably slower on submaximal loads"
+        },
+        {
+          "Indicator": "Resting heart rate",
+          "Normal Range": "Stable baseline",
+          "Warning Sign": "Elevated 5+ bpm above baseline for several days"
+        },
+        {
+          "Indicator": "Sleep quality",
+          "Normal Range": "Restful, consistent duration",
+          "Warning Sign": "Restless, frequent waking, or needing significantly more sleep than usual"
+        },
+        {
+          "Indicator": "Motivation to train",
+          "Normal Range": "Present, even if mild reluctance sometimes",
+          "Warning Sign": "Persistent dread, avoidance"
+        },
+        {
+          "Indicator": "Soreness pattern",
+          "Normal Range": "Resolves in 24-72h",
+          "Warning Sign": "Lasting 4+ days, or worsening across the week"
+        },
+        {
+          "Indicator": "Joint/tendon discomfort",
+          "Normal Range": "Absent or minor and stable",
+          "Warning Sign": "New, sharp, or worsening pain"
+        },
+        {
+          "Indicator": "Appetite",
+          "Normal Range": "Stable/normal",
+          "Warning Sign": "Significant increase or decrease from baseline without other explanation"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Recovery Quality",
+        "Description",
+        "Adjustment"
+      ],
+      "rows": [
+        {
+          "Recovery Quality": "Poor",
+          "Description": "<6-7h sleep regularly, high stress, inconsistent nutrition",
+          "Adjustment": "Cap volume near MEV, avoid failure, deload every 4-5 weeks even for intermediates"
+        },
+        {
+          "Recovery Quality": "Average",
+          "Description": "7-8h sleep, moderate stress, adequate nutrition",
+          "Adjustment": "Standard MEV-MAV programming, deload per standard schedule"
+        },
+        {
+          "Recovery Quality": "Excellent",
+          "Description": "8h+ sleep, low stress, dialed nutrition, good training age",
+          "Adjustment": "Can approach MAV-MRV, slightly extend time between deloads, tolerate more intensity techniques"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Age Group",
+        "Note"
+      ],
+      "rows": [
+        {
+          "Age Group": "Teen",
+          "Note": "Generally excellent recovery capacity, but ensure sleep isn't sacrificed for school/social schedule \u2014 this is the most common limiter in this group"
+        },
+        {
+          "Age Group": "18-30",
+          "Note": "Highest general recovery capacity; standard rules apply"
+        },
+        {
+          "Age Group": "30-40",
+          "Note": "Still robust; slightly more attention to joint-specific recovery (tendon adaptation lags muscle adaptation)"
+        },
+        {
+          "Age Group": "40-50",
+          "Note": "Deload slightly more often (every 4-6 weeks even at intermediate level); prioritize protein and sleep consistency"
+        },
+        {
+          "Age Group": "50+",
+          "Note": "Longer recovery windows between high-intensity sessions; deload every 3-5 weeks during higher-volume blocks; joint/tendon health work (light isometric/tendon loading) as ongoing \"recovery investment,\" not just after injury"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Stress Level",
+        "Training Adjustment"
+      ],
+      "rows": [
+        {
+          "Stress Level": "Low",
+          "Training Adjustment": "Standard programming"
+        },
+        {
+          "Stress Level": "Moderate",
+          "Training Adjustment": "Monitor; standard programming unless combined with poor sleep"
+        },
+        {
+          "Stress Level": "High",
+          "Training Adjustment": "Treat similarly to poor sleep \u2014 reduce volume/intensity 15-25%, protect adherence and basic movement over optimization, consider extra rest day if life stress is acute (e.g., major life event)"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Problem",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Problem": "Client resists taking a deload (\"I don't want to lose progress\")",
+          "Fix": "Reassure: a properly-timed deload typically results in a performance rebound (supercompensation) the following week, not a loss \u2014 frame as investment, not regression"
+        },
+        {
+          "Problem": "Persistent fatigue despite regular deloads",
+          "Fix": "Investigate non-training factors: sleep disorders, nutrition adequacy, life stress, medical issues \u2014 recommend professional evaluation if fatigue is disproportionate to training load"
+        },
+        {
+          "Problem": "Client deloads too often (every 2-3 weeks) out of anxiety",
+          "Fix": "Reframe: this prevents adequate volume accumulation for progress \u2014 set deloads on a fixed schedule (e.g., every 6 weeks) rather than reactively at the first sign of normal training fatigue"
+        },
+        {
+          "Problem": "Overreaching after a missed deload",
+          "Fix": "Insert an immediate deload or complete rest period (3-7 days), then resume at reduced volume (MEV) and ramp back up over 2-3 weeks"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2243 @@
+{
+  "1_Master_Workout_Split_Table.md": [
+    {
+      "columns": [
+        "Split Name",
+        "Days/Week",
+        "Best Training Age",
+        "Best Goals",
+        "Session Length Fit",
+        "Frequency per Muscle"
+      ],
+      "rows": [
+        {
+          "Split Name": "Full Body A/B/C",
+          "Days/Week": "2\u20134",
+          "Best Training Age": "Never trained \u2013 1 yr",
+          "Best Goals": "Muscle gain, general fitness, fat loss",
+          "Session Length Fit": "30\u201360 min",
+          "Frequency per Muscle": "2.5\u20134x/week"
+        },
+        {
+          "Split Name": "Upper/Lower",
+          "Days/Week": "4",
+          "Best Training Age": "6 months \u2013 5 yrs",
+          "Best Goals": "Muscle gain, strength, powerbuilding",
+          "Session Length Fit": "45\u201375 min",
+          "Frequency per Muscle": "2x/week"
+        },
+        {
+          "Split Name": "Push/Pull/Legs (PPL)",
+          "Days/Week": "3 or 6",
+          "Best Training Age": "1\u201310+ yrs",
+          "Best Goals": "Bodybuilding, hypertrophy",
+          "Session Length Fit": "45\u201390 min",
+          "Frequency per Muscle": "1x (3-day) or 2x (6-day)"
+        },
+        {
+          "Split Name": "Push/Pull/Legs/Upper/Lower Hybrid (PPL+UL)",
+          "Days/Week": "5",
+          "Best Training Age": "2\u201310+ yrs",
+          "Best Goals": "Bodybuilding, powerbuilding",
+          "Session Length Fit": "60\u201390 min",
+          "Frequency per Muscle": "~1.6x/week"
+        },
+        {
+          "Split Name": "Bro Split (Body Part Split)",
+          "Days/Week": "5",
+          "Best Training Age": "5+ yrs only (advanced)",
+          "Best Goals": "Bodybuilding, specialization",
+          "Session Length Fit": "60\u201390 min",
+          "Frequency per Muscle": "1x/week"
+        },
+        {
+          "Split Name": "Full Body + Specialization Day",
+          "Days/Week": "4\u20135",
+          "Best Training Age": "1\u20135 yrs",
+          "Best Goals": "Weak point training, recomp",
+          "Session Length Fit": "45\u201375 min",
+          "Frequency per Muscle": "2\u20133x main, 1x specialization"
+        },
+        {
+          "Split Name": "Powerlifting Squat/Bench/Deadlift Split",
+          "Days/Week": "4",
+          "Best Training Age": "1+ yr, strength focus",
+          "Best Goals": "Strength, powerlifting",
+          "Session Length Fit": "60\u2013120 min",
+          "Frequency per Muscle": "2x/lift/week"
+        },
+        {
+          "Split Name": "Conjugate (Max Effort/Dynamic Effort)",
+          "Days/Week": "4",
+          "Best Training Age": "3+ yrs, advanced strength",
+          "Best Goals": "Powerlifting, power",
+          "Session Length Fit": "60\u201390 min",
+          "Frequency per Muscle": "2x/lift category"
+        },
+        {
+          "Split Name": "Minimalist 2-Day Full Body",
+          "Days/Week": "2",
+          "Best Training Age": "Any, time-constrained",
+          "Best Goals": "Maintenance, general fitness, fat loss",
+          "Session Length Fit": "30\u201345 min",
+          "Frequency per Muscle": "2x/week"
+        },
+        {
+          "Split Name": "Athletic/Sport-Specific Hybrid",
+          "Days/Week": "3\u20135",
+          "Best Training Age": "Any (sport-dependent)",
+          "Best Goals": "Athletic performance",
+          "Session Length Fit": "45\u201390 min",
+          "Frequency per Muscle": "Varies by phase"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Day",
+        "Exercise",
+        "Sets x Reps",
+        "RIR"
+      ],
+      "rows": [
+        {
+          "Day": "A",
+          "Exercise": "Back Squat",
+          "Sets x Reps": "3x6-8",
+          "RIR": "2"
+        },
+        {
+          "Day": "A",
+          "Exercise": "Flat DB Bench",
+          "Sets x Reps": "3x8-10",
+          "RIR": "2"
+        },
+        {
+          "Day": "A",
+          "Exercise": "Chest-Supported Row",
+          "Sets x Reps": "3x8-10",
+          "RIR": "2"
+        },
+        {
+          "Day": "A",
+          "Exercise": "Hanging Knee Raise",
+          "Sets x Reps": "2x12-15",
+          "RIR": "1"
+        },
+        {
+          "Day": "B",
+          "Exercise": "Romanian Deadlift",
+          "Sets x Reps": "3x8-10",
+          "RIR": "2"
+        },
+        {
+          "Day": "B",
+          "Exercise": "Seated OHP",
+          "Sets x Reps": "3x8-10",
+          "RIR": "2"
+        },
+        {
+          "Day": "B",
+          "Exercise": "Lat Pulldown",
+          "Sets x Reps": "3x10-12",
+          "RIR": "2"
+        },
+        {
+          "Day": "B",
+          "Exercise": "DB Curl / Rope Pushdown",
+          "Sets x Reps": "2x12 each",
+          "RIR": "1"
+        },
+        {
+          "Day": "C",
+          "Exercise": "Bulgarian Split Squat",
+          "Sets x Reps": "3x10/leg",
+          "RIR": "2"
+        },
+        {
+          "Day": "C",
+          "Exercise": "Incline DB Press",
+          "Sets x Reps": "3x10",
+          "RIR": "2"
+        },
+        {
+          "Day": "C",
+          "Exercise": "Single-Arm DB Row",
+          "Sets x Reps": "3x10/side",
+          "RIR": "2"
+        },
+        {
+          "Day": "C",
+          "Exercise": "Cable Woodchop",
+          "Sets x Reps": "2x12/side",
+          "RIR": "1"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Day",
+        "Focus",
+        "Key Lifts"
+      ],
+      "rows": [
+        {
+          "Day": "Upper A",
+          "Focus": "Push emphasis",
+          "Key Lifts": "Bench Press, OHP, Incline DB, Lateral Raise, Triceps"
+        },
+        {
+          "Day": "Lower A",
+          "Focus": "Quad emphasis",
+          "Key Lifts": "Back Squat, Leg Press, Leg Extension, Calf Raise"
+        },
+        {
+          "Day": "Upper B",
+          "Focus": "Pull emphasis",
+          "Key Lifts": "Weighted Pull-up, Barbell Row, Rear Delt Fly, Biceps"
+        },
+        {
+          "Day": "Lower B",
+          "Focus": "Hip/hinge emphasis",
+          "Key Lifts": "Deadlift or RDL, Hip Thrust, Leg Curl, Calf Raise"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Day",
+        "Session"
+      ],
+      "rows": [
+        {
+          "Day": "Push 1",
+          "Session": "Bench Press, OHP, Incline DB, Lateral Raise, Triceps Pushdown"
+        },
+        {
+          "Day": "Pull 1",
+          "Session": "Deadlift, Weighted Pull-up, Barbell Row, Face Pull, Barbell Curl"
+        },
+        {
+          "Day": "Legs 1",
+          "Session": "Back Squat, Leg Press, Leg Curl, Calf Raise"
+        },
+        {
+          "Day": "Push 2",
+          "Session": "Incline Barbell, DB Shoulder Press, Cable Fly, Overhead Triceps Ext"
+        },
+        {
+          "Day": "Pull 2",
+          "Session": "Rack Pull or Pendlay Row, Lat Pulldown, Cable Row, Rear Delt, Hammer Curl"
+        },
+        {
+          "Day": "Legs 2",
+          "Session": "Front Squat or Hack Squat, RDL, Leg Extension, Seated Calf Raise"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Available Time",
+        "Modification"
+      ],
+      "rows": [
+        {
+          "Available Time": "20 min",
+          "Modification": "Drop to 1 compound + 1 accessory per movement pattern; supersets to save time; reduce rest to 45\u201360s."
+        },
+        {
+          "Available Time": "30 min",
+          "Modification": "2 compound lifts + 1\u20132 accessories; rest 60\u201390s."
+        },
+        {
+          "Available Time": "45 min",
+          "Modification": "Standard minimalist session; 4\u20135 exercises; rest 90\u2013120s."
+        },
+        {
+          "Available Time": "60 min",
+          "Modification": "Standard full session; 5\u20136 exercises."
+        },
+        {
+          "Available Time": "75\u201390 min",
+          "Modification": "Full session + extra accessory/isolation work or intensity techniques."
+        },
+        {
+          "Available Time": "120 min",
+          "Modification": "Only for advanced/powerlifting peaking sessions; risk of diminishing returns and excess fatigue for hypertrophy-only goals beyond ~90 min."
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Trigger",
+        "Action"
+      ],
+      "rows": [
+        {
+          "Trigger": "Training age crosses ~1 year on Full Body",
+          "Action": "Migrate to Upper/Lower or PPL for more frequency-adjusted volume capacity"
+        },
+        {
+          "Trigger": "Weekly sets/muscle exceed what current split can service without >90 min sessions",
+          "Action": "Add a day or migrate to higher-frequency split"
+        },
+        {
+          "Trigger": "Persistent joint pain from a pattern-heavy split (e.g., Upper/Lower with too much pressing)",
+          "Action": "Rebalance push:pull ratio, or move to PPL for better pattern distribution"
+        },
+        {
+          "Trigger": "Life stress/recovery capacity drops (poor sleep <6h, high stress)",
+          "Action": "Temporarily downshift to fewer days (e.g., 6-day PPL \u2192 4-day Upper/Lower)"
+        },
+        {
+          "Trigger": "Client plateaus >4 weeks despite adherence",
+          "Action": "Check recovery first, then consider split change as last resort (rule: don't over-attribute plateaus to \"wrong split\" \u2014 see 2_Programming_Rules.txt for full plateau decision tree)"
+        },
+        {
+          "Trigger": "Approaching a powerlifting meet",
+          "Action": "Migrate to peaking-specific split (see 5_Advanced_Programming.txt)"
+        }
+      ]
+    }
+  ],
+  "2_Programming_Rules.md": [
+    {
+      "columns": [
+        "Goal",
+        "Rep Range",
+        "Sets per Exercise",
+        "Load (%1RM)",
+        "Rest"
+      ],
+      "rows": [
+        {
+          "Goal": "Strength/Powerlifting",
+          "Rep Range": "1\u20136",
+          "Sets per Exercise": "3\u20136",
+          "Load (%1RM)": "80\u201395%",
+          "Rest": "3\u20135 min"
+        },
+        {
+          "Goal": "Power",
+          "Rep Range": "1\u20135 (explosive intent)",
+          "Sets per Exercise": "3\u20135",
+          "Load (%1RM)": "30\u201360% (speed work) / 80%+ (max effort)",
+          "Rest": "3\u20135 min"
+        },
+        {
+          "Goal": "Hypertrophy",
+          "Rep Range": "6\u201312 (primary), 5\u201330 effective range",
+          "Sets per Exercise": "3\u20135",
+          "Load (%1RM)": "65\u201385%",
+          "Rest": "60\u2013120s (compounds), 45\u201390s (isolation)"
+        },
+        {
+          "Goal": "Muscular Endurance",
+          "Rep Range": "15\u201325+",
+          "Sets per Exercise": "2\u20134",
+          "Load (%1RM)": "40\u201360%",
+          "Rest": "30\u201360s"
+        },
+        {
+          "Goal": "Fat Loss (resistance component)",
+          "Rep Range": "8\u201315",
+          "Sets per Exercise": "3\u20134",
+          "Load (%1RM)": "60\u201375%",
+          "Rest": "45\u201390s (or circuit style for density)"
+        },
+        {
+          "Goal": "General Fitness",
+          "Rep Range": "8\u201315",
+          "Sets per Exercise": "2\u20134",
+          "Load (%1RM)": "60\u201375%",
+          "Rest": "60\u201390s"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Training Age",
+        "Compound Lifts RIR",
+        "Isolation RIR",
+        "Failure Frequency"
+      ],
+      "rows": [
+        {
+          "Training Age": "Never trained \u2013 6 months",
+          "Compound Lifts RIR": "3\u20134 RIR",
+          "Isolation RIR": "2\u20133 RIR",
+          "Failure Frequency": "Avoid true failure entirely; technique breakdown risk too high"
+        },
+        {
+          "Training Age": "6\u201312 months",
+          "Compound Lifts RIR": "2\u20133 RIR",
+          "Isolation RIR": "1\u20132 RIR",
+          "Failure Frequency": "Occasional (last set of an exercise, isolation only)"
+        },
+        {
+          "Training Age": "1\u20132 years",
+          "Compound Lifts RIR": "1\u20132 RIR",
+          "Isolation RIR": "0\u20131 RIR",
+          "Failure Frequency": "Regularly on last set of isolation work"
+        },
+        {
+          "Training Age": "2\u20135 years",
+          "Compound Lifts RIR": "1\u20132 RIR (compounds), 0\u20131 (isolation)",
+          "Isolation RIR": "0 RIR possible",
+          "Failure Frequency": "Common on isolation, selective on compounds"
+        },
+        {
+          "Training Age": "5+ years",
+          "Compound Lifts RIR": "Autoregulated 0\u20132 RIR",
+          "Isolation RIR": "0 RIR common",
+          "Failure Frequency": "Programmed failure, forced reps, drop sets as planned tools"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "RPE",
+        "RIR Equivalent"
+      ],
+      "rows": [
+        {
+          "RPE": "10",
+          "RIR Equivalent": "0 (true failure)"
+        },
+        {
+          "RPE": "9.5",
+          "RIR Equivalent": "0\u20131"
+        },
+        {
+          "RPE": "9",
+          "RIR Equivalent": "1"
+        },
+        {
+          "RPE": "8",
+          "RIR Equivalent": "2"
+        },
+        {
+          "RPE": "7",
+          "RIR Equivalent": "3"
+        },
+        {
+          "RPE": "6",
+          "RIR Equivalent": "4"
+        },
+        {
+          "RPE": "\u22645",
+          "RIR Equivalent": "5+ (warm-up territory)"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Goal",
+        "Tempo Example",
+        "Purpose"
+      ],
+      "rows": [
+        {
+          "Goal": "General hypertrophy",
+          "Tempo Example": "2-0-1-0 or 2-1-1-0",
+          "Purpose": "Controlled eccentric, standard concentric"
+        },
+        {
+          "Goal": "Strength/power",
+          "Tempo Example": "1-0-X-0",
+          "Purpose": "Fast, forceful concentric"
+        },
+        {
+          "Goal": "Time-under-tension emphasis",
+          "Tempo Example": "3-1-1-0 or 4-0-1-0",
+          "Purpose": "Increase mechanical tension per rep"
+        },
+        {
+          "Goal": "Tendon/joint rehab phase",
+          "Tempo Example": "3-2-2-0 (slow, controlled, lighter load)",
+          "Purpose": "Reduce peak force, build control"
+        },
+        {
+          "Goal": "Explosive/athletic power",
+          "Tempo Example": "0-0-X-0 (with plyometric or jump component)",
+          "Purpose": "Rate of force development"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Exercise Type",
+        "Rest",
+        "Rationale"
+      ],
+      "rows": [
+        {
+          "Exercise Type": "Heavy compound (squat, deadlift, bench \u226585%)",
+          "Rest": "3\u20135 min",
+          "Rationale": "Full ATP-PC recovery for max force output"
+        },
+        {
+          "Exercise Type": "Moderate compound (hypertrophy focus, 65\u201380%)",
+          "Rest": "90\u2013150s",
+          "Rationale": "Balance fatigue with density"
+        },
+        {
+          "Exercise Type": "Isolation/accessory",
+          "Rest": "45\u201390s",
+          "Rationale": "Metabolic stress is a feature, not a bug"
+        },
+        {
+          "Exercise Type": "Superset/circuit/fat-loss density work",
+          "Rest": "15\u201345s between exercises",
+          "Rationale": "Elevate density and cardiovascular demand"
+        },
+        {
+          "Exercise Type": "Between antagonist supersets (e.g., biceps/triceps)",
+          "Rest": "Minimal (can go back-to-back)",
+          "Rationale": "Different muscle groups recover independently"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Context",
+        "Failure Policy"
+      ],
+      "rows": [
+        {
+          "Context": "Beginner, any lift",
+          "Failure Policy": "Avoid; stop 3+ reps shy"
+        },
+        {
+          "Context": "Intermediate, compound",
+          "Failure Policy": "Rare, only last set, only with a spotter/safety pins"
+        },
+        {
+          "Context": "Intermediate, isolation",
+          "Failure Policy": "Regular, especially final set"
+        },
+        {
+          "Context": "Advanced, compound",
+          "Failure Policy": "Occasional, programmed (e.g., last week of a block)"
+        },
+        {
+          "Context": "Advanced, isolation/machine",
+          "Failure Policy": "Common, including forced reps and drop sets"
+        },
+        {
+          "Context": "Fatigue/illness/poor sleep present",
+          "Failure Policy": "Never \u2014 autoregulate down regardless of program"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Recovery Quality",
+        "Adjustment"
+      ],
+      "rows": [
+        {
+          "Recovery Quality": "Poor recovery",
+          "Adjustment": "Reduce weekly sets by 20\u201330%, add 1 RIR to targets, prioritize compounds over accessories"
+        },
+        {
+          "Recovery Quality": "Average recovery",
+          "Adjustment": "Standard programming per tables above"
+        },
+        {
+          "Recovery Quality": "Excellent recovery",
+          "Adjustment": "Can push toward MRV, lower RIR more often, tolerate higher frequency"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Sleep",
+        "Adjustment"
+      ],
+      "rows": [
+        {
+          "Sleep": "<6h",
+          "Adjustment": "Reduce session intensity, avoid failure entirely, consider trimming volume 10-20% that week"
+        },
+        {
+          "Sleep": "6\u20137h",
+          "Adjustment": "Slight caution; avoid maximal RIR pushes"
+        },
+        {
+          "Sleep": "7\u20138h",
+          "Adjustment": "Standard programming"
+        },
+        {
+          "Sleep": "8\u20139h+",
+          "Adjustment": "Full capacity; ideal for pushing progression"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Stress",
+        "Adjustment"
+      ],
+      "rows": [
+        {
+          "Stress": "High",
+          "Adjustment": "Treat like poor sleep \u2014 reduce volume/intensity, protect adherence over optimization"
+        },
+        {
+          "Stress": "Moderate",
+          "Adjustment": "Standard, monitor"
+        },
+        {
+          "Stress": "Low",
+          "Adjustment": "Full programming capacity"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Age Group",
+        "Programming Note"
+      ],
+      "rows": [
+        {
+          "Age Group": "Teen (younger trainees)",
+          "Programming Note": "Emphasize technique mastery before intensity; avoid true failure and max singles; allow faster recovery (can often handle slightly higher frequency)"
+        },
+        {
+          "Age Group": "18\u201330",
+          "Programming Note": "Full programming range applies; highest general work capacity"
+        },
+        {
+          "Age Group": "30\u201340",
+          "Programming Note": "Slightly longer warm-ups; monitor joint feedback; recovery generally still robust"
+        },
+        {
+          "Age Group": "40\u201350",
+          "Programming Note": "Add extra warm-up sets, prioritize joint-friendly variations, slightly more conservative failure policy"
+        },
+        {
+          "Age Group": "50+",
+          "Programming Note": "Prioritize machines/controlled ranges for higher-risk lifts, longer general warm-up (10-15 min), deload more frequently (every 4-6 weeks vs 6-8), emphasize tendon/connective tissue recovery time"
+        }
+      ]
+    }
+  ],
+  "3_Beginner_Programming.md": [
+    {
+      "columns": [
+        "Marker",
+        "Never Trained",
+        "0\u20136 Months",
+        "6\u201312 Months"
+      ],
+      "rows": [
+        {
+          "Marker": "Can they squat to depth with a dowel/empty bar safely?",
+          "Never Trained": "Usually no",
+          "0\u20136 Months": "Developing",
+          "6\u201312 Months": "Yes"
+        },
+        {
+          "Marker": "Progressing load session-to-session?",
+          "Never Trained": "N/A yet",
+          "0\u20136 Months": "Yes, most lifts",
+          "6\u201312 Months": "Slowing on some lifts"
+        },
+        {
+          "Marker": "RIR self-assessment accuracy",
+          "Never Trained": "Very poor",
+          "0\u20136 Months": "Poor\u2013developing",
+          "6\u201312 Months": "Improving"
+        },
+        {
+          "Marker": "Recommended model",
+          "Never Trained": "Movement literacy + linear progression",
+          "0\u20136 Months": "Linear progression",
+          "6\u201312 Months": "Linear \u2192 double progression transition"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Days",
+        "Split",
+        "Notes"
+      ],
+      "rows": [
+        {
+          "Days": "2",
+          "Split": "Full Body A/B",
+          "Notes": "Minimum effective dose; fine for true beginners"
+        },
+        {
+          "Days": "3",
+          "Split": "Full Body A/B/C",
+          "Notes": "Gold standard for beginners; allows technique repetition"
+        },
+        {
+          "Days": "4",
+          "Split": "Full Body A/B/A/B or early Upper/Lower",
+          "Notes": "Only once movement competency is established (~8-12 weeks in)"
+        },
+        {
+          "Days": "5+",
+          "Split": "Not recommended for true beginners",
+          "Notes": "Recovery capacity and technique consistency not yet built; risk of overuse and burnout; cap at 4 quality days"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Pattern",
+        "Primary Choice",
+        "Regression (if needed)",
+        "Progression (once ready)"
+      ],
+      "rows": [
+        {
+          "Pattern": "Squat",
+          "Primary Choice": "Goblet Squat / Bodyweight Squat",
+          "Regression (if needed)": "Box Squat (higher box)",
+          "Progression (once ready)": "Back Squat (barbell)"
+        },
+        {
+          "Pattern": "Hinge",
+          "Primary Choice": "Romanian Deadlift (DB)",
+          "Regression (if needed)": "Hip Hinge drill (dowel on back)",
+          "Progression (once ready)": "Barbell RDL / Deadlift"
+        },
+        {
+          "Pattern": "Horizontal Push",
+          "Primary Choice": "DB Bench / Push-up (knee if needed)",
+          "Regression (if needed)": "Incline push-up",
+          "Progression (once ready)": "Barbell Bench Press"
+        },
+        {
+          "Pattern": "Horizontal Pull",
+          "Primary Choice": "Chest-Supported Row / Band Row",
+          "Regression (if needed)": "Seated cable row (light)",
+          "Progression (once ready)": "Barbell Row"
+        },
+        {
+          "Pattern": "Vertical Push",
+          "Primary Choice": "Seated DB Shoulder Press",
+          "Regression (if needed)": "Landmine press",
+          "Progression (once ready)": "Standing OHP"
+        },
+        {
+          "Pattern": "Vertical Pull",
+          "Primary Choice": "Lat Pulldown",
+          "Regression (if needed)": "Assisted pull-up",
+          "Progression (once ready)": "Pull-up"
+        },
+        {
+          "Pattern": "Core",
+          "Primary Choice": "Plank, Dead Bug",
+          "Regression (if needed)": "Modified plank (knees down)",
+          "Progression (once ready)": "Hanging Knee Raise"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Muscle Group",
+        "Weekly Sets (Beginner)"
+      ],
+      "rows": [
+        {
+          "Muscle Group": "Chest",
+          "Weekly Sets (Beginner)": "6\u201310"
+        },
+        {
+          "Muscle Group": "Back",
+          "Weekly Sets (Beginner)": "8\u201312"
+        },
+        {
+          "Muscle Group": "Shoulders",
+          "Weekly Sets (Beginner)": "4\u20138"
+        },
+        {
+          "Muscle Group": "Quads",
+          "Weekly Sets (Beginner)": "6\u201310"
+        },
+        {
+          "Muscle Group": "Hamstrings/Glutes",
+          "Weekly Sets (Beginner)": "4\u20138"
+        },
+        {
+          "Muscle Group": "Biceps/Triceps",
+          "Weekly Sets (Beginner)": "4\u20136 each"
+        },
+        {
+          "Muscle Group": "Calves",
+          "Weekly Sets (Beginner)": "4\u20138"
+        },
+        {
+          "Muscle Group": "Abs",
+          "Weekly Sets (Beginner)": "4\u20138"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Goal",
+        "Adjustment"
+      ],
+      "rows": [
+        {
+          "Goal": "Muscle Gain",
+          "Adjustment": "Standard linear progression, moderate surplus (~250-500 kcal above maintenance)"
+        },
+        {
+          "Goal": "Fat Loss",
+          "Adjustment": "Same resistance program; deficit ~300-500 kcal; expect body recomposition (fat loss + some muscle gain) which is uniquely achievable at this training age"
+        },
+        {
+          "Goal": "General Fitness",
+          "Adjustment": "2-3x/week full body sufficient; add 2 cardio sessions/week"
+        },
+        {
+          "Goal": "Strength",
+          "Adjustment": "Still linear progression but bias rep ranges toward 4-6 on main lifts sooner (~week 8+)"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Equipment",
+        "Beginner Program Adjustment"
+      ],
+      "rows": [
+        {
+          "Equipment": "Bodyweight only",
+          "Beginner Program Adjustment": "Squat, push-up progressions, inverted rows (table/bar), glute bridge, plank"
+        },
+        {
+          "Equipment": "Resistance Bands",
+          "Beginner Program Adjustment": "Band squat, band row, band press, band pull-apart, band RDL"
+        },
+        {
+          "Equipment": "Adjustable DBs",
+          "Beginner Program Adjustment": "Full program capability; covers 90% of beginner needs"
+        },
+        {
+          "Equipment": "Barbell + Rack",
+          "Beginner Program Adjustment": "Introduce around week 4-10 once technique is coached"
+        },
+        {
+          "Equipment": "Home Gym",
+          "Beginner Program Adjustment": "DB + bands sufficient for 6-12 months of real progress"
+        },
+        {
+          "Equipment": "Commercial Gym",
+          "Beginner Program Adjustment": "Full machine + free weight access; use machines to teach movement patterns safely (e.g., leg press before back squat for a nervous or deconditioned client)"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Problem",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Problem": "Client is extremely sore for a week",
+          "Fix": "Reduce volume 30-50% next session, ensure adequate protein/sleep, reassure that this resolves within 2-4 weeks"
+        },
+        {
+          "Problem": "Client can't feel a muscle working (e.g., \"I don't feel my back\")",
+          "Fix": "Add lighter, higher-rep isolation work with a slower eccentric to build mind-muscle connection (e.g., band pull-aparts, cable rows) before loading barbell rows heavily"
+        },
+        {
+          "Problem": "Progression stalls in week 2-3 already",
+          "Fix": "Check recovery/sleep/nutrition first; verify technique isn't limiting load artificially"
+        },
+        {
+          "Problem": "Client wants to add advanced techniques (drop sets, etc.) immediately",
+          "Fix": "Redirect \u2014 technique and adherence first; intensity techniques add fatigue without proportional benefit until at least 6 months in"
+        }
+      ]
+    }
+  ],
+  "4_Intermediate_Programming.md": [
+    {
+      "columns": [
+        "Marker",
+        "Description"
+      ],
+      "rows": [
+        {
+          "Marker": "Linear progression has stalled on most main lifts",
+          "Description": "Can no longer add weight every session"
+        },
+        {
+          "Marker": "RIR estimation reasonably accurate",
+          "Description": "Client can self-report proximity to failure with ~1 RIR accuracy"
+        },
+        {
+          "Marker": "Weekly progression still possible",
+          "Description": "Adding a rep or small load weekly/bi-weekly still works with double progression"
+        },
+        {
+          "Marker": "Needs periodization",
+          "Description": "Benefits from planned variation (DUP, blocks) rather than pure linear add-weight"
+        },
+        {
+          "Marker": "Volume tolerance increased",
+          "Description": "Can now handle MEV-to-MAV range volumes without excess fatigue"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Days",
+        "Recommended Split"
+      ],
+      "rows": [
+        {
+          "Days": "3",
+          "Recommended Split": "PPL (3-day) or Full Body (if strength-biased)"
+        },
+        {
+          "Days": "4",
+          "Recommended Split": "Upper/Lower (primary recommendation for most intermediates)"
+        },
+        {
+          "Days": "5",
+          "Recommended Split": "PPL + Upper/Lower Hybrid"
+        },
+        {
+          "Days": "6",
+          "Recommended Split": "PPL x2 (6-day) \u2014 only once work capacity supports it"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Muscle",
+        "Weekly Sets (Intermediate)"
+      ],
+      "rows": [
+        {
+          "Muscle": "Chest",
+          "Weekly Sets (Intermediate)": "12\u201318"
+        },
+        {
+          "Muscle": "Back",
+          "Weekly Sets (Intermediate)": "14\u201320"
+        },
+        {
+          "Muscle": "Shoulders (total incl. overlap from pressing)",
+          "Weekly Sets (Intermediate)": "10\u201316 direct"
+        },
+        {
+          "Muscle": "Quads",
+          "Weekly Sets (Intermediate)": "12\u201318"
+        },
+        {
+          "Muscle": "Hamstrings",
+          "Weekly Sets (Intermediate)": "8\u201314"
+        },
+        {
+          "Muscle": "Glutes",
+          "Weekly Sets (Intermediate)": "6\u201312 direct"
+        },
+        {
+          "Muscle": "Biceps",
+          "Weekly Sets (Intermediate)": "8\u201314"
+        },
+        {
+          "Muscle": "Triceps",
+          "Weekly Sets (Intermediate)": "8\u201314"
+        },
+        {
+          "Muscle": "Calves",
+          "Weekly Sets (Intermediate)": "8\u201316"
+        },
+        {
+          "Muscle": "Abs",
+          "Weekly Sets (Intermediate)": "6\u201312"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Weak Point",
+        "Corrective Exercise Addition"
+      ],
+      "rows": [
+        {
+          "Weak Point": "Bench press lockout weak",
+          "Corrective Exercise Addition": "Close-grip bench, board press, overhead triceps work"
+        },
+        {
+          "Weak Point": "Bench press off chest weak",
+          "Corrective Exercise Addition": "Paused bench, spoto press, incline DB press"
+        },
+        {
+          "Weak Point": "Squat depth/bottom weak",
+          "Corrective Exercise Addition": "Pause squats, front squats, tempo squats"
+        },
+        {
+          "Weak Point": "Squat lockout weak",
+          "Corrective Exercise Addition": "Box squats, banded squats"
+        },
+        {
+          "Weak Point": "Deadlift off floor weak",
+          "Corrective Exercise Addition": "Deficit deadlifts, pause deadlifts"
+        },
+        {
+          "Weak Point": "Deadlift lockout weak",
+          "Corrective Exercise Addition": "Rack pulls, RDLs"
+        },
+        {
+          "Weak Point": "Underdeveloped upper back",
+          "Corrective Exercise Addition": "Face pulls, rear delt fly, high rows added 2-3x/week"
+        },
+        {
+          "Weak Point": "Underdeveloped rear delts/shoulders (aesthetic)",
+          "Corrective Exercise Addition": "Increase direct rear delt volume to 6-9 sets/week"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Goal",
+        "Programming Emphasis"
+      ],
+      "rows": [
+        {
+          "Goal": "Bodybuilding/Hypertrophy",
+          "Programming Emphasis": "Higher volume (upper MEV-MAV range), moderate rep ranges 6-15, isolation-heavy accessories"
+        },
+        {
+          "Goal": "Strength/Powerbuilding",
+          "Programming Emphasis": "Lower rep ranges on mains (3-6), moderate accessory volume, DUP or block periodization"
+        },
+        {
+          "Goal": "Fat Loss",
+          "Programming Emphasis": "Maintain volume near current MEV-MAV to preserve muscle; add cardio/NEAT separately rather than cutting resistance volume first"
+        },
+        {
+          "Goal": "Recomposition",
+          "Programming Emphasis": "Moderate volume, protein-forward nutrition (handled in file 7), patience \u2014 recomp is slower than dedicated bulk/cut"
+        },
+        {
+          "Goal": "Athletic Performance",
+          "Programming Emphasis": "Blend in power/explosive work 1-2x/week, reduce isolation volume in favor of multi-joint and unilateral work"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Problem",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Problem": "Stalled on a lift for 3+ weeks",
+          "Fix": "Run plateau decision tree (file 2, section 7)"
+        },
+        {
+          "Problem": "Chronic joint ache in a specific pattern",
+          "Fix": "Reduce direct volume on offending pattern 30-50%, add rotator cuff/tendon-friendly accessory work, reassess exercise selection (see file 9)"
+        },
+        {
+          "Problem": "Feels like \"no progress\" despite PRs on isolation lifts",
+          "Fix": "Reframe expectations \u2014 intermediates progress in smaller, less frequent increments; track multiple metrics (volume load, measurements, photos) not just top-set weight"
+        },
+        {
+          "Problem": "Overtraining suspicion",
+          "Fix": "Cross-check against file 10 fatigue indicators before assuming programming is \"wrong\""
+        }
+      ]
+    }
+  ],
+  "5_Advanced_Programming.md": [
+    {
+      "columns": [
+        "Concept",
+        "Definition",
+        "Practical Use"
+      ],
+      "rows": [
+        {
+          "Concept": "MEV",
+          "Definition": "Minimum Effective Volume",
+          "Practical Use": "Floor during specialization/deload/high-fatigue periods"
+        },
+        {
+          "Concept": "MAV",
+          "Definition": "Maximum Adaptive Volume",
+          "Practical Use": "Target range for normal productive blocks"
+        },
+        {
+          "Concept": "MRV",
+          "Definition": "Maximum Recoverable Volume",
+          "Practical Use": "Ceiling \u2014 training above this without adjustment leads to overreaching"
+        },
+        {
+          "Concept": "SFR",
+          "Definition": "Stimulus-to-Fatigue Ratio",
+          "Practical Use": "Used to pick exercises \u2014 favor high-SFR movements (e.g., leg curl for hamstrings) over low-SFR ones (e.g., stiff-leg deadlift, which is highly fatiguing per unit of hamstring stimulus) especially late in a block when fatigue is high"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Age",
+        "Note"
+      ],
+      "rows": [
+        {
+          "Age": "30-40",
+          "Note": "Full capacity, may need slightly longer warm-ups"
+        },
+        {
+          "Age": "40-50",
+          "Note": "Consider capping true 1RM testing frequency, rely on submaximal RPE-based strength tracking; prioritize joint-friendly variations for MRV-pushing exercises"
+        },
+        {
+          "Age": "50+",
+          "Note": "Longer deload/recovery cycles, greater reliance on machines for MRV-range volume to reduce joint loading, still fully capable of meaningful strength/hypertrophy gains but with more conservative fatigue management"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Problem",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Problem": "Chronic joint pain across multiple lifts",
+          "Fix": "Full deload + exercise substitution audit (file 9) + consider a longer recovery block (2+ weeks) before resuming high volume"
+        },
+        {
+          "Problem": "Plateau despite textbook programming",
+          "Fix": "Re-audit nutrition/sleep/stress before further programming changes \u2014 even advanced lifters most often plateau from recovery/nutrition gaps, not programming flaws"
+        },
+        {
+          "Problem": "Specialization block not producing visible results",
+          "Fix": "Check that non-specialized muscles were genuinely dropped to MEV (common error: not reducing other volume enough, causing systemic overreach)"
+        },
+        {
+          "Problem": "Motivation/burnout",
+          "Fix": "Insert a full deload or even a 1-2 week \"active recovery\" block; advanced lifters are as vulnerable to psychological burnout as physical overreach"
+        }
+      ]
+    }
+  ],
+  "6_Intensity_Techniques.md": [
+    {
+      "columns": [
+        "Type",
+        "Structure",
+        "Best Use"
+      ],
+      "rows": [
+        {
+          "Type": "Superset (antagonist)",
+          "Structure": "2 opposing muscle exercises back-to-back (e.g., biceps/triceps)",
+          "Best Use": "Time efficiency, minimal added fatigue since muscles are independent"
+        },
+        {
+          "Type": "Superset (same muscle/compound)",
+          "Structure": "2 exercises same muscle back-to-back",
+          "Best Use": "Adds significant fatigue; use sparingly, end of session"
+        },
+        {
+          "Type": "Tri-set",
+          "Structure": "3 exercises in sequence",
+          "Best Use": "Specialization blocks, time-constrained advanced sessions"
+        },
+        {
+          "Type": "Giant set",
+          "Structure": "4+ exercises in sequence, often same muscle group",
+          "Best Use": "High fatigue; advanced only; typically for a single \"finisher\" muscle group at end of session"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Technique",
+        "Beginner (<6mo)",
+        "6mo\u20132yr",
+        "Intermediate (2-5yr)",
+        "Advanced (5+yr)"
+      ],
+      "rows": [
+        {
+          "Technique": "Drop sets",
+          "Beginner (<6mo)": "No",
+          "6mo\u20132yr": "Light use",
+          "Intermediate (2-5yr)": "Yes",
+          "Advanced (5+yr)": "Yes"
+        },
+        {
+          "Technique": "Rest-pause",
+          "Beginner (<6mo)": "No",
+          "6mo\u20132yr": "Light use",
+          "Intermediate (2-5yr)": "Yes",
+          "Advanced (5+yr)": "Yes"
+        },
+        {
+          "Technique": "Myo-reps",
+          "Beginner (<6mo)": "No",
+          "6mo\u20132yr": "No",
+          "Intermediate (2-5yr)": "Yes",
+          "Advanced (5+yr)": "Yes"
+        },
+        {
+          "Technique": "Cluster sets",
+          "Beginner (<6mo)": "No",
+          "6mo\u20132yr": "No",
+          "Intermediate (2-5yr)": "Light use",
+          "Advanced (5+yr)": "Yes"
+        },
+        {
+          "Technique": "Supersets (antagonist)",
+          "Beginner (<6mo)": "Light use",
+          "6mo\u20132yr": "Yes",
+          "Intermediate (2-5yr)": "Yes",
+          "Advanced (5+yr)": "Yes"
+        },
+        {
+          "Technique": "Giant sets",
+          "Beginner (<6mo)": "No",
+          "6mo\u20132yr": "No",
+          "Intermediate (2-5yr)": "Light use",
+          "Advanced (5+yr)": "Yes"
+        },
+        {
+          "Technique": "Forced reps",
+          "Beginner (<6mo)": "No",
+          "6mo\u20132yr": "No",
+          "Intermediate (2-5yr)": "No",
+          "Advanced (5+yr)": "Yes (sparingly)"
+        },
+        {
+          "Technique": "Cheat reps",
+          "Beginner (<6mo)": "No",
+          "6mo\u20132yr": "No",
+          "Intermediate (2-5yr)": "No",
+          "Advanced (5+yr)": "Yes (selectively)"
+        },
+        {
+          "Technique": "Partials",
+          "Beginner (<6mo)": "No",
+          "6mo\u20132yr": "No",
+          "Intermediate (2-5yr)": "Light use",
+          "Advanced (5+yr)": "Yes"
+        },
+        {
+          "Technique": "BFR (performance context)",
+          "Beginner (<6mo)": "No",
+          "6mo\u20132yr": "No",
+          "Intermediate (2-5yr)": "Light use",
+          "Advanced (5+yr)": "Yes"
+        },
+        {
+          "Technique": "Eccentric overload",
+          "Beginner (<6mo)": "No",
+          "6mo\u20132yr": "No",
+          "Intermediate (2-5yr)": "No",
+          "Advanced (5+yr)": "Yes"
+        },
+        {
+          "Technique": "Isometrics",
+          "Beginner (<6mo)": "Light use (technique)",
+          "6mo\u20132yr": "Yes",
+          "Intermediate (2-5yr)": "Yes",
+          "Advanced (5+yr)": "Yes"
+        },
+        {
+          "Technique": "Explosive/power work",
+          "Beginner (<6mo)": "Technique only, no load",
+          "6mo\u20132yr": "Yes (light)",
+          "Intermediate (2-5yr)": "Yes",
+          "Advanced (5+yr)": "Yes"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Training Age",
+        "Max Intensity-Technique \"Instances\"/Muscle/Week"
+      ],
+      "rows": [
+        {
+          "Training Age": "Beginner",
+          "Max Intensity-Technique \"Instances\"/Muscle/Week": "0-1 (light only)"
+        },
+        {
+          "Training Age": "Intermediate",
+          "Max Intensity-Technique \"Instances\"/Muscle/Week": "1-2"
+        },
+        {
+          "Training Age": "Advanced",
+          "Max Intensity-Technique \"Instances\"/Muscle/Week": "2-4 (only if volume elsewhere is correspondingly reduced)"
+        }
+      ]
+    }
+  ],
+  "7_Goal_Based_Modifications.md": [
+    {
+      "columns": [
+        "Goal",
+        "Calories",
+        "Protein",
+        "Volume Bias",
+        "Rep Range Bias",
+        "Cardio"
+      ],
+      "rows": [
+        {
+          "Goal": "Muscle Gain (general)",
+          "Calories": "+100-300 kcal",
+          "Protein": "1.6-2.2g/kg",
+          "Volume Bias": "MEV-MAV",
+          "Rep Range Bias": "6-15",
+          "Cardio": "1-3x/week light-moderate"
+        },
+        {
+          "Goal": "Lean Bulk",
+          "Calories": "+100-250 kcal (slow)",
+          "Protein": "1.8-2.2g/kg",
+          "Volume Bias": "MAV",
+          "Rep Range Bias": "6-12",
+          "Cardio": "2-3x/week"
+        },
+        {
+          "Goal": "Dirty Bulk",
+          "Calories": "+500-1000 kcal",
+          "Protein": "1.6-2g/kg (lower priority)",
+          "Volume Bias": "MAV-MRV",
+          "Rep Range Bias": "6-15",
+          "Cardio": "Minimal"
+        },
+        {
+          "Goal": "Strength",
+          "Calories": "Maintenance to slight surplus",
+          "Protein": "1.6-2g/kg",
+          "Volume Bias": "MEV-MAV",
+          "Rep Range Bias": "1-6 primary, some 6-10 accessory",
+          "Cardio": "Minimal, low-impact only"
+        },
+        {
+          "Goal": "Powerlifting",
+          "Calories": "Maintenance/slight surplus in off-season, maintenance near meet",
+          "Protein": "1.6-2g/kg",
+          "Volume Bias": "MEV",
+          "Rep Range Bias": "1-5",
+          "Cardio": "Minimal"
+        },
+        {
+          "Goal": "Powerbuilding",
+          "Calories": "Slight surplus",
+          "Protein": "1.8-2.2g/kg",
+          "Volume Bias": "MAV",
+          "Rep Range Bias": "Mixed 3-12",
+          "Cardio": "Light 1-2x/week"
+        },
+        {
+          "Goal": "Bodybuilding",
+          "Calories": "Phase-dependent (surplus off-season, deficit contest prep)",
+          "Protein": "2-2.4g/kg (especially in deficit)",
+          "Volume Bias": "MAV-MRV",
+          "Rep Range Bias": "6-15",
+          "Cardio": "Phase-dependent, high in prep"
+        },
+        {
+          "Goal": "Athletic Performance",
+          "Calories": "Maintenance/slight surplus, sport-dependent",
+          "Protein": "1.6-2g/kg",
+          "Volume Bias": "MEV-moderate (leave capacity for sport work)",
+          "Rep Range Bias": "Mixed + power work",
+          "Cardio": "Sport-specific"
+        },
+        {
+          "Goal": "Fat Loss",
+          "Calories": "-300 to -750 kcal (larger deficits for higher body fat, smaller near goal)",
+          "Protein": "2.0-2.6g/kg (higher in deficit to preserve muscle)",
+          "Volume Bias": "Maintain near-current volume (MEV-MAV)",
+          "Rep Range Bias": "8-15",
+          "Cardio": "3-5x/week, mix steady-state + intervals"
+        },
+        {
+          "Goal": "Maintenance",
+          "Calories": "Maintenance kcal",
+          "Protein": "1.6-2g/kg",
+          "Volume Bias": "MEV-MAV",
+          "Rep Range Bias": "Mixed",
+          "Cardio": "2-3x/week"
+        },
+        {
+          "Goal": "Body Recomposition",
+          "Calories": "Maintenance or very slight deficit (~5-10%)",
+          "Protein": "2.2-2.6g/kg",
+          "Volume Bias": "MAV",
+          "Rep Range Bias": "6-15",
+          "Cardio": "2-4x/week"
+        },
+        {
+          "Goal": "General Fitness",
+          "Calories": "Maintenance",
+          "Protein": "1.2-1.6g/kg",
+          "Volume Bias": "MEV",
+          "Rep Range Bias": "Mixed",
+          "Cardio": "3-5x/week"
+        },
+        {
+          "Goal": "Sport Specific",
+          "Calories": "Periodized to season",
+          "Protein": "1.6-2g/kg",
+          "Volume Bias": "Varies by phase",
+          "Rep Range Bias": "Power/strength + sport skill priority",
+          "Cardio": "Sport-specific"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Consideration",
+        "Adjustment"
+      ],
+      "rows": [
+        {
+          "Consideration": "Male",
+          "Adjustment": "Standard tables apply; typically tolerates larger surpluses without proportionally more fat gain due to generally higher muscle-building ceiling relative to fat cell response, individual variation still primary factor"
+        },
+        {
+          "Consideration": "Female",
+          "Adjustment": "Often benefits from slightly smaller deficits/surpluses proportionally (relative to bodyweight) and slightly higher relative protein intake target during fat loss; menstrual cycle can affect hunger/water retention \u2014 track trends over weeks, not single days"
+        },
+        {
+          "Consideration": "Teen",
+          "Adjustment": "Favor lean bulk/maintenance over aggressive cutting; avoid deficits during active growth years unless medically indicated; emphasize skill/technique and general fitness over aggressive body-composition goals"
+        },
+        {
+          "Consideration": "40-50 / 50+",
+          "Adjustment": "Protein target toward the higher end of ranges (helps offset age-related anabolic resistance); slightly more conservative deficit sizing to protect muscle mass and hormonal health; recomposition remains viable longer in previously untrained or detrained older clients"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Problem",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Problem": "Client not gaining weight despite \"surplus\"",
+          "Fix": "Audit actual intake (frequently underestimated); increase calories 10-15% and reassess in 2 weeks"
+        },
+        {
+          "Problem": "Client not losing weight despite \"deficit\"",
+          "Fix": "Audit tracking accuracy, water retention/stress, and reassess deficit size; increase activity/cardio before crashing calories further"
+        },
+        {
+          "Problem": "Rapid strength loss while cutting",
+          "Fix": "Deficit too aggressive or volume cut too much \u2014 rebalance: protect resistance training, adjust cardio/calories instead"
+        },
+        {
+          "Problem": "Client feels their recomposition isn't visibly progressing",
+          "Fix": "Set expectations early: recomp is genuinely slower than sequential bulk/cut and best tracked via measurements/photos over 8-12 week windows, not weekly scale weight"
+        }
+      ]
+    }
+  ],
+  "8_Weekly_Muscle_Volume.md": [
+    {
+      "columns": [
+        "Muscle",
+        "Beginner MEV\u2013MAV",
+        "Intermediate MEV\u2013MAV",
+        "Advanced MEV\u2013MAV",
+        "Absolute MRV Ceiling (advanced)"
+      ],
+      "rows": [
+        {
+          "Muscle": "Chest",
+          "Beginner MEV\u2013MAV": "6\u201310",
+          "Intermediate MEV\u2013MAV": "10\u201318",
+          "Advanced MEV\u2013MAV": "12\u201322",
+          "Absolute MRV Ceiling (advanced)": "~26"
+        },
+        {
+          "Muscle": "Back (total)",
+          "Beginner MEV\u2013MAV": "8\u201312",
+          "Intermediate MEV\u2013MAV": "12\u201320",
+          "Advanced MEV\u2013MAV": "14\u201325",
+          "Absolute MRV Ceiling (advanced)": "~30"
+        },
+        {
+          "Muscle": "Lats (specifically)",
+          "Beginner MEV\u2013MAV": "6\u201310",
+          "Intermediate MEV\u2013MAV": "10\u201316",
+          "Advanced MEV\u2013MAV": "12\u201320",
+          "Absolute MRV Ceiling (advanced)": "~24"
+        },
+        {
+          "Muscle": "Upper Back/Traps",
+          "Beginner MEV\u2013MAV": "4\u20138",
+          "Intermediate MEV\u2013MAV": "6\u201312",
+          "Advanced MEV\u2013MAV": "8\u201316",
+          "Absolute MRV Ceiling (advanced)": "~20"
+        },
+        {
+          "Muscle": "Shoulders (direct, front/side/rear combined)",
+          "Beginner MEV\u2013MAV": "4\u20138",
+          "Intermediate MEV\u2013MAV": "8\u201316",
+          "Advanced MEV\u2013MAV": "10\u201320",
+          "Absolute MRV Ceiling (advanced)": "~26"
+        },
+        {
+          "Muscle": "Side Delts (specifically, aesthetic priority)",
+          "Beginner MEV\u2013MAV": "4\u20136",
+          "Intermediate MEV\u2013MAV": "8\u201312",
+          "Advanced MEV\u2013MAV": "10\u201316",
+          "Absolute MRV Ceiling (advanced)": "~20"
+        },
+        {
+          "Muscle": "Biceps",
+          "Beginner MEV\u2013MAV": "4\u20138",
+          "Intermediate MEV\u2013MAV": "8\u201314",
+          "Advanced MEV\u2013MAV": "10\u201320",
+          "Absolute MRV Ceiling (advanced)": "~26"
+        },
+        {
+          "Muscle": "Triceps",
+          "Beginner MEV\u2013MAV": "4\u20138",
+          "Intermediate MEV\u2013MAV": "8\u201314",
+          "Advanced MEV\u2013MAV": "10\u201320",
+          "Absolute MRV Ceiling (advanced)": "~24"
+        },
+        {
+          "Muscle": "Forearms",
+          "Beginner MEV\u2013MAV": "2\u20134",
+          "Intermediate MEV\u2013MAV": "4\u20138",
+          "Advanced MEV\u2013MAV": "6\u201312",
+          "Absolute MRV Ceiling (advanced)": "~16"
+        },
+        {
+          "Muscle": "Quads",
+          "Beginner MEV\u2013MAV": "6\u201310",
+          "Intermediate MEV\u2013MAV": "10\u201318",
+          "Advanced MEV\u2013MAV": "12\u201322",
+          "Absolute MRV Ceiling (advanced)": "~26"
+        },
+        {
+          "Muscle": "Hamstrings",
+          "Beginner MEV\u2013MAV": "4\u20138",
+          "Intermediate MEV\u2013MAV": "8\u201314",
+          "Advanced MEV\u2013MAV": "10\u201318",
+          "Absolute MRV Ceiling (advanced)": "~22"
+        },
+        {
+          "Muscle": "Glutes (direct)",
+          "Beginner MEV\u2013MAV": "2\u20136",
+          "Intermediate MEV\u2013MAV": "4\u201310",
+          "Advanced MEV\u2013MAV": "6\u201314",
+          "Absolute MRV Ceiling (advanced)": "~18"
+        },
+        {
+          "Muscle": "Calves",
+          "Beginner MEV\u2013MAV": "4\u20138",
+          "Intermediate MEV\u2013MAV": "8\u201316",
+          "Advanced MEV\u2013MAV": "10\u201320",
+          "Absolute MRV Ceiling (advanced)": "~25"
+        },
+        {
+          "Muscle": "Abs",
+          "Beginner MEV\u2013MAV": "4\u20138",
+          "Intermediate MEV\u2013MAV": "6\u201312",
+          "Advanced MEV\u2013MAV": "8\u201316",
+          "Absolute MRV Ceiling (advanced)": "~20"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Training Age",
+        "Recommended Frequency per Muscle"
+      ],
+      "rows": [
+        {
+          "Training Age": "Beginner",
+          "Recommended Frequency per Muscle": "2.5\u20134x/week (Full Body naturally provides this)"
+        },
+        {
+          "Training Age": "Intermediate",
+          "Recommended Frequency per Muscle": "2x/week (standard; supports MAV distribution without excess per-session volume)"
+        },
+        {
+          "Training Age": "Advanced",
+          "Recommended Frequency per Muscle": "1.6\u20132x/week (2x standard on most splits; 1x acceptable ONLY with high per-session volume in specialization contexts, e.g., bro split)"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Goal",
+        "Volume Adjustment from Base Table"
+      ],
+      "rows": [
+        {
+          "Goal": "Muscle Gain / Bodybuilding",
+          "Volume Adjustment from Base Table": "Standard table (aim MAV)"
+        },
+        {
+          "Goal": "Strength/Powerlifting",
+          "Volume Adjustment from Base Table": "Reduce accessory/isolation volume ~30-40%; keep compound volume, since heavy compounds are the primary driver"
+        },
+        {
+          "Goal": "Fat Loss",
+          "Volume Adjustment from Base Table": "Maintain near-current MEV-MAV; do not deliberately increase volume during a cut (recovery capacity is reduced by the deficit)"
+        },
+        {
+          "Goal": "Athletic Performance",
+          "Volume Adjustment from Base Table": "Reduce isolation volume in favor of compound/power work; total set count can be lower since intensity/specificity matters more"
+        },
+        {
+          "Goal": "General Fitness",
+          "Volume Adjustment from Base Table": "MEV is sufficient; no need to chase MAV"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Factor",
+        "Adjustment"
+      ],
+      "rows": [
+        {
+          "Factor": "Poor sleep (<6-7h consistently)",
+          "Adjustment": "Reduce planned volume 15-25%"
+        },
+        {
+          "Factor": "High life stress",
+          "Adjustment": "Reduce planned volume 15-25%"
+        },
+        {
+          "Factor": "Excellent recovery (8h+ sleep, low stress, good nutrition)",
+          "Adjustment": "Can push toward the upper MAV/MRV range"
+        },
+        {
+          "Factor": "Returning from layoff/deload",
+          "Adjustment": "Start at MEV, ramp to MAV over 2-3 weeks"
+        },
+        {
+          "Factor": "Approaching a deload (week 5-8 of a block)",
+          "Adjustment": "Volume naturally at its highest planned point (MAV-MRV) right before cutting back"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Exercise",
+        "Sets",
+        "Chest (direct)",
+        "Triceps (indirect)",
+        "Shoulders (indirect)"
+      ],
+      "rows": [
+        {
+          "Exercise": "Bench Press",
+          "Sets": "4",
+          "Chest (direct)": "4",
+          "Triceps (indirect)": "1.5",
+          "Shoulders (indirect)": "1"
+        },
+        {
+          "Exercise": "Incline DB Press",
+          "Sets": "3",
+          "Chest (direct)": "3",
+          "Triceps (indirect)": "1",
+          "Shoulders (indirect)": "1"
+        },
+        {
+          "Exercise": "Seated OHP",
+          "Sets": "3",
+          "Chest (direct)": "\u2014",
+          "Triceps (indirect)": "1",
+          "Shoulders (indirect)": "3"
+        },
+        {
+          "Exercise": "Lateral Raise",
+          "Sets": "3",
+          "Chest (direct)": "\u2014",
+          "Triceps (indirect)": "\u2014",
+          "Shoulders (indirect)": "3"
+        },
+        {
+          "Exercise": "Triceps Pushdown",
+          "Sets": "3",
+          "Chest (direct)": "\u2014",
+          "Triceps (indirect)": "3",
+          "Shoulders (indirect)": "\u2014"
+        },
+        {
+          "Exercise": "**Session Total**",
+          "Sets": "",
+          "Chest (direct)": "**7 direct chest**",
+          "Triceps (indirect)": "**~6.5 triceps**",
+          "Shoulders (indirect)": "**~7 shoulders**"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Population",
+        "Note"
+      ],
+      "rows": [
+        {
+          "Population": "Female",
+          "Note": "Often tolerates the upper end of MAV, especially for lower body (quads/glutes/hamstrings), sooner in training career than typical male trend data \u2014 adjust upward if recovery markers support it"
+        },
+        {
+          "Population": "Teen",
+          "Note": "Use beginner/intermediate ranges regardless of enthusiasm; prioritize technique over volume-chasing"
+        },
+        {
+          "Population": "40-50",
+          "Note": "Can use standard intermediate/advanced tables but should monitor joint feedback more closely at the upper MAV/MRV end"
+        },
+        {
+          "Population": "50+",
+          "Note": "Consider capping at MAV rather than pushing MRV even if \"advanced,\" due to slower connective tissue recovery; frequency (2x/week) becomes even more valuable relative to raw volume for managing per-session fatigue"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Symptom",
+        "Likely Volume Issue",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Symptom": "Persistent unresolved soreness, performance decline",
+          "Likely Volume Issue": "Above MRV",
+          "Fix": "Cut volume 30-40% for that muscle for 1-2 weeks"
+        },
+        {
+          "Symptom": "No progress despite good recovery markers",
+          "Likely Volume Issue": "Possibly below MEV",
+          "Fix": "Increase volume 20-30% and reassess in 2-3 weeks"
+        },
+        {
+          "Symptom": "Joint pain localized to one muscle's training",
+          "Likely Volume Issue": "Could be volume OR exercise selection",
+          "Fix": "Check file 9 for exercise substitution before assuming volume is the sole issue"
+        },
+        {
+          "Symptom": "Whole-body fatigue, mood/motivation decline",
+          "Likely Volume Issue": "Global volume too high relative to recovery capacity (life stress, sleep)",
+          "Fix": "Reduce volume across the board or insert a deload (file 10)"
+        }
+      ]
+    }
+  ],
+  "13_Cardio_and_Conditioning_Programming.md": [
+    {
+      "columns": [
+        "Modality",
+        "Type",
+        "Impact Level",
+        "Equipment"
+      ],
+      "rows": [
+        {
+          "Modality": "Walking (incline)",
+          "Type": "LISS (Low-Intensity Steady State)",
+          "Impact Level": "Low",
+          "Equipment": "None/treadmill"
+        },
+        {
+          "Modality": "Cycling (stationary/road)",
+          "Type": "LISS/MISS",
+          "Impact Level": "Low",
+          "Equipment": "Bike"
+        },
+        {
+          "Modality": "Rowing",
+          "Type": "MISS/HIIT capable",
+          "Impact Level": "Low-Moderate",
+          "Equipment": "Rower"
+        },
+        {
+          "Modality": "Jogging/running",
+          "Type": "MISS/HIIT capable",
+          "Impact Level": "High",
+          "Equipment": "None/treadmill"
+        },
+        {
+          "Modality": "Jump rope",
+          "Type": "HIIT capable",
+          "Impact Level": "High",
+          "Equipment": "Rope"
+        },
+        {
+          "Modality": "Sled push/drag",
+          "Type": "HIIT/strength-conditioning hybrid",
+          "Impact Level": "Low (joint), High (metabolic)",
+          "Equipment": "Sled"
+        },
+        {
+          "Modality": "Swimming",
+          "Type": "LISS/MISS/HIIT capable",
+          "Impact Level": "Very Low",
+          "Equipment": "Pool"
+        },
+        {
+          "Modality": "Circuit/complex training",
+          "Type": "HIIT hybrid",
+          "Impact Level": "Variable",
+          "Equipment": "Varies"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Zone",
+        "%HRmax",
+        "RPE (0-10)",
+        "Talk Test",
+        "Primary Use"
+      ],
+      "rows": [
+        {
+          "Zone": "Zone 1",
+          "%HRmax": "50-60%",
+          "RPE (0-10)": "2-3",
+          "Talk Test": "Full conversation",
+          "Primary Use": "Recovery, warm-up"
+        },
+        {
+          "Zone": "Zone 2",
+          "%HRmax": "60-70%",
+          "RPE (0-10)": "4-5",
+          "Talk Test": "Comfortable conversation",
+          "Primary Use": "Aerobic base, fat oxidation"
+        },
+        {
+          "Zone": "Zone 3",
+          "%HRmax": "70-80%",
+          "RPE (0-10)": "6-7",
+          "Talk Test": "Broken sentences",
+          "Primary Use": "Tempo/threshold building"
+        },
+        {
+          "Zone": "Zone 4",
+          "%HRmax": "80-90%",
+          "RPE (0-10)": "8",
+          "Talk Test": "Few words only",
+          "Primary Use": "VO2max/threshold intervals"
+        },
+        {
+          "Zone": "Zone 5",
+          "%HRmax": "90-100%",
+          "RPE (0-10)": "9-10",
+          "Talk Test": "Cannot talk",
+          "Primary Use": "Max anaerobic intervals"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Rule",
+        "Detail"
+      ],
+      "rows": [
+        {
+          "Rule": "Sequencing within a session",
+          "Detail": "Resistance training before cardio when both goals matter; cardio-first only if cardio is the primary goal or it's a dedicated warm-up (\u226410 min Zone 1)"
+        },
+        {
+          "Rule": "Same-day proximity",
+          "Detail": "Separate high-intensity cardio and heavy lower-body lifting by \u22656 hours where schedule allows; if not possible, prioritize the primary goal's session quality"
+        },
+        {
+          "Rule": "Weekly distribution",
+          "Detail": "For hypertrophy/strength-primary clients, place HIIT/hard cardio on non-leg-heavy days or as separate low-impact Zone 2"
+        },
+        {
+          "Rule": "Volume ceiling",
+          "Detail": "Total weekly cardio duration should not exceed 150-200% of resistance training duration for clients with hypertrophy/strength as primary goal (protects recovery capacity)"
+        },
+        {
+          "Rule": "Fat-loss priority conflicts",
+          "Detail": "If fat loss is primary but client also wants strength gains, cap cardio HIIT to 1x/week, favor Zone 2 for remaining sessions to reduce systemic fatigue"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Protocol",
+        "Work:Rest",
+        "Rounds",
+        "Use Case"
+      ],
+      "rows": [
+        {
+          "Protocol": "Classic Tabata",
+          "Work:Rest": "20s:10s",
+          "Rounds": "8",
+          "Use Case": "Advanced, time-efficient, high fatigue cost"
+        },
+        {
+          "Protocol": "30:30",
+          "Work:Rest": "30s:30s",
+          "Rounds": "8-12",
+          "Use Case": "Intermediate, moderate fatigue cost"
+        },
+        {
+          "Protocol": "1:2 ratio intervals",
+          "Work:Rest": "30s:60s",
+          "Rounds": "6-10",
+          "Use Case": "Beginner-intermediate anaerobic introduction"
+        },
+        {
+          "Protocol": "Long intervals",
+          "Work:Rest": "3-5min:2-3min",
+          "Rounds": "4-6",
+          "Use Case": "VO2max development, endurance athletes"
+        },
+        {
+          "Protocol": "Sled/sprint intervals",
+          "Work:Rest": "15-20s effort:90s+ rest",
+          "Rounds": "4-8",
+          "Use Case": "Power-conditioning hybrid, joint-friendly"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Available Equipment",
+        "Substitution Logic"
+      ],
+      "rows": [
+        {
+          "Available Equipment": "No equipment",
+          "Substitution Logic": "Bodyweight circuits (burpees, mountain climbers, jump squats), walking/jogging outdoors"
+        },
+        {
+          "Available Equipment": "Home \u2014 resistance bands only",
+          "Substitution Logic": "Band-resisted movement circuits, step-ups, walking"
+        },
+        {
+          "Available Equipment": "Commercial gym \u2014 full cardio deck",
+          "Substitution Logic": "Full modality menu (Section 1) available"
+        },
+        {
+          "Available Equipment": "Outdoor only, no machines",
+          "Substitution Logic": "Hill sprints, stair repeats, distance walking/running, bodyweight circuits"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Condition/Injury",
+        "Preferred Modality",
+        "Avoid"
+      ],
+      "rows": [
+        {
+          "Condition/Injury": "Knee pain/injury",
+          "Preferred Modality": "Swimming, cycling (low resistance), rowing (pain-free ROM only)",
+          "Avoid": "Running, jump rope, high-impact circuits"
+        },
+        {
+          "Condition/Injury": "Lower back pain",
+          "Preferred Modality": "Walking, recumbent cycling, swimming",
+          "Avoid": "Rowing with poor form, high-impact jumping"
+        },
+        {
+          "Condition/Injury": "Ankle/foot injury",
+          "Preferred Modality": "Cycling, swimming, seated upper-body ergometer",
+          "Avoid": "Running, jump rope, sled drag"
+        },
+        {
+          "Condition/Injury": "Shoulder injury",
+          "Preferred Modality": "Cycling, walking, lower-body-only sled push",
+          "Avoid": "Rowing (if painful), swimming (stroke-dependent)"
+        },
+        {
+          "Condition/Injury": "Pregnancy (per file 12 Section 4)",
+          "Preferred Modality": "Walking, stationary cycling (stable), swimming",
+          "Avoid": "High-fall-risk, overheating-prone, supine-position modalities"
+        },
+        {
+          "Condition/Injury": "Cardiac history (cleared)",
+          "Preferred Modality": "Zone 1-2 only, clearance-specified cap",
+          "Avoid": "Any HIIT/Zone 4-5 work until re-cleared"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Recovery Score (file 10)",
+        "Cardio Adjustment"
+      ],
+      "rows": [
+        {
+          "Recovery Score (file 10)": "High",
+          "Cardio Adjustment": "Full prescription, HIIT permitted if otherwise eligible"
+        },
+        {
+          "Recovery Score (file 10)": "Moderate",
+          "Cardio Adjustment": "Reduce HIIT volume 25-50%, maintain Zone 2"
+        },
+        {
+          "Recovery Score (file 10)": "Low",
+          "Cardio Adjustment": "Zone 1-2 only, reduce total duration 30-40%, no intervals"
+        },
+        {
+          "Recovery Score (file 10)": "Deload week active",
+          "Cardio Adjustment": "Cardio duration capped at 50% normal, Zone 1-2 only"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Symptom",
+        "Likely Cause",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Symptom": "Strength stalling despite good lifting adherence",
+          "Likely Cause": "Excessive cardio volume/interference effect",
+          "Fix": "Apply Section 4 volume ceiling, shift cardio to Zone 2"
+        },
+        {
+          "Symptom": "Client reports high fatigue despite following prescription",
+          "Likely Cause": "Recovery score not queried before cardio prescription",
+          "Fix": "Enforce Section 9 gate before finalizing weekly cardio plan"
+        },
+        {
+          "Symptom": "Fat loss stalled despite cardio adherence",
+          "Likely Cause": "Cardio alone insufficient; check nutrition adherence (file 11 check-in)",
+          "Fix": "Cross-reference `adherence_nutrition_pct`, address diet before adding more cardio"
+        }
+      ]
+    }
+  ],
+  "14_Default_Safe_Template_and_Coach_Override.md": [
+    {
+      "columns": [
+        "Parameter",
+        "Value"
+      ],
+      "rows": [
+        {
+          "Parameter": "Days per week",
+          "Value": "2\u20133 (never more, regardless of client request, until unlocked)"
+        },
+        {
+          "Parameter": "Session length",
+          "Value": "30\u201340 min including warm-up"
+        },
+        {
+          "Parameter": "Split type",
+          "Value": "Full body, same routine each session (no undulation)"
+        },
+        {
+          "Parameter": "Exercise count per session",
+          "Value": "5\u20136 total"
+        },
+        {
+          "Parameter": "Sets per exercise",
+          "Value": "2"
+        },
+        {
+          "Parameter": "Rep range",
+          "Value": "10\u201315"
+        },
+        {
+          "Parameter": "Load",
+          "Value": "Bodyweight or light-to-moderate load only; RPE cap 6/10"
+        },
+        {
+          "Parameter": "Rest between sets",
+          "Value": "90 seconds fixed"
+        },
+        {
+          "Parameter": "Progression model",
+          "Value": "None (fixed template) until re-screened and tier upgraded"
+        },
+        {
+          "Parameter": "Intensity techniques (file 6)",
+          "Value": "None permitted"
+        },
+        {
+          "Parameter": "HIIT/Zone 4-5 cardio (file 13)",
+          "Value": "None permitted; Zone 1-2 walking only, 15-20 min optional"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Pattern",
+        "Exercise",
+        "Regression if pain/limitation flagged"
+      ],
+      "rows": [
+        {
+          "Pattern": "Squat",
+          "Exercise": "Bodyweight box squat / sit-to-stand",
+          "Regression if pain/limitation flagged": "Assisted sit-to-stand (hands on support)"
+        },
+        {
+          "Pattern": "Hinge",
+          "Exercise": "Glute bridge",
+          "Regression if pain/limitation flagged": "Supported glute bridge (feet elevated less)"
+        },
+        {
+          "Pattern": "Horizontal push",
+          "Exercise": "Incline push-up (hands elevated) or wall push-up",
+          "Regression if pain/limitation flagged": "Wall push-up"
+        },
+        {
+          "Pattern": "Horizontal pull",
+          "Exercise": "Band row or supported dumbbell row (light)",
+          "Regression if pain/limitation flagged": "Band pull-apart only"
+        },
+        {
+          "Pattern": "Core/anti-extension",
+          "Exercise": "Dead bug or bird dog",
+          "Regression if pain/limitation flagged": "Marching bird dog (reduced ROM)"
+        },
+        {
+          "Pattern": "Loaded carry / general conditioning",
+          "Exercise": "Farmer carry (light) or brisk walk",
+          "Regression if pain/limitation flagged": "Walk only"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Category",
+        "Overridable by Certified Coach?",
+        "Notes"
+      ],
+      "rows": [
+        {
+          "Category": "Exercise selection/substitution",
+          "Overridable by Certified Coach?": "Yes",
+          "Notes": "Standard coaching judgment"
+        },
+        {
+          "Category": "Volume/intensity within same tier",
+          "Overridable by Certified Coach?": "Yes",
+          "Notes": "Must stay within tier's hard caps unless Section 2.3 applies"
+        },
+        {
+          "Category": "Confidence tier upgrade/downgrade",
+          "Overridable by Certified Coach?": "Yes, with justification note",
+          "Notes": "Logged and auditable"
+        },
+        {
+          "Category": "Emergency-symptom stop (file 12 Sec 2)",
+          "Overridable by Certified Coach?": "No",
+          "Notes": "Cannot be overridden by anyone in-app; only a documented physician clearance changes downstream routing, and only after the acute event is resolved"
+        },
+        {
+          "Category": "`below_minimum_age_reject`",
+          "Overridable by Certified Coach?": "No",
+          "Notes": "Hard system block, not coach-overridable"
+        },
+        {
+          "Category": "Active unresolved `medical_clearance_required`",
+          "Overridable by Certified Coach?": "No, cannot be cleared by trainer",
+          "Notes": "Only physician-sourced clearance input clears this; a coach can still choose to work with the client off-system under their own professional liability, but the app will not represent this client as cleared"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "From \u2192 To",
+        "Trigger",
+        "Automatic or Coach-Initiated?"
+      ],
+      "rows": [
+        {
+          "From \u2192 To": "red \u2192 orange",
+          "Trigger": "Age corrected/verified \u226513 with guardian consent, or referral resolved",
+          "Automatic or Coach-Initiated?": "Coach/admin-initiated, requires documentation"
+        },
+        {
+          "From \u2192 To": "orange \u2192 yellow",
+          "Trigger": "Exit criteria met (Section 1.5)",
+          "Automatic or Coach-Initiated?": "Automatic"
+        },
+        {
+          "From \u2192 To": "yellow \u2192 green",
+          "Trigger": "8 consecutive weeks consistent check-ins + full intake completeness \u226595% + no unresolved flags",
+          "Automatic or Coach-Initiated?": "Automatic"
+        },
+        {
+          "From \u2192 To": "green \u2192 yellow",
+          "Trigger": "Missed check-in cycle, or new minor flag",
+          "Automatic or Coach-Initiated?": "Automatic"
+        },
+        {
+          "From \u2192 To": "yellow/green \u2192 orange",
+          "Trigger": "New high-risk condition disclosed, new unresolved pain flag, 2 missed check-in cycles",
+          "Automatic or Coach-Initiated?": "Automatic"
+        },
+        {
+          "From \u2192 To": "any \u2192 red",
+          "Trigger": "Emergency symptom logged, below-age discovered",
+          "Automatic or Coach-Initiated?": "Automatic, immediate"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Edge Case",
+        "Rule"
+      ],
+      "rows": [
+        {
+          "Edge Case": "Coach account not yet certification-verified",
+          "Rule": "All override attempts blocked; system logs attempt and notifies gym admin to complete verification"
+        },
+        {
+          "Edge Case": "Two coaches submit conflicting overrides same day",
+          "Rule": "Most recent timestamped override is active; both remain in audit trail"
+        },
+        {
+          "Edge Case": "Client transfers between gyms (same platform)",
+          "Rule": "Confidence tier and flags transfer with client; override history remains visible to new gym's admin but override authority does not retroactively apply"
+        },
+        {
+          "Edge Case": "Coach leaves gym / account deactivated",
+          "Rule": "Historical overrides remain in audit trail (immutable); no new overrides possible from deactivated account"
+        }
+      ]
+    },
+    {
+      "columns": [
+        "Symptom",
+        "Cause",
+        "Fix"
+      ],
+      "rows": [
+        {
+          "Symptom": "Client stuck in DEFAULT_SAFE_TEMPLATE despite seeming fine",
+          "Cause": "Exit criteria fail-closed default with no resolved condition",
+          "Fix": "Verify which Section 1.5 branch applies; likely missing movement screen or unresolved flag"
+        },
+        {
+          "Symptom": "Coach override not taking effect in generated program",
+          "Cause": "Override not passed into generation pipeline context",
+          "Fix": "Ensure override schema object is merged into `client_state` before program generation call"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "15_Supplement_Safety_and_Interaction_Engine.md": [
+    "Flag `banned_substance_screening_required`.",
+    "Recommend checking any supplement (especially pre-workouts and \"proprietary blends\") against a batch-tested/certified list (e.g., Informed Sport-style certification) before use \u2014 system does not maintain a live banned-substance database and must say so rather than imply completeness.",
+    "Never assume Tier 1 supplements are automatically competition-safe; contamination risk exists even for basic protein/creatine products from non-certified manufacturers.",
+    "Vegetarian/vegan protein sourcing common \u2014 default to noting protein-per-serving and completeness (combine plant sources) rather than assuming whey by default.",
+    "Heat/humidity climate consideration \u2014 electrolyte emphasis higher priority than in temperate-climate default guidance (interacts with file 13 Section 9 environmental flags).",
+    "Unregulated local market products more common \u2014 Section 3's proprietary-blend caution applies with extra emphasis; recommend FSSAI-labeled products with transparent ingredient lists where possible, without endorsing specific brands."
+  ]
+}

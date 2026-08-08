@@ -1,0 +1,1026 @@
+[
+  {
+    "_injury_safety_note": "Some exercises were excluded or reduced today because you flagged: knee. If this is inaccurate, update your intake notes; if the area is still symptomatic, check with a coach or doctor before pushing load through it.",
+    "_token": "push",
+    "_validation": {
+      "rejected": [],
+      "repairs": [
+        {
+          "from": "Band External Rotation",
+          "muscle": "shoulders",
+          "reason": "duplicate_movement_pattern",
+          "to": "Dumbbell Lateral Raise"
+        }
+      ],
+      "warnings": []
+    },
+    "exercises": [
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "dips_chest",
+          "ramp_id": "RAMP_dips_chest",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "dips_chest",
+        "muscle": "Chest",
+        "name": "Chest Dips",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, grip, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "z_press",
+          "ramp_id": "RAMP_z_press",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "z_press",
+        "muscle": "Shoulders",
+        "name": "Z-Press",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, bracing, overhead stability, bar path"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "incline_dumbbell_fly",
+          "ramp_id": "RAMP_incline_dumbbell_fly",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "incline_dumbbell_fly",
+        "muscle": "Chest",
+        "name": "Incline Dumbbell Fly",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, grip, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "band_pushdown",
+          "ramp_id": "RAMP_band_pushdown",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "band_pushdown",
+        "muscle": "Triceps",
+        "name": "Band Triceps Pushdown",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "skull_crusher",
+          "ramp_id": "RAMP_skull_crusher",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "skull_crusher",
+        "muscle": "Triceps",
+        "name": "Skull Crusher (Lying Triceps Extension)",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "band_external_rotation",
+          "ramp_id": "RAMP_band_external_rotation",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "band_external_rotation",
+        "muscle": "Shoulders",
+        "name": "Dumbbell Lateral Raise",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion, control"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Keep shoulder blades back and down, controlled tempo on every rep \u2014 stop a set short of failure if form breaks down.",
+    "warmup_exercises": [
+      "5 min incline treadmill walk",
+      "20\u00d7 arm circles (forward + backward)",
+      "15\u00d7 shoulder rotations each side",
+      "10\u00d7 band pull-aparts",
+      "10\u00d7 push-up negatives (slow 4-sec down)"
+    ]
+  },
+  {
+    "is_rest": true
+  },
+  {
+    "_injury_safety_note": "Some exercises were excluded or reduced today because you flagged: knee. If this is inaccurate, update your intake notes; if the area is still symptomatic, check with a coach or doctor before pushing load through it.",
+    "_token": "pull",
+    "_validation": {
+      "rejected": [],
+      "repairs": [
+        {
+          "from": "Isolated Dumbbell Pullover (Lat Focus)",
+          "muscle": "back",
+          "reason": "duplicate_movement_pattern",
+          "to": "Band Pull-Apart"
+        },
+        {
+          "from": "Cable Shrug",
+          "muscle": "traps",
+          "reason": "duplicate_movement_pattern",
+          "to": "Prone Y-Raise (Rotator Cuff)"
+        }
+      ],
+      "warnings": [
+        "3 exercises today share the same movement pattern (isolation shoulder) \u2014 that's intentional volume, not a mistake, but flagging in case it wasn't."
+      ]
+    },
+    "exercises": [
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "weighted_inverted_row",
+          "ramp_id": "RAMP_weighted_inverted_row",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "weighted_inverted_row",
+        "muscle": "Back",
+        "name": "Weighted Inverted Row",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, scapular retraction, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "dumbbell_pullover_iso",
+          "ramp_id": "RAMP_dumbbell_pullover_iso",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "dumbbell_pullover_iso",
+        "muscle": "Back",
+        "name": "Band Pull-Apart",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, scapular retraction, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "towel_pull_up",
+          "ramp_id": "RAMP_towel_pull_up",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "towel_pull_up",
+        "muscle": "Biceps",
+        "name": "Towel Grip Pull-Up",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "incline_dumbbell_curl",
+          "ramp_id": "RAMP_incline_dumbbell_curl",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "incline_dumbbell_curl",
+        "muscle": "Biceps",
+        "name": "Incline Dumbbell Curl",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "dumbbell_shrug",
+          "ramp_id": "RAMP_dumbbell_shrug",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "dumbbell_shrug",
+        "muscle": "Traps",
+        "name": "Dumbbell Shrug",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion, control"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "cable_y_raise",
+          "ramp_id": "RAMP_cable_y_raise",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "cable_y_raise",
+        "muscle": "Traps",
+        "name": "Cable Y-Raise",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion, control"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "cable_shrug",
+          "ramp_id": "RAMP_cable_shrug",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "cable_shrug",
+        "muscle": "Traps",
+        "name": "Prone Y-Raise (Rotator Cuff)",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion, control"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Drive with the elbows, not the hands \u2014 avoid shrugging or using momentum to move the weight.",
+    "warmup_exercises": [
+      "5 min rowing machine (low resistance)",
+      "15\u00d7 scapular retractions",
+      "20\u00d7 band pull-aparts",
+      "10\u00d7 doorway lat stretch each side",
+      "10\u00d7 face-pulls with resistance band"
+    ]
+  },
+  {
+    "_injury_safety_note": "Some exercises were excluded or reduced today because you flagged: knee. If this is inaccurate, update your intake notes; if the area is still symptomatic, check with a coach or doctor before pushing load through it.",
+    "_token": "legs",
+    "exercises": [
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "single_leg_hip_thrust",
+          "ramp_id": "RAMP_single_leg_hip_thrust",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "single_leg_hip_thrust",
+        "muscle": "Legs",
+        "name": "Single-Leg Hip Thrust",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, bracing, hip hinge pattern, bar path"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "leg_press_calf_raise",
+          "ramp_id": "RAMP_leg_press_calf_raise",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "leg_press_calf_raise",
+        "muscle": "Calves",
+        "name": "Leg Press Calf Raise",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "standing_calf_raise",
+          "ramp_id": "RAMP_standing_calf_raise",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "standing_calf_raise",
+        "muscle": "Calves",
+        "name": "Standing Calf Raise",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Keep knees tracking over toes, chest up, controlled descent on every rep.",
+    "warmup_exercises": [
+      "5 min stationary bike",
+      "20\u00d7 bodyweight squats",
+      "15\u00d7 leg swings each leg (front-back + lateral)",
+      "10\u00d7 hip circles each side",
+      "10\u00d7 glute bridges"
+    ]
+  },
+  {
+    "is_rest": true
+  },
+  {
+    "_injury_safety_note": "Some exercises were excluded or reduced today because you flagged: knee. If this is inaccurate, update your intake notes; if the area is still symptomatic, check with a coach or doctor before pushing load through it.",
+    "_token": "upper",
+    "_validation": {
+      "rejected": [],
+      "repairs": [
+        {
+          "from": "Single-Arm Lat Pulldown",
+          "muscle": "back",
+          "reason": "duplicate_movement_pattern",
+          "to": "Dumbbell Pullover"
+        }
+      ],
+      "warnings": [
+        "chest: duplicate 'unclassified' pattern on Dumbbell Fly \u2014 no alternative pattern available in pool, kept as-is",
+        "3 exercises today share the same movement pattern (horizontal push) \u2014 that's intentional volume, not a mistake, but flagging in case it wasn't."
+      ]
+    },
+    "exercises": [
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "weighted_chin_up",
+          "ramp_id": "RAMP_weighted_chin_up",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "weighted_chin_up",
+        "muscle": "Back",
+        "name": "Weighted Chin-Up",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, grip, scapular control, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "incline_barbell_bench_press",
+          "ramp_id": "RAMP_incline_barbell_bench_press",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "incline_barbell_bench_press",
+        "muscle": "Chest",
+        "name": "Incline Barbell Bench Press",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, grip, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "banded_pull_apart",
+          "ramp_id": "RAMP_banded_pull_apart",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "banded_pull_apart",
+        "muscle": "Back",
+        "name": "Band Pull-Apart",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, scapular retraction, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "single_arm_lat_pulldown",
+          "ramp_id": "RAMP_single_arm_lat_pulldown",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "single_arm_lat_pulldown",
+        "muscle": "Back",
+        "name": "Dumbbell Pullover",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, scapular retraction, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "incline_dumbbell_fly",
+          "ramp_id": "RAMP_incline_dumbbell_fly",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "incline_dumbbell_fly",
+        "muscle": "Chest",
+        "name": "Incline Dumbbell Fly",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, grip, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "dumbbell_fly",
+          "ramp_id": "RAMP_dumbbell_fly",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "dumbbell_fly",
+        "muscle": "Chest",
+        "name": "Dumbbell Fly",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, grip, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "v_bar_pushdown",
+          "ramp_id": "RAMP_v_bar_pushdown",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "v_bar_pushdown",
+        "muscle": "Triceps",
+        "name": "V-Bar Triceps Pushdown",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "plate_front_raise_iso",
+          "ramp_id": "RAMP_plate_front_raise_iso",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "plate_front_raise_iso",
+        "muscle": "Shoulders",
+        "name": "Plate Front Raise (Iso Hold)",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion, control"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "incline_dumbbell_curl",
+          "ramp_id": "RAMP_incline_dumbbell_curl",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "incline_dumbbell_curl",
+        "muscle": "Biceps",
+        "name": "Incline Dumbbell Curl",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Controlled tempo throughout, full range of motion, stop a rep short of failure if form breaks down.",
+    "warmup_exercises": [
+      "5 min incline treadmill walk",
+      "20\u00d7 arm circles",
+      "15\u00d7 shoulder rotations each side",
+      "10\u00d7 band pull-aparts",
+      "10\u00d7 cat-cow neck rolls"
+    ]
+  },
+  {
+    "_injury_safety_note": "Some exercises were excluded or reduced today because you flagged: knee. If this is inaccurate, update your intake notes; if the area is still symptomatic, check with a coach or doctor before pushing load through it.",
+    "_token": "lower",
+    "exercises": [
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "hip_thrust",
+          "ramp_id": "RAMP_hip_thrust",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "hip_thrust",
+        "muscle": "Legs",
+        "name": "Barbell Hip Thrust",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, bracing, hip hinge pattern, bar path"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "seated_calf_raise",
+          "ramp_id": "RAMP_seated_calf_raise",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "seated_calf_raise",
+        "muscle": "Calves",
+        "name": "Seated Calf Raise",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion"
+      },
+      {
+        "_warmup_ramp": {
+          "bar_weight_is_assumed": false,
+          "bar_weight_kg": null,
+          "exercise_id": "donkey_calf_raise",
+          "ramp_id": "RAMP_donkey_calf_raise",
+          "ramp_sets": [
+            {
+              "note": "RPE-anchored: light warm-up, RPE 4-5",
+              "pct": null,
+              "reps": "12",
+              "weight_kg": null
+            },
+            {
+              "note": "RPE-anchored: approach set, RPE 6-7",
+              "pct": null,
+              "reps": "8",
+              "weight_kg": null
+            }
+          ],
+          "rounding_strategy": "nearest_available",
+          "smallest_plate_kg": null,
+          "working_weight_kg": null
+        },
+        "exercise_id": "donkey_calf_raise",
+        "muscle": "Calves",
+        "name": "Donkey Calf Raise",
+        "reps": "1\u20136 reps",
+        "rest": "3\u20135 min",
+        "sets": 4,
+        "tempo_or_cue": "Focus on: setup, range of motion"
+      }
+    ],
+    "is_rest": false,
+    "safety": "Keep knees tracking over toes, chest up, controlled descent on every rep.",
+    "warmup_exercises": [
+      "5 min stationary bike",
+      "20\u00d7 bodyweight squats",
+      "15\u00d7 leg swings each leg",
+      "10\u00d7 hip circles each side",
+      "10\u00d7 ankle circles each side"
+    ]
+  }
+]

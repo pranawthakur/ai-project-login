@@ -1,0 +1,35 @@
+{
+  "11_progression_engine/README.md": [
+    "Progression Engine"
+  ],
+  "11_progression_engine/progression_schema.md": [],
+  "17_plateau_engine/README.md": [
+    "17_plateau_engine"
+  ],
+  "18_weakpoint_engine/README.md": [
+    "18_weakpoint_engine"
+  ],
+  "17_Periodization_and_AI_Decision_Engine.md": [
+    "PERIODIZATION & AI DECISION ENGINE",
+    "Purpose",
+    "1. SPLIT SELECTION DECISION ENGINE",
+    "1.1 Worked Example (IF\u2192THEN as requested)",
+    "1.2 Split-to-Goal Fit Matrix",
+    "2. PERIODIZATION MODEL DEFINITIONS",
+    "2.1 Linear Periodization",
+    "2.2 Undulating Periodization (Daily/Weekly)",
+    "2.3 Block Periodization",
+    "2.4 Conjugate-Adjacent Concepts (Simplified, Non-Elite-Only Application)",
+    "2.5 Velocity-Based Training (VBT) Concepts",
+    "2.6 Contrast Training / French Contrast / Triphasic (Advanced Athletic Performance Only)",
+    "3. ADVANCED SET-STRUCTURE DEFINITIONS (FULL SPECIFICATION)",
+    "4. MEV / MAV / MRV DECISION LOGIC (INTEGRATION WITH FILE 8)",
+    "5. CONFIDENCE SCORING \u2014 SYSTEM-WIDE STANDARD",
+    "6. EDGE CASES",
+    "7. TROUBLESHOOTING",
+    "8. FAQ"
+  ],
+  "24_periodization_engine/README.md": [
+    "24_periodization_engine"
+  ]
+}

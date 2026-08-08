@@ -1,0 +1,34 @@
+{
+  "0_Master_Index_Versioning_and_Localization.md": [
+    "MASTER INDEX, SCHEMA VERSIONING & LOCALIZATION LAYER",
+    "Purpose",
+    "1. FILE INDEX",
+    "2. CANONICAL CALL ORDER (PER SESSION/PROGRAM GENERATION REQUEST)",
+    "3. VERSIONING CONVENTION",
+    "4. UNIT & LOCALE NORMALIZATION LAYER",
+    "5. LANGUAGE/CULTURAL LOCALIZATION NOTES",
+    "6. OPEN ITEMS / KNOWN LIMITATIONS (NOT YET SPECIFIED)",
+    "7. FAQ"
+  ],
+  "11_Assessment_and_Intake_Engine.md": [
+    "ASSESSMENT & INTAKE ENGINE",
+    "Purpose",
+    "1. FULL INTAKE SCHEMA",
+    "2. INTAKE VALIDATION & ROUTING ALGORITHM",
+    "2.1 High-Risk Condition List (Triggers Medical Clearance Flag)",
+    "2.2 System-Wide Confidence Tiering",
+    "3. MOVEMENT & STRENGTH ASSESSMENT PROTOCOL",
+    "3.1 Estimated-1RM Confidence Adjustment",
+    "4. MOBILITY/MOVEMENT FLAG TABLE",
+    "5. ONGOING CHECK-IN SCHEMA (WEEKLY/BI-WEEKLY)",
+    "5.1 Item Frequency Table",
+    "6. RE-ASSESSMENT CADENCE",
+    "7. ADHERENCE-RISK SCORING",
+    "7.1 Response Ladder by Risk Tier",
+    "8. EDGE CASES",
+    "9. INTAKE-TO-DOWNSTREAM DATA CONTRACT",
+    "10. TROUBLESHOOTING",
+    "11. COMMON MISTAKES",
+    "12. FAQ"
+  ]
+}

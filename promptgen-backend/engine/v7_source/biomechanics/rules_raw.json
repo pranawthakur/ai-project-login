@@ -1,0 +1,46 @@
+{
+  "10_movement_engine/movement_patterns.md": [
+    "Squat",
+    "Hip Hinge",
+    "Horizontal Push",
+    "Horizontal Pull",
+    "Vertical Push",
+    "Vertical Pull",
+    "Lunge",
+    "Carry",
+    "Rotation",
+    "Anti-Rotation"
+  ],
+  "10_movement_engine/movement_schema.md": [
+    "Squat",
+    "Hip Hinge",
+    "Horizontal Push",
+    "Horizontal Pull",
+    "Vertical Push",
+    "Vertical Pull",
+    "Lunge",
+    "Carry",
+    "Rotation",
+    "Anti-Rotation",
+    "Primary movement",
+    "Secondary movement",
+    "Prime movers",
+    "Synergists",
+    "Stabilizers",
+    "Plane of motion",
+    "Force vector",
+    "Bilateral/Unilateral",
+    "Open/Closed chain",
+    "Complexity",
+    "ROM",
+    "Functional category"
+  ],
+  "22_Movement_Intelligence_Engine/README.md": [
+    "Movement taxonomy",
+    "Planes",
+    "Force vectors",
+    "Kinetic chains",
+    "Bilateral/unilateral",
+    "Stabilizers"
+  ]
+}
