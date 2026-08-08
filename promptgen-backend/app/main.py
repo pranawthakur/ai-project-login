@@ -1465,6 +1465,16 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
         # build_deterministic_plan_data used — re-derived from profile's
         # raw fields (still in scope, unchanged this whole request), not
         # guessed.
+        #
+        # Day-aware now (see diet_engine.build_diet_day_plan): the member's
+        # "Meal rotation" choice (fixed / short_rotation / weekly_rotation
+        # — profile["diet_rotation"]) determines how many distinct meal-set
+        # variants get built and which of the 14 rendered days uses which,
+        # instead of one meal-set silently repeating for the whole cycle.
+        # num_days matches expand_days_to_biweekly's output length further
+        # down (always 2x the canonical week — 14 — for any non-emergency
+        # path reaching this point); falls back to 14 if weekly_template is
+        # empty for some reason rather than guessing a different number.
         phase_data = data["diet"]["phase"]
         allergy_set = diet_engine.parse_allergies(profile.get("allergies", "none"))
         allergy_set |= diet_engine.parse_allergies(profile.get("food_feedback_notes", "none"))
@@ -1474,16 +1484,26 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
         )
         meal_slots = _meal_slots_for_count(profile.get("meals_per_day", 5))
         protein_g = phase_data["macro_split"]["protein_g"]
-        data["diet"]["meals"] = diet_engine.build_diet_meals(
+        num_diet_days = (len(weekly_template) * 2) if weekly_template else 14
+        diet_day_plan = diet_engine.build_diet_day_plan(
             daily_kcal=phase_data["target_kcal"],
             daily_protein_g=protein_g,
             diet_pref_raw=profile.get("diet_pref", "non-vegetarian"),
             allergy_set=allergy_set,
             budget_tier=budget_tier,
             meal_slots=meal_slots,
-            variant_offset=cycle_number - 1,
+            rotation=profile.get("diet_rotation", "short_rotation"),
+            num_days=num_diet_days,
+            cycle_variant_offset=(cycle_number - 1) * diet_engine.BLOCK_VARIANT_STRIDE,
             extra_exclude_ids=food_exclude_ids,
         )
+        data["diet"]["variants"] = diet_day_plan["variants"]
+        data["diet"]["day_variant_map"] = diet_day_plan["day_variant_map"]
+        # Back-compat alias: anything that still reads data["diet"]["meals"]
+        # directly (older cached plans, any code not yet updated to walk
+        # diet_engine.iter_diet_meal_lists) gets day 0's variant — same
+        # value this key would have held pre-rotation.
+        data["diet"]["meals"] = diet_day_plan["variants"][diet_day_plan["day_variant_map"][0]]
         data.setdefault("plan", {})["daily_calories"] = phase_data["target_kcal"]
         data["plan"]["daily_protein_g"] = protein_g
         data["plan"]["protein_range"] = f"{round(protein_g * 0.9)}–{round(protein_g * 1.1)}g"
@@ -1625,6 +1645,162 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
     return HTMLResponse(content=html)
 
 
+# ── Fast diet-only pass: lets the dashboard redirect to result.html in
+# ~1-2s instead of blocking on the full pipeline (workout build, volume/
+# plateau/program synthesis, fatigue/prediction, Trainer Review, etc).
+#
+# Runs the SAME safety gate + the SAME diet_phase_engine/diet_engine path
+# _generate_and_save_plan's _run() uses for the real, final diet (not the
+# cheaper _calculate_macros-only pass build_deterministic_plan_data() does
+# on its own) — recovery_capacity_engine.build_recovery_capacity() doesn't
+# need workout days to run, so it's safe to call here before any exist.
+# Deliberately does NOT run build_deterministic_workout_days, volume/
+# plateau/program/fatigue/prediction, Trainer Review, or the DB
+# insert/decision-audit record — all of that still only happens once,
+# inside /result, same as before this endpoint existed.
+#
+# Renders through the exact same Templates/result.html template as
+# /result (full page, not a bare fragment) so the response can be dropped
+# straight into sessionStorage["fitforge_plan_html"] via the same path
+# dashbord.html already uses — result.html (the outer iframe shell) needs
+# no changes. workout._generation_pending=True switches that template
+# into a skeleton view (day-strip, weekly-split card, workout panels) —
+# see the {% if workout._generation_pending %} branches there — instead
+# of the normal per-day render, since there are no real days yet.
+#
+# Response carries an X-Plan-Status header ("blocked" | "ok") so the
+# frontend knows whether to also kick off the background /result call —
+# on the safety-gate "block" path there's no plan to finish generating,
+# so it must NOT queue one.
+@app.post("/api/plan/diet", response_class=HTMLResponse)
+async def plan_diet_fast(
+    request: Request,
+    member: dict = Depends(get_current_member),
+    name:       str = Form(""),
+    age:        str = Form(""),
+    gender:     str = Form("Male"),
+    height:     str = Form(""),
+    weight:     str = Form(""),
+    target:     str = Form(""),
+    goal:       str = Form("Fat loss"),
+    experience: str = Form("Intermediate"),
+    activity:   str = Form("moderate"),
+    days:       str = Form("4"),
+    duration:   str = Form("45-60 min"),
+    equipment:  str = Form("full gym"),
+    diet:       str = Form("Non-vegetarian"),
+    meals:      str = Form("5"),
+    rotation:   str = Form("short_rotation"),
+    region:     str = Form(""),
+    budget:     str = Form("medium"),
+    allergies:  str = Form("none"),
+    notes:      str = Form(""),
+):
+    profile = {
+        "name":               name or "User",
+        "age":                age or "25",
+        "gender":             gender,
+        "height_cm":          height or "170",
+        "current_weight_kg":  weight or "70",
+        "target_weight_kg":   target or "—",
+        "goal":               goal,
+        "experience":         experience,
+        "activity_key":       activity,
+        "days_per_week":      days or "4",
+        "session_duration":   duration,
+        "equipment":          equipment or "full gym",
+        "diet_pref":          diet,
+        "meals_per_day":      meals or "5",
+        "diet_rotation":      rotation or "short_rotation",
+        "region":             region or "India",
+        "budget":             budget,
+        "allergies":          allergies or "none",
+        "medical_notes":      notes or "none",
+    }
+
+    prev_plan = _get_latest_plan_any_status(member["id"])
+    next_cycle = (prev_plan["cycle_number"] + 1) if prev_plan else 1
+    profile["_member_id"] = member["id"]
+    profile["_cycle_number"] = next_cycle
+
+    # Same unconditional first step as _generate_and_save_plan: no LLM
+    # call, no diet math, until this clears.
+    gate = safety_gate(profile)
+    print(f"[plan_diet_fast] safety_gate for member={member.get('id')}: {gate}")
+    if gate["action"] == "block":
+        return HTMLResponse(
+            content=emergency_block_html(gate["messages"]),
+            headers={"X-Plan-Status": "blocked"},
+        )
+
+    # Side effects only (profile["_weekly_template"] etc.) — needed below
+    # purely so num_diet_days matches what /result will actually render
+    # (len(weekly_template) * 2), not to build any workout content here.
+    build_user_prompt(profile)
+    if gate["action"] == "default_template":
+        profile["_weekly_template"] = DEFAULT_SAFE_SEQUENCE
+        profile["_vol"] = DEFAULT_SAFE_VOL
+
+    data = build_deterministic_plan_data(profile)
+
+    recovery_capacity_profile = recovery_capacity_engine.build_recovery_capacity(
+        member["id"], profile=profile, cycle_number=next_cycle, readiness_profile=None,
+    )
+
+    data.setdefault("diet", {})["phase"] = diet_phase_engine.compute_diet_phase(
+        profile,
+        recovery_capacity_score=(recovery_capacity_profile or {}).get("capacity_score"),
+        notes_raw=profile.get("medical_notes"),
+        current_cycle=next_cycle,
+    )
+
+    weekly_template = profile.get("_weekly_template") or []
+    phase_data = data["diet"]["phase"]
+    allergy_set = diet_engine.parse_allergies(profile.get("allergies", "none"))
+    allergy_set |= diet_engine.parse_allergies(profile.get("food_feedback_notes", "none"))
+    budget_tier = diet_engine.resolve_budget_tier(profile.get("budget", "medium"))
+    food_exclude_ids = diet_engine.parse_food_feedback_exclusions(
+        profile.get("food_feedback_notes", "none")
+    )
+    meal_slots = _meal_slots_for_count(profile.get("meals_per_day", 5))
+    protein_g = phase_data["macro_split"]["protein_g"]
+    num_diet_days = (len(weekly_template) * 2) if weekly_template else 14
+    diet_day_plan = diet_engine.build_diet_day_plan(
+        daily_kcal=phase_data["target_kcal"],
+        daily_protein_g=protein_g,
+        diet_pref_raw=profile.get("diet_pref", "non-vegetarian"),
+        allergy_set=allergy_set,
+        budget_tier=budget_tier,
+        meal_slots=meal_slots,
+        rotation=profile.get("diet_rotation", "short_rotation"),
+        num_days=num_diet_days,
+        cycle_variant_offset=(next_cycle - 1) * diet_engine.BLOCK_VARIANT_STRIDE,
+        extra_exclude_ids=food_exclude_ids,
+    )
+    data["diet"]["variants"] = diet_day_plan["variants"]
+    data["diet"]["day_variant_map"] = diet_day_plan["day_variant_map"]
+    data["diet"]["meals"] = diet_day_plan["variants"][diet_day_plan["day_variant_map"][0]]
+    data.setdefault("plan", {})["daily_calories"] = phase_data["target_kcal"]
+    data["plan"]["daily_protein_g"] = protein_g
+    data["plan"]["protein_range"] = f"{round(protein_g * 0.9)}–{round(protein_g * 1.1)}g"
+    data["plan"]["calorie_phase"] = phase_data["phase"].replace("_", " ").title()
+
+    data = enforce_schema(data, profile)
+    data["cycle_number"] = next_cycle
+
+    # No real days yet — see the template's workout._generation_pending
+    # branches. _pending_day_count only sizes the skeleton (day-strip tab
+    # count, placeholder rows); it's never treated as real workout data.
+    data["workout"] = {
+        "days": [],
+        "_generation_pending": True,
+        "_pending_day_count": len(weekly_template) or 7,
+    }
+
+    html = render_dashboard(data)
+    return HTMLResponse(content=html, headers={"X-Plan-Status": "ok"})
+
+
 # ── New: form POST → fitness_generator → Jinja2 dashboard ───────────────────
 @app.post("/result", response_class=HTMLResponse)
 async def result_page(
@@ -1648,19 +1824,13 @@ async def result_page(
     # ── Diet preferences ─────────────────────────────────────────────────────
     diet:       str = Form("Non-vegetarian"), # Non-vegetarian/Vegetarian/Vegan/Eggetarian
     meals:      str = Form("5"),              # meals per day
+    rotation:   str = Form("short_rotation"), # fixed/short_rotation/weekly_rotation — see diet_engine.build_diet_day_plan
     region:     str = Form(""),
     budget:     str = Form("medium"),
     allergies:  str = Form("none"),
     # ── Health notes ─────────────────────────────────────────────────────────
     notes:      str = Form(""),
 ):
-    # ── Lock check: an active, unexpired plan already exists → serve it,
-    # zero LLM calls. This is what actually prevents API-limit burn on
-    # repeat logins, independent of whatever the frontend does.
-    existing = _get_active_plan(member["id"])
-    if existing:
-        return HTMLResponse(content=existing["rendered_html"])
-
     profile = {
         # Identity
         "name":               name or "User",
@@ -1680,12 +1850,38 @@ async def result_page(
         # Diet — pass the RAW value so diet_token lookup can fuzzy-match it
         "diet_pref":          diet,
         "meals_per_day":      meals or "5",
+        "diet_rotation":      rotation or "short_rotation",
         "region":             region or "India",
         "budget":             budget,
         "allergies":          allergies or "none",
         # Health
         "medical_notes":      notes or "none",
     }
+
+    # ── Lock check: an active, unexpired plan already exists → normally
+    # just serve it back, zero LLM calls, which is what actually prevents
+    # API-limit burn on repeat logins. BUT that used to be unconditional —
+    # any resubmission of the form (new meals_per_day, new rotation, new
+    # goal, anything) silently got the OLD plan back with no sign anything
+    # was ignored. Now only short-circuits when the new submission's raw
+    # intake actually MATCHES what's already active; a genuine change
+    # expires the stale row and falls through to a real regeneration, same
+    # as intended. Comparison is on the exact raw fields above (the same
+    # shape stored in plan_json["_intake"] — see intake_snapshot in
+    # _generate_and_save_plan), not on any `_xxx` computed key.
+    existing = _get_active_plan(member["id"])
+    if existing:
+        prev_intake = ((existing.get("plan_json") or {}).get("_intake")) or {}
+        if prev_intake and all(prev_intake.get(k) == v for k, v in profile.items()):
+            return HTMLResponse(content=existing["rendered_html"])
+        if prev_intake:
+            # Real change — don't leave two rows both marked "active"
+            # (_get_active_plan takes the most recent, so this is mostly
+            # cosmetic/for-cleanliness, but keeps that invariant honest).
+            supabase.table("plans").update({"status": "expired"}).eq("id", existing["id"]).execute()
+        # else: existing plan predates intake snapshotting (no "_intake" to
+        # compare against) — treat as unknown/changed rather than assuming
+        # a match, same conservative default used elsewhere in this file.
 
     return await _generate_and_save_plan(member, profile, source_label="form")
 

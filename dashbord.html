@@ -336,6 +336,12 @@ pre { white-space: pre-wrap; background: #0f0a1c; color: var(--fg); border: 1px 
 <script>
 const BACKEND_BASE = "https://ai-project-login.onrender.com";
 const RESULT_ENDPOINT = `${BACKEND_BASE}/result`;
+// Fast diet-only pass (see main.py's plan_diet_fast) — returns a full
+// result.html render with a workout skeleton in ~1-2s instead of making
+// the member wait on the whole pipeline before this page even redirects.
+// The real /result call still happens, just from inside result.html's
+// iframe once it's already on screen — see handleSubmit() below.
+const DIET_FAST_ENDPOINT = `${BACKEND_BASE}/api/plan/diet`;
 
 const EQUIPMENT = ["Barbell","Dumbbells","EZ curl bar","Flat bench","Incline/decline bench","Squat rack","Power rack / cage","Smith machine","Cable machine (dual stack)","Lat pulldown","Seated row machine","Leg press","Hack squat machine","Leg extension machine","Leg curl machine","Chest press machine","Shoulder press machine","Pec deck / chest fly machine","Assisted pull-up/dip machine","Pull-up bar","Dip station","Preacher curl bench","Hyperextension bench","Calf raise machine","Hip thrust machine / Smith setup","Cable crossover","Functional trainer","Kettlebells","Resistance bands","Battle ropes","Medicine balls","TRX / suspension trainer","Treadmill","Stationary bike / spin bike","Elliptical / cross-trainer","Rowing machine","Stair climber","Foam roller"];
 const ALLERGIES = ["Lactose / dairy","Gluten / wheat","Peanuts / tree nuts","Soy","Eggs","Shellfish / seafood","None"];
@@ -838,6 +844,7 @@ async function handleSubmit() {
     duration: $("duration").value,
     diet: $("diet").value,
     meals: $("meals").value,
+    rotation: $("rotation").value,
     notes: $("notes").value,
     region: $("region").value,
     budget: $("budget").value,
@@ -897,14 +904,15 @@ async function handleSubmit() {
     // a while can take 30-60+ seconds to wake the server back up. We retry a
     // couple of times with increasing patience instead of failing immediately,
     // and update the message so it doesn't look broken while waiting.
-    // NOTE on why retrying here is now safe: the backend caps each Gemini call
-    // at ~55s server-side AND dedupes overlapping requests per user (see
-    // main.py _inflight_results) — so if this retry fires while the previous
-    // attempt is still technically in flight, the backend attaches it to the
-    // SAME Gemini call instead of starting a second one. Retrying no longer
-    // burns extra requests against the daily quota.
+    // NOTE on why retrying here is now safe: the backend dedupes overlapping
+    // /result requests per user (see main.py _inflight_results) — so if a
+    // later retry of the BACKGROUND /result call (fired from result.html,
+    // not here) overlaps a previous attempt, it attaches to the SAME task
+    // instead of starting a second one. This endpoint (/api/plan/diet) does
+    // no LLM/heavy-engine work at all, so 65s is generous slack for a cold
+    // start, not an expected wait.
     const fetchAttempts = [
-      { timeoutMs: 65000,  message: 'Generating your plan — this can take up to a minute for a full weekly plan…' },
+      { timeoutMs: 65000,  message: 'Preparing your plan…' },
       { timeoutMs: 65000,  message: 'Still working — first request after idle time can be slower, hang tight…' },
     ];
 
@@ -919,7 +927,7 @@ async function handleSubmit() {
       const timer = setTimeout(() => controller.abort(), attempt.timeoutMs);
 
       try {
-        res = await fetch(RESULT_ENDPOINT, {
+        res = await fetch(DIET_FAST_ENDPOINT, {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -963,7 +971,21 @@ async function handleSubmit() {
     }
 
     out.style.display = "none";
-    s.className = "status success"; s.textContent = "✓ Plan generated — redirecting…";
+    s.className = "status success"; s.textContent = "✓ Redirecting…";
+
+    // X-Plan-Status: "blocked" means the safety gate stopped generation
+    // entirely (emergency/under-13 referral) — `html` IS the referral
+    // message itself, not a real result.html page, and there is no plan
+    // in flight to finish, so result.html must NOT also fire the
+    // background /result call. "ok" means `html` is a real (skeleton)
+    // result.html render and the background call should run — stash the
+    // exact same form body this request just sent so result.html's
+    // background pass generates the identical plan, not a re-derived one.
+    if (res.headers.get("X-Plan-Status") === "ok") {
+      sessionStorage.setItem("fitforge_pending_result_body", body.toString());
+    } else {
+      sessionStorage.removeItem("fitforge_pending_result_body");
+    }
     sessionStorage.setItem("fitforge_plan_html", html);
     window.location.href = "result.html";
 

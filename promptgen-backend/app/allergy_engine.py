@@ -235,14 +235,24 @@ def enforce_allergy_safety(data: dict, profile: dict | None) -> dict:
     diet_pref = profile.get("diet_pref") or profile.get("diet") or "non-vegetarian"
     substitution_count = 0
 
-    for meal in data.get("diet", {}).get("meals", []):
-        for opt in meal.get("options", []):
-            violations = find_allergen_violations(opt.get("food", ""), parsed)
-            if violations:
-                safe_opt = build_safe_substitute_option(opt, diet_pref, parsed)
-                opt.clear()
-                opt.update(safe_opt)
-                substitution_count += 1
+    # Walks every rotation variant (see diet_engine.iter_diet_meal_lists),
+    # not just a single flat meal list — a member on short_rotation/
+    # weekly_rotation sees several distinct meal-sets across the cycle, and
+    # every one of them must clear this same re-check, not just whichever
+    # variant happens to be first.
+    from app import diet_engine as _diet_engine  # local import: avoids a
+    # circular import at module load time (diet_engine doesn't import
+    # allergy_engine, so this is safe, just deferred to keep import order
+    # symmetric with how this module is otherwise self-contained).
+    for meals in _diet_engine.iter_diet_meal_lists(data.get("diet", {})):
+        for meal in meals:
+            for opt in meal.get("options", []):
+                violations = find_allergen_violations(opt.get("food", ""), parsed)
+                if violations:
+                    safe_opt = build_safe_substitute_option(opt, diet_pref, parsed)
+                    opt.clear()
+                    opt.update(safe_opt)
+                    substitution_count += 1
 
     if substitution_count:
         data["diet"]["_allergy_substitutions_made"] = substitution_count

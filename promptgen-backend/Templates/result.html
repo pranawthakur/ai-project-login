@@ -488,6 +488,17 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
   window.CURRENT_CYCLE = {{ cycle_number | default(1) }};
   window.BACKEND_BASE = "https://ai-project-login.onrender.com";
   window.WORKOUT_REVIEW_PENDING = {{ 'true' if workout._review_pending else 'false' }};
+  // Set only by the fast /api/plan/diet response (diet-only pass, see
+  // main.py) — no real workout/program/fatigue/etc has been computed yet
+  // at all, unlike WORKOUT_REVIEW_PENDING above where everything except
+  // exercise names is already final. Triggers the background /result
+  // call below, not just a status poll.
+  window.RESULT_GENERATION_PENDING = {{ 'true' if workout._generation_pending else 'false' }};
+  // Which diet-variant block (see diet-variant-N containers in #sec-diet)
+  // is shown for each day-strip index. Falls back to a single-entry map
+  // (always variant 0) for older cached plans rendered before rotation
+  // existed, so this never comes back undefined.
+  window.DIET_DAY_VARIANT_MAP = {{ diet.day_variant_map | default([0]) | tojson }};
 </script>
 
 <div class="bg-aurora"><div class="bg-grid"></div><div class="bg-noise"></div></div>
@@ -576,12 +587,21 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
 
     <!-- ══════════ DAY STRIP ══════════ -->
     <div class="day-strip" id="dayStrip">
+      {% if workout._generation_pending %}
+      {% for _ in range(workout._pending_day_count or 7) %}
+      <div class="dt{% if loop.index0 == 0 %} active{% endif %}" data-day-index="{{ loop.index0 }}">
+        <div class="dt-date"><span class="ex-skel ex-skel-name" style="height:11px;margin-bottom:0"></span></div>
+        <div class="dt-bar"><div class="dt-bar-fill" style="width:0%"></div></div>
+      </div>
+      {% endfor %}
+      {% else %}
       {% for day in workout.days %}
       <div class="dt{% if loop.index0 == 0 %} active{% endif %}{% if day.is_rest %} dt-rest{% endif %}" data-day-index="{{ loop.index0 }}">
         <div class="dt-date">{{ day.short }} {{ day.name }}</div>
         <div class="dt-bar"><div class="dt-bar-fill" style="width:{% if day.is_rest %}0{% else %}75{% endif %}%"></div></div>
       </div>
       {% endfor %}
+      {% endif %}
     </div>
 
     <div class="content">
@@ -613,6 +633,19 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
 
         <div class="sec-label">Weekly split</div>
         <div class="card">
+          {% if workout._generation_pending %}
+          <div class="ex-row ex-row-pending">
+            <div class="ex-pending-note">Building your full workout split — usually just a few seconds</div>
+            {% for _ in range(workout._pending_day_count or 7) %}
+            <div class="ex-skel-row">
+              <div style="flex:1">
+                <div class="ex-skel ex-skel-name"></div>
+                <div class="ex-skel ex-skel-meta"></div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
           {% for day in workout.days %}
           <div class="week-row" data-day-index="{{ loop.index0 }}">
             <div class="week-row-main">
@@ -627,6 +660,7 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
             {% endif %}
           </div>
           {% endfor %}
+          {% endif %}
         </div>
 
         <div class="sec-label">Daily non-negotiables</div>
@@ -644,6 +678,28 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
       <!-- ══════════ WORKOUT (with sets / weight / difficulty) ══════════ -->
       <div class="section" id="sec-workout">
         <div class="workout-day-panels" id="workoutPanels">
+          {% if workout._generation_pending %}
+          <div class="day-panel active" data-day-index="0">
+            <div class="day-panel-header">
+              <div class="day-panel-title">Building your workout…</div>
+              <div class="day-panel-sub">Your diet is ready — the training program (volume, split, progression) is being put together in the background</div>
+            </div>
+            <div class="ex-row ex-row-pending">
+              <div class="ex-pending-note">This usually takes a few seconds</div>
+              {% for _ in range(5) %}
+              <div class="ex-skel-row">
+                <div style="flex:1">
+                  <div class="ex-skel ex-skel-name"></div>
+                  <div class="ex-skel ex-skel-meta"></div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+            <div id="workout-generation-error" class="day-conflict-note" style="display:none">
+              <strong>Taking longer than expected.</strong> Still working — no need to resubmit the form, this will fill in automatically. If nothing appears after a minute or two, refresh this page.
+            </div>
+          </div>
+          {% else %}
           {% for day in workout.days %}
           {% set day_idx = loop.index0 %}
           {% if day.is_rest %}
@@ -771,6 +827,7 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
           </div>
           {% endif %}
           {% endfor %}
+          {% endif %}
         </div>
 
         <div class="feedback-bar">
@@ -784,37 +841,50 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
       </div>
 
       <!-- ══════════ DIET ══════════ -->
+      <!-- One meal-tabs/meal-panel set PER ROTATION VARIANT (see
+           diet_engine.build_diet_day_plan) — only the variant matching the
+           currently-selected day (window.DIET_DAY_VARIANT_MAP) is shown;
+           selectDay() below swaps which one that is. diet.variants falls
+           back to a single-item list wrapping the old flat diet.meals for
+           plans cached before rotation existed, so this never breaks on
+           older data. -->
       <div class="section" id="sec-diet">
-        <div class="meal-tabs" id="mealTabs">
-          {% for meal in diet.meals %}
-          <button class="mtab{% if loop.first %} active{% endif %}" data-meal="{{ meal.id }}">{{ meal.tab_label }}</button>
-          {% endfor %}
-        </div>
+        {% set diet_variants = diet.variants if diet.variants is defined and diet.variants else [diet.meals] %}
+        {% for variant_meals in diet_variants %}
+        {% set v_idx = loop.index0 %}
+        <div class="diet-variant" data-variant-index="{{ v_idx }}"{% if v_idx != 0 %} style="display:none"{% endif %}>
+          <div class="meal-tabs">
+            {% for meal in variant_meals %}
+            <button class="mtab{% if loop.first %} active{% endif %}" data-meal="{{ meal.id }}-{{ v_idx }}">{{ meal.tab_label }}</button>
+            {% endfor %}
+          </div>
 
-        {% for meal in diet.meals %}
-        <div class="meal-panel{% if loop.first %} active{% endif %}" id="meal-{{ meal.id }}">
-          <div class="card">
-            <div class="card-title">{{ meal.title }} · ~{{ meal.kcal_range }} kcal</div>
-            <div class="diet-grid">
-              {% for opt in meal.options %}
-              <div class="meal-row">
-                <div class="opt-num">{{ loop.index }}</div>
-                <div class="meal-info">
-                  <div class="meal-name">{{ opt.food }}</div>
-                  <div class="meal-macros">
-                    <span class="kcal-hi">{{ opt.kcal }} kcal</span>
-                    &nbsp;·&nbsp;
-                    <span class="mac-hi">{{ opt.protein_g }}g</span> protein
-                    &nbsp;·&nbsp;
-                    <span class="mac-hi">{{ opt.carb_g }}g</span> carbs
-                    &nbsp;·&nbsp;
-                    <span class="mac-hi">{{ opt.fat_g }}g</span> fat
+          {% for meal in variant_meals %}
+          <div class="meal-panel{% if loop.first %} active{% endif %}" id="meal-{{ meal.id }}-{{ v_idx }}">
+            <div class="card">
+              <div class="card-title">{{ meal.title }} · ~{{ meal.kcal_range }} kcal</div>
+              <div class="diet-grid">
+                {% for opt in meal.options %}
+                <div class="meal-row">
+                  <div class="opt-num">{{ loop.index }}</div>
+                  <div class="meal-info">
+                    <div class="meal-name">{{ opt.food }}</div>
+                    <div class="meal-macros">
+                      <span class="kcal-hi">{{ opt.kcal }} kcal</span>
+                      &nbsp;·&nbsp;
+                      <span class="mac-hi">{{ opt.protein_g }}g</span> protein
+                      &nbsp;·&nbsp;
+                      <span class="mac-hi">{{ opt.carb_g }}g</span> carbs
+                      &nbsp;·&nbsp;
+                      <span class="mac-hi">{{ opt.fat_g }}g</span> fat
+                    </div>
                   </div>
                 </div>
+                {% endfor %}
               </div>
-              {% endfor %}
             </div>
           </div>
+          {% endfor %}
         </div>
         {% endfor %}
       </div>
@@ -1010,6 +1080,53 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
 </div>
 
 <script>
+// ── Fire the full plan generation in the background ─────────────────────
+// Only runs when this page was rendered by the fast /api/plan/diet pass
+// (see main.py) instead of /result directly — dashbord.html stashes the
+// original form payload in sessionStorage right before redirecting here
+// (fitforge_pending_result_body) specifically so this can pick it up.
+// Reuses the exact same postMessage hand-off the Trainer Review poller
+// below (and the check-in regenerate flow) already use: ask the PARENT
+// page to swap the iframe's srcdoc, rather than trying to replace our
+// own document from inside itself.
+if (window.RESULT_GENERATION_PENDING) {
+  (async function runBackgroundPlanGeneration() {
+    const body = sessionStorage.getItem('fitforge_pending_result_body');
+    sessionStorage.removeItem('fitforge_pending_result_body');
+    const token = localStorage.getItem('memberToken');
+    if (!body || !token) {
+      const errEl = document.getElementById('workout-generation-error');
+      if (errEl) errEl.style.display = 'block';
+      return;
+    }
+    try {
+      const slug = localStorage.getItem('gymSlug');
+      const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Bearer ' + token,
+      };
+      if (slug) headers['X-Gym-Slug'] = slug;
+
+      const res = await fetch(window.BACKEND_BASE + '/result', {
+        method: 'POST', headers, body,
+      });
+      const html = await res.text();
+      if (res.ok) {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'fitforge:planUpdated', html }, '*');
+        }
+      } else {
+        const errEl = document.getElementById('workout-generation-error');
+        if (errEl) errEl.style.display = 'block';
+      }
+    } catch (e) {
+      console.warn('background /result call failed:', e);
+      const errEl = document.getElementById('workout-generation-error');
+      if (errEl) errEl.style.display = 'block';
+    }
+  })();
+}
+
 // ── Poll for Trainer Review completion ──────────────────────────────────
 // The workout section may render with a "verifying exercise safety"
 // placeholder (see this template's workout._review_pending branch) while
@@ -1128,14 +1245,21 @@ document.querySelectorAll('.sb-item').forEach(btn => {
   });
 });
 
-// ── Meal tabs (Diet) ──
-document.getElementById('mealTabs').addEventListener('click', e => {
+// ── Meal tabs (Diet) — scoped to whichever .diet-variant block the
+// clicked tab lives in. A rotation-enabled plan renders one meal-tabs /
+// meal-panel set PER VARIANT (only one visible at a time — see
+// selectDay()'s variant switch below), so tab state must stay local to
+// that block instead of a single global #mealTabs like before rotation.
+document.getElementById('sec-diet').addEventListener('click', e => {
   const tab = e.target.closest('.mtab');
   if (!tab) return;
-  document.querySelectorAll('.mtab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.meal-panel').forEach(p => p.classList.remove('active'));
+  const container = tab.closest('.diet-variant');
+  if (!container) return;
+  container.querySelectorAll('.mtab').forEach(t => t.classList.remove('active'));
+  container.querySelectorAll('.meal-panel').forEach(p => p.classList.remove('active'));
   tab.classList.add('active');
-  document.getElementById('meal-' + tab.dataset.meal).classList.add('active');
+  const target = container.querySelector('#meal-' + tab.dataset.meal);
+  if (target) target.classList.add('active');
 });
 
 /* ══════════ DAY STRIP ⇄ WORKOUT DAY PANEL — single source of truth ══════════
@@ -1153,6 +1277,20 @@ function selectDay(idx, opts) {
   document.querySelectorAll('.dt').forEach(d => {
     d.classList.toggle('active', d.dataset.dayIndex === String(idx));
   });
+
+  // Show whichever diet-variant block matches this day's rotation slot
+  // (window.DIET_DAY_VARIANT_MAP / diet_engine.build_diet_day_plan) —
+  // same single-source-of-switching principle as the workout day-panel
+  // above, just for the Diet section instead. Runs regardless of which
+  // tab is currently active so it's already correct whenever the member
+  // does switch to Diet. Falls back to variant 0 for any index the map
+  // doesn't cover (shouldn't happen, but never leaves nothing visible).
+  const dietVariantIdx = (window.DIET_DAY_VARIANT_MAP && window.DIET_DAY_VARIANT_MAP[idx] !== undefined)
+    ? window.DIET_DAY_VARIANT_MAP[idx] : 0;
+  document.querySelectorAll('.diet-variant').forEach(dv => {
+    dv.style.display = (dv.dataset.variantIndex === String(dietVariantIdx)) ? '' : 'none';
+  });
+
   if (opts.center !== false) {
     const activeDt = document.querySelector('.dt[data-day-index="' + idx + '"]');
     if (activeDt) activeDt.scrollIntoView({ behavior: opts.smooth === false ? 'auto' : 'smooth', inline: 'center', block: 'nearest' });

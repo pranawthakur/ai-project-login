@@ -2301,20 +2301,23 @@ def enforce_schema(data: dict, profile: dict | None = None) -> dict:
                 f"allergy/diet/budget filtering leaving no eligible ingredients."
             )
 
-    # Ensure each meal has full macro fields
-    for meal in data["diet"].get("meals", []):
-        meal.setdefault("options", [])
-        meal.setdefault("kcal_range", "—")
-        if len(meal["options"]) < 3:
-            meal["_low_variety_warning"] = (
-                f"Only {len(meal['options'])} option(s) generated for "
-                f"{meal.get('title', meal.get('id', 'this meal'))} — expected 3."
-            )
-        for opt in meal["options"]:
-            opt.setdefault("kcal", 0)
-            opt.setdefault("protein_g", 0)
-            opt.setdefault("carb_g", 0)
-            opt.setdefault("fat_g", 0)
+    # Ensure each meal has full macro fields — walks every rotation variant
+    # (see diet_engine.iter_diet_meal_lists), not just a single flat list,
+    # so a variant other than #0 can't reach the template un-normalized.
+    for meals in diet_engine.iter_diet_meal_lists(data["diet"]):
+        for meal in meals:
+            meal.setdefault("options", [])
+            meal.setdefault("kcal_range", "—")
+            if len(meal["options"]) < 3:
+                meal["_low_variety_warning"] = (
+                    f"Only {len(meal['options'])} option(s) generated for "
+                    f"{meal.get('title', meal.get('id', 'this meal'))} — expected 3."
+                )
+            for opt in meal["options"]:
+                opt.setdefault("kcal", 0)
+                opt.setdefault("protein_g", 0)
+                opt.setdefault("carb_g", 0)
+                opt.setdefault("fat_g", 0)
 
     # STEP 1 (Food Allergy Enforcement) — independent Python-side re-check
     # of every meal option against the disclosed allergens, run here so it

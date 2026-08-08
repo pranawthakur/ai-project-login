@@ -353,6 +353,116 @@ def parse_food_feedback_exclusions(food_feedback_raw: str) -> set:
     return excluded
 
 
+# ── Day-to-day rotation ──────────────────────────────────────────────────
+# build_diet_meals() above always produces ONE meal-set, reused unchanged
+# for every day of the 14-day cycle — the "3 options" it builds are 3
+# alternate combos for a single notional day, not day-by-day variety.
+# The dashboard's "Meal rotation" selector (fixed / short_rotation /
+# weekly_rotation) used to only feed a dead LLM prompt string that nothing
+# ever reads anymore — this is what actually wires it up.
+#
+# Each rotation tier maps to a block pattern of day-indices that share one
+# variant:
+#   fixed          — one variant for the whole cycle (unchanged behaviour).
+#   short_rotation — "every 2-3 days": alternating 3-day/2-day blocks.
+#   weekly_rotation— one variant per weekday (7 uniques), repeating in week 2
+#                    so the member sees a genuinely different day every day
+#                    of a given week, consistent week-to-week.
+#
+# Variants are built by calling build_diet_meals() again per block, offset
+# far enough apart (BLOCK_VARIANT_STRIDE) that consecutive blocks don't
+# land on the same top-of-priority-list picks build_diet_meals() would
+# otherwise choose (it already advances variant_offset by 1 per option
+# within a single call, so spacing blocks by 3 clears that range).
+BLOCK_VARIANT_STRIDE = 3
+
+
+def _day_variant_map(rotation: str, num_days: int) -> list[int]:
+    """Returns a list of length num_days: day_variant_map[i] = which variant
+    index day i uses. Variant indices are dense (0, 1, 2, ...) in first-seen
+    order so callers know exactly how many unique variants to build."""
+    rotation = (rotation or "short_rotation").lower().strip()
+
+    if rotation == "fixed":
+        return [0] * num_days
+
+    if rotation == "weekly_rotation":
+        # One unique variant per weekday (0-6), repeating for week 2+.
+        return [i % 7 for i in range(num_days)]
+
+    # Default / "short_rotation": alternating 3-day, 2-day blocks so the
+    # gap between changes is always 2 or 3 days, matching the dashboard
+    # copy ("Rotate every 2-3 days") exactly rather than a fixed stride.
+    block_sizes = [3, 2]
+    day_map = []
+    variant = 0
+    block_i = 0
+    remaining = num_days
+    while remaining > 0:
+        size = min(block_sizes[block_i % len(block_sizes)], remaining)
+        day_map.extend([variant] * size)
+        remaining -= size
+        variant += 1
+        block_i += 1
+    return day_map
+
+
+def build_diet_day_plan(daily_kcal: int, daily_protein_g: int, diet_pref_raw: str,
+                         allergy_set: set, budget_tier: str,
+                         meal_slots: list | None = None,
+                         rotation: str = "short_rotation",
+                         num_days: int = 14,
+                         cycle_variant_offset: int = 0,
+                         extra_exclude_ids: set | None = None) -> dict:
+    """Day-aware wrapper around build_diet_meals(): builds however many
+    distinct meal-set variants `rotation` calls for (see _day_variant_map),
+    plus the day-index -> variant-index map the frontend needs to show the
+    right one as the member moves through the day-strip.
+
+    cycle_variant_offset: same purpose as build_diet_meals's variant_offset
+    (keeps a biweekly "regenerate" call genuinely different from last
+    cycle's) — applied on TOP of each block's own stride offset, not
+    instead of it, so cycle-to-cycle variety and day-to-day variety inside
+    one cycle don't collide.
+
+    Returns {"variants": [...meal-set per unique variant, same shape as
+    build_diet_meals()'s return...], "day_variant_map": [...len num_days]}.
+    """
+    day_variant_map = _day_variant_map(rotation, num_days)
+    num_variants = (max(day_variant_map) + 1) if day_variant_map else 1
+
+    variants = [
+        build_diet_meals(
+            daily_kcal=daily_kcal,
+            daily_protein_g=daily_protein_g,
+            diet_pref_raw=diet_pref_raw,
+            allergy_set=allergy_set,
+            budget_tier=budget_tier,
+            meal_slots=meal_slots,
+            variant_offset=cycle_variant_offset + (v * BLOCK_VARIANT_STRIDE),
+            extra_exclude_ids=extra_exclude_ids,
+        )
+        for v in range(num_variants)
+    ]
+
+    return {"variants": variants, "day_variant_map": day_variant_map}
+
+
+# ── Shared iterator: every safety/normalization pass over "all the meal
+# options this plan contains" (allergy re-check, schema enforcement) needs
+# to walk EVERY variant now, not just a single flat list — otherwise a
+# rotation variant other than #0 could reach the member with an unchecked
+# allergen or an un-normalized field. Handles both shapes so older cached
+# plans (single "meals" list, no "variants" key) still work unchanged.
+def iter_diet_meal_lists(diet_dict: dict):
+    variants = diet_dict.get("variants")
+    if variants:
+        for meals in variants:
+            yield meals
+    elif "meals" in diet_dict:
+        yield diet_dict["meals"]
+
+
 def resolve_budget_tier(budget_raw: str) -> str:
     b = (budget_raw or "medium").lower().strip()
     if b in ("low", "budget", "cheap"):
