@@ -14,8 +14,8 @@
 -- /generate/full endpoint accepts any slot number as long as a matching
 -- login_code exists here.
 
-insert into gyms (name, slug)
-select 'Dev QA (internal testing — not a real gym)', 'dev-qa'
+insert into gyms (name, slug, signup_slug)
+select 'Dev QA (internal testing — not a real gym)', 'dev-qa', 'dev-qa'
 where not exists (select 1 from gyms where slug = 'dev-qa');
 
 insert into members (gym_id, name, login_code, status)

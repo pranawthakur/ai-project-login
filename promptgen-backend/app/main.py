@@ -390,7 +390,21 @@ async def generate_full_dev_preview(
         "medical_notes":      body.get("notes") or "none",
     }
 
-    return await _generate_and_save_plan(member, profile, source_label="dev_preview")
+    return_response = await _generate_and_save_plan(member, profile, source_label="dev_preview")
+
+    # The returned plan HTML has its own embedded scripts (the Trainer
+    # Review completion poll, workout-feedback, check-in eligibility, etc)
+    # that all authenticate with a real member Bearer token read from
+    # localStorage — normally set by the member's own /member/login. This
+    # preview never went through that login, so without a token those
+    # scripts silently no-op (e.g. the "Finalizing your exercise list"
+    # placeholder never clears, because its poll exits immediately with no
+    # token to call /api/plan-workout-status with). Mint one for this same
+    # Dev QA member and hand it back as a header so the caller (dev
+    # dashboard) can seed it into the iframe's localStorage before the
+    # embedded scripts run.
+    return_response.headers["X-Member-Token"] = issue_member_token(member["id"], member.get("gym_id"))
+    return return_response
 
 
 # ── Existing JSON API (kept intact) ─────────────────────────────────────────
