@@ -73,7 +73,7 @@
       "data": {
         "engine": "exercise_metadata",
         "version": "7.1.0-v1-full",
-        "count": 401,
+        "count": 392,
         "exercises": [
           {
             "exercise_id": "barbell_back_squat",
@@ -2118,36 +2118,6 @@
               "lower back",
               "spine",
               "hip"
-            ]
-          },
-          {
-            "exercise_id": "banded_good_morning",
-            "display_name": "Band Good Morning",
-            "movement_id": "hinge",
-            "primary_muscles": [
-              "hamstrings",
-              "glutes"
-            ],
-            "secondary_muscles": [
-              "erector_spinae"
-            ],
-            "stabilizers": [
-              "core"
-            ],
-            "equipment": [
-              "resistance_band"
-            ],
-            "difficulty": "beginner",
-            "exercise_type": "compound",
-            "joint_stress_profile": "JST_HINGE_001",
-            "fatigue_profile": "STF_HINGE_001",
-            "progressions": [
-              "good_morning"
-            ],
-            "regressions": [],
-            "substitutions": [],
-            "contraindicated_for": [
-              "lower back"
             ]
           },
           {
@@ -7085,37 +7055,6 @@
             ]
           },
           {
-            "exercise_id": "fire_hydrant",
-            "display_name": "Fire Hydrant",
-            "movement_id": "isolation_leg",
-            "primary_muscles": [
-              "glutes",
-              "abductors"
-            ],
-            "secondary_muscles": [],
-            "stabilizers": [
-              "core"
-            ],
-            "equipment": [
-              "bodyweight"
-            ],
-            "difficulty": "beginner",
-            "exercise_type": "isolation",
-            "joint_stress_profile": "JST_ISO_LEG_001",
-            "fatigue_profile": "STF_ISO_LEG_001",
-            "progressions": [
-              "swiss_ball_leg_curl",
-              "single_leg_glute_bridge"
-            ],
-            "regressions": [],
-            "substitutions": [
-              "clamshell"
-            ],
-            "contraindicated_for": [
-              "knee"
-            ]
-          },
-          {
             "exercise_id": "cable_hip_abduction",
             "display_name": "Standing Cable Hip Abduction",
             "movement_id": "isolation_leg",
@@ -8258,32 +8197,6 @@
             "contraindicated_for": []
           },
           {
-            "exercise_id": "bird_dog",
-            "display_name": "Bird Dog",
-            "movement_id": "core",
-            "primary_muscles": [
-              "core",
-              "erector_spinae"
-            ],
-            "secondary_muscles": [
-              "glutes"
-            ],
-            "stabilizers": [],
-            "equipment": [
-              "bodyweight"
-            ],
-            "difficulty": "beginner",
-            "exercise_type": "isolation",
-            "joint_stress_profile": "JST_CORE_001",
-            "fatigue_profile": "STF_CORE_001",
-            "progressions": [
-              "dead_bug"
-            ],
-            "regressions": [],
-            "substitutions": [],
-            "contraindicated_for": []
-          },
-          {
             "exercise_id": "mountain_climber",
             "display_name": "Mountain Climber",
             "movement_id": "core",
@@ -8445,34 +8358,6 @@
             "contraindicated_for": []
           },
           {
-            "exercise_id": "stir_the_pot",
-            "display_name": "Stability Ball Stir-the-Pot",
-            "movement_id": "core",
-            "primary_muscles": [
-              "core"
-            ],
-            "secondary_muscles": [
-              "shoulders"
-            ],
-            "stabilizers": [],
-            "equipment": [
-              "bodyweight"
-            ],
-            "difficulty": "intermediate",
-            "exercise_type": "isolation",
-            "joint_stress_profile": "JST_CORE_001",
-            "fatigue_profile": "STF_CORE_001",
-            "progressions": [
-              "ab_wheel_rollout",
-              "stability_ball_pike"
-            ],
-            "regressions": [
-              "plank"
-            ],
-            "substitutions": [],
-            "contraindicated_for": []
-          },
-          {
             "exercise_id": "suitcase_carry_core",
             "display_name": "Suitcase Carry (Anti-Lateral-Flexion)",
             "movement_id": "core",
@@ -8494,31 +8379,6 @@
             "progressions": [
               "hanging_leg_raise",
               "captain_chair_leg_raise"
-            ],
-            "regressions": [],
-            "substitutions": [],
-            "contraindicated_for": []
-          },
-          {
-            "exercise_id": "band_pallof_press",
-            "display_name": "Band Pallof Press",
-            "movement_id": "core",
-            "primary_muscles": [
-              "core"
-            ],
-            "secondary_muscles": [
-              "shoulders"
-            ],
-            "stabilizers": [],
-            "equipment": [
-              "resistance_band"
-            ],
-            "difficulty": "beginner",
-            "exercise_type": "isolation",
-            "joint_stress_profile": "JST_CORE_001",
-            "fatigue_profile": "STF_CORE_001",
-            "progressions": [
-              "pallof_press"
             ],
             "regressions": [],
             "substitutions": [],
@@ -9589,9 +9449,7 @@
               "zottman_curl",
               "weighted_dead_hang"
             ],
-            "regressions": [
-              "gripper_squeeze"
-            ],
+            "regressions": [],
             "substitutions": [
               "farmers_carry"
             ],
@@ -9677,32 +9535,6 @@
             "contraindicated_for": [
               "wrist"
             ]
-          },
-          {
-            "exercise_id": "gripper_squeeze",
-            "display_name": "Hand Gripper Squeeze",
-            "movement_id": "isolation_arm",
-            "primary_muscles": [
-              "forearms"
-            ],
-            "secondary_muscles": [],
-            "stabilizers": [],
-            "equipment": [
-              "bodyweight"
-            ],
-            "difficulty": "beginner",
-            "exercise_type": "isolation",
-            "joint_stress_profile": "JST_ISO_ARM_001",
-            "fatigue_profile": "STF_ISO_ARM_001",
-            "progressions": [
-              "zottman_curl",
-              "weighted_dead_hang"
-            ],
-            "regressions": [],
-            "substitutions": [
-              "plate_pinch"
-            ],
-            "contraindicated_for": []
           },
           {
             "exercise_id": "towel_pull_up",
@@ -9792,30 +9624,6 @@
             "substitutions": [
               "farmers_carry"
             ],
-            "contraindicated_for": []
-          },
-          {
-            "exercise_id": "rice_bucket_training",
-            "display_name": "Rice Bucket Training",
-            "movement_id": "isolation_arm",
-            "primary_muscles": [
-              "forearms"
-            ],
-            "secondary_muscles": [],
-            "stabilizers": [],
-            "equipment": [
-              "bodyweight"
-            ],
-            "difficulty": "beginner",
-            "exercise_type": "isolation",
-            "joint_stress_profile": "JST_ISO_ARM_001",
-            "fatigue_profile": "STF_ISO_ARM_001",
-            "progressions": [
-              "zottman_curl",
-              "weighted_dead_hang"
-            ],
-            "regressions": [],
-            "substitutions": [],
             "contraindicated_for": []
           },
           {
@@ -11299,57 +11107,6 @@
             "contraindicated_for": [
               "shoulder"
             ]
-          },
-          {
-            "exercise_id": "wall_slide",
-            "display_name": "Wall Slide (Shoulder Mobility)",
-            "movement_id": "isolation_shoulder",
-            "primary_muscles": [
-              "posterior_deltoid",
-              "traps"
-            ],
-            "secondary_muscles": [],
-            "stabilizers": [
-              "core"
-            ],
-            "equipment": [
-              "bodyweight"
-            ],
-            "difficulty": "beginner",
-            "exercise_type": "isolation",
-            "joint_stress_profile": "JST_ISO_SHLD_001",
-            "fatigue_profile": "STF_ISO_SHLD_001",
-            "progressions": [
-              "y_raise",
-              "incline_y_raise"
-            ],
-            "regressions": [],
-            "substitutions": [],
-            "contraindicated_for": []
-          },
-          {
-            "exercise_id": "banded_shoulder_dislocate",
-            "display_name": "Band Shoulder Dislocate (Mobility)",
-            "movement_id": "isolation_shoulder",
-            "primary_muscles": [
-              "shoulders"
-            ],
-            "secondary_muscles": [],
-            "stabilizers": [],
-            "equipment": [
-              "resistance_band"
-            ],
-            "difficulty": "beginner",
-            "exercise_type": "isolation",
-            "joint_stress_profile": "JST_ISO_SHLD_001",
-            "fatigue_profile": "STF_ISO_SHLD_001",
-            "progressions": [
-              "scott_press",
-              "upright_row"
-            ],
-            "regressions": [],
-            "substitutions": [],
-            "contraindicated_for": []
           },
           {
             "exercise_id": "weighted_hanging_leg_raise",
@@ -14151,17 +13908,6 @@
             "equipment_conflict": true,
             "recommended_rest_seconds": 105
           },
-          "PAIR_UPLOW_061": {
-            "pairing_profile_id": "PAIR_UPLOW_061",
-            "primary_exercise_id": "banded_good_morning",
-            "secondary_exercise_id": "barbell_bench_press",
-            "pairing_type": "upper_lower",
-            "compatibility_score": 80,
-            "fatigue_interference": "moderate",
-            "joint_overlap": "low",
-            "equipment_conflict": false,
-            "recommended_rest_seconds": 105
-          },
           "PAIR_UPLOW_062": {
             "pairing_profile_id": "PAIR_UPLOW_062",
             "primary_exercise_id": "suitcase_deadlift",
@@ -15658,17 +15404,6 @@
             "equipment_conflict": false,
             "recommended_rest_seconds": 105
           },
-          "PAIR_UPLOW_091": {
-            "pairing_profile_id": "PAIR_UPLOW_091",
-            "primary_exercise_id": "fire_hydrant",
-            "secondary_exercise_id": "barbell_bench_press",
-            "pairing_type": "upper_lower",
-            "compatibility_score": 80,
-            "fatigue_interference": "moderate",
-            "joint_overlap": "low",
-            "equipment_conflict": false,
-            "recommended_rest_seconds": 105
-          },
           "PAIR_UPLOW_092": {
             "pairing_profile_id": "PAIR_UPLOW_092",
             "primary_exercise_id": "cable_hip_abduction",
@@ -16109,17 +15844,6 @@
             "equipment_conflict": false,
             "recommended_rest_seconds": 105
           },
-          "PAIR_COMPISO_081": {
-            "pairing_profile_id": "PAIR_COMPISO_081",
-            "primary_exercise_id": "bird_dog",
-            "secondary_exercise_id": "sandbag_carry",
-            "pairing_type": "compound_isolation",
-            "compatibility_score": 75,
-            "fatigue_interference": "moderate",
-            "joint_overlap": "high",
-            "equipment_conflict": true,
-            "recommended_rest_seconds": 105
-          },
           "PAIR_COMPISO_082": {
             "pairing_profile_id": "PAIR_COMPISO_082",
             "primary_exercise_id": "mountain_climber",
@@ -16186,17 +15910,6 @@
             "equipment_conflict": false,
             "recommended_rest_seconds": 105
           },
-          "PAIR_COMPISO_088": {
-            "pairing_profile_id": "PAIR_COMPISO_088",
-            "primary_exercise_id": "stir_the_pot",
-            "secondary_exercise_id": "mountain_climber_cond",
-            "pairing_type": "compound_isolation",
-            "compatibility_score": 75,
-            "fatigue_interference": "moderate",
-            "joint_overlap": "high",
-            "equipment_conflict": true,
-            "recommended_rest_seconds": 105
-          },
           "PAIR_COMPISO_089": {
             "pairing_profile_id": "PAIR_COMPISO_089",
             "primary_exercise_id": "suitcase_carry_core",
@@ -16206,17 +15919,6 @@
             "fatigue_interference": "moderate",
             "joint_overlap": "high",
             "equipment_conflict": true,
-            "recommended_rest_seconds": 105
-          },
-          "PAIR_COMPISO_090": {
-            "pairing_profile_id": "PAIR_COMPISO_090",
-            "primary_exercise_id": "band_pallof_press",
-            "secondary_exercise_id": "mountain_climber_cond",
-            "pairing_type": "compound_isolation",
-            "compatibility_score": 75,
-            "fatigue_interference": "moderate",
-            "joint_overlap": "high",
-            "equipment_conflict": false,
             "recommended_rest_seconds": 105
           },
           "PAIR_COMPISO_091": {
@@ -16505,17 +16207,6 @@
             "equipment_conflict": false,
             "recommended_rest_seconds": 105
           },
-          "PAIR_COMPISO_111": {
-            "pairing_profile_id": "PAIR_COMPISO_111",
-            "primary_exercise_id": "gripper_squeeze",
-            "secondary_exercise_id": "farmers_carry",
-            "pairing_type": "compound_isolation",
-            "compatibility_score": 75,
-            "fatigue_interference": "moderate",
-            "joint_overlap": "high",
-            "equipment_conflict": false,
-            "recommended_rest_seconds": 105
-          },
           "PAIR_COMPISO_112": {
             "pairing_profile_id": "PAIR_COMPISO_112",
             "primary_exercise_id": "towel_pull_up",
@@ -16547,17 +16238,6 @@
             "fatigue_interference": "moderate",
             "joint_overlap": "high",
             "equipment_conflict": true,
-            "recommended_rest_seconds": 105
-          },
-          "PAIR_COMPISO_115": {
-            "pairing_profile_id": "PAIR_COMPISO_115",
-            "primary_exercise_id": "rice_bucket_training",
-            "secondary_exercise_id": "farmers_carry",
-            "pairing_type": "compound_isolation",
-            "compatibility_score": 75,
-            "fatigue_interference": "moderate",
-            "joint_overlap": "high",
-            "equipment_conflict": false,
             "recommended_rest_seconds": 105
           },
           "PAIR_PUSHPULL_071": {
@@ -17097,28 +16777,6 @@
             "fatigue_interference": "moderate",
             "joint_overlap": "high",
             "equipment_conflict": true,
-            "recommended_rest_seconds": 105
-          },
-          "PAIR_COMPISO_122": {
-            "pairing_profile_id": "PAIR_COMPISO_122",
-            "primary_exercise_id": "wall_slide",
-            "secondary_exercise_id": "rear_delt_row",
-            "pairing_type": "compound_isolation",
-            "compatibility_score": 75,
-            "fatigue_interference": "moderate",
-            "joint_overlap": "high",
-            "equipment_conflict": false,
-            "recommended_rest_seconds": 105
-          },
-          "PAIR_COMPISO_123": {
-            "pairing_profile_id": "PAIR_COMPISO_123",
-            "primary_exercise_id": "banded_shoulder_dislocate",
-            "secondary_exercise_id": "overhead_press",
-            "pairing_type": "compound_isolation",
-            "compatibility_score": 75,
-            "fatigue_interference": "moderate",
-            "joint_overlap": "high",
-            "equipment_conflict": false,
             "recommended_rest_seconds": 105
           },
           "PAIR_COMPISO_124": {
@@ -19417,18 +19075,6 @@
             ],
             "conflict_partners": []
           },
-          "SUB_fire_hydrant_001": {
-            "substitution_rule_id": "SUB_fire_hydrant_001",
-            "source_exercise_id": "fire_hydrant",
-            "reason": "equipment_unavailable",
-            "candidate_substitutes": [
-              {
-                "exercise_id": "clamshell",
-                "equivalence_score": 90
-              }
-            ],
-            "conflict_partners": []
-          },
           "SUB_cable_hip_abduction_001": {
             "substitution_rule_id": "SUB_cable_hip_abduction_001",
             "source_exercise_id": "cable_hip_abduction",
@@ -19812,26 +19458,9 @@
             "substitution_rule_id": "SUB_plate_pinch_001",
             "source_exercise_id": "plate_pinch",
             "reason": "equipment_unavailable",
-            "candidate_substitutes": [
-              {
-                "exercise_id": "gripper_squeeze",
-                "equivalence_score": 70
-              }
-            ],
+            "candidate_substitutes": [],
             "conflict_partners": [],
             "no_safe_substitute": false
-          },
-          "SUB_gripper_squeeze_001": {
-            "substitution_rule_id": "SUB_gripper_squeeze_001",
-            "source_exercise_id": "gripper_squeeze",
-            "reason": "equipment_unavailable",
-            "candidate_substitutes": [
-              {
-                "exercise_id": "plate_pinch",
-                "equivalence_score": 75
-              }
-            ],
-            "conflict_partners": []
           },
           "SUB_fat_bar_curl_001": {
             "substitution_rule_id": "SUB_fat_bar_curl_001",
@@ -20563,22 +20192,6 @@
             ],
             "conflict_partners": []
           },
-          "SUB_band_pallof_press_001": {
-            "substitution_rule_id": "SUB_band_pallof_press_001",
-            "source_exercise_id": "band_pallof_press",
-            "reason": "equipment_unavailable",
-            "candidate_substitutes": [
-              {
-                "exercise_id": "plank",
-                "equivalence_score": 79
-              },
-              {
-                "exercise_id": "weighted_plank",
-                "equivalence_score": 79
-              }
-            ],
-            "conflict_partners": []
-          },
           "SUB_band_shoulder_press_001": {
             "substitution_rule_id": "SUB_band_shoulder_press_001",
             "source_exercise_id": "band_shoulder_press",
@@ -20611,22 +20224,6 @@
             ],
             "conflict_partners": []
           },
-          "SUB_banded_good_morning_001": {
-            "substitution_rule_id": "SUB_banded_good_morning_001",
-            "source_exercise_id": "banded_good_morning",
-            "reason": "equipment_unavailable",
-            "candidate_substitutes": [
-              {
-                "exercise_id": "conventional_deadlift",
-                "equivalence_score": 90
-              },
-              {
-                "exercise_id": "good_morning",
-                "equivalence_score": 90
-              }
-            ],
-            "conflict_partners": []
-          },
           "SUB_banded_hip_thrust_001": {
             "substitution_rule_id": "SUB_banded_hip_thrust_001",
             "source_exercise_id": "banded_hip_thrust",
@@ -20655,22 +20252,6 @@
               {
                 "exercise_id": "barbell_front_squat",
                 "equivalence_score": 79
-              }
-            ],
-            "conflict_partners": []
-          },
-          "SUB_banded_shoulder_dislocate_001": {
-            "substitution_rule_id": "SUB_banded_shoulder_dislocate_001",
-            "source_exercise_id": "banded_shoulder_dislocate",
-            "reason": "equipment_unavailable",
-            "candidate_substitutes": [
-              {
-                "exercise_id": "scott_press",
-                "equivalence_score": 73
-              },
-              {
-                "exercise_id": "lateral_raise",
-                "equivalence_score": 56
               }
             ],
             "conflict_partners": []
@@ -20783,22 +20364,6 @@
               {
                 "exercise_id": "flutter_kick",
                 "equivalence_score": 79
-              }
-            ],
-            "conflict_partners": []
-          },
-          "SUB_bird_dog_001": {
-            "substitution_rule_id": "SUB_bird_dog_001",
-            "source_exercise_id": "bird_dog",
-            "reason": "equipment_unavailable",
-            "candidate_substitutes": [
-              {
-                "exercise_id": "plank",
-                "equivalence_score": 73
-              },
-              {
-                "exercise_id": "weighted_plank",
-                "equivalence_score": 73
               }
             ],
             "conflict_partners": []
@@ -22467,22 +22032,6 @@
             ],
             "conflict_partners": []
           },
-          "SUB_rice_bucket_training_001": {
-            "substitution_rule_id": "SUB_rice_bucket_training_001",
-            "source_exercise_id": "rice_bucket_training",
-            "reason": "equipment_unavailable",
-            "candidate_substitutes": [
-              {
-                "exercise_id": "hammer_curl",
-                "equivalence_score": 73
-              },
-              {
-                "exercise_id": "cable_hammer_curl",
-                "equivalence_score": 73
-              }
-            ],
-            "conflict_partners": []
-          },
           "SUB_rowing_erg_001": {
             "substitution_rule_id": "SUB_rowing_erg_001",
             "source_exercise_id": "rowing_erg",
@@ -22947,22 +22496,6 @@
             ],
             "conflict_partners": []
           },
-          "SUB_stir_the_pot_001": {
-            "substitution_rule_id": "SUB_stir_the_pot_001",
-            "source_exercise_id": "stir_the_pot",
-            "reason": "equipment_unavailable",
-            "candidate_substitutes": [
-              {
-                "exercise_id": "plank",
-                "equivalence_score": 79
-              },
-              {
-                "exercise_id": "weighted_plank",
-                "equivalence_score": 79
-              }
-            ],
-            "conflict_partners": []
-          },
           "SUB_straight_arm_pulldown_001": {
             "substitution_rule_id": "SUB_straight_arm_pulldown_001",
             "source_exercise_id": "straight_arm_pulldown",
@@ -23247,22 +22780,6 @@
               {
                 "exercise_id": "barbell_front_squat",
                 "equivalence_score": 79
-              }
-            ],
-            "conflict_partners": []
-          },
-          "SUB_wall_slide_001": {
-            "substitution_rule_id": "SUB_wall_slide_001",
-            "source_exercise_id": "wall_slide",
-            "reason": "equipment_unavailable",
-            "candidate_substitutes": [
-              {
-                "exercise_id": "face_pull",
-                "equivalence_score": 90
-              },
-              {
-                "exercise_id": "band_face_pull",
-                "equivalence_score": 90
               }
             ],
             "conflict_partners": []

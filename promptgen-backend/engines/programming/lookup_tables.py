@@ -10,8 +10,8 @@ DEFAULT_SAFE_TEMPLATE_EXERCISES = [
      "regression": "wall_pushup"},
     {"pattern": "horizontal_pull", "exercise": "band_row_or_supported_light_db_row",
      "regression": "band_pull_apart_only"},
-    {"pattern": "core_anti_extension", "exercise": "dead_bug_or_bird_dog",
-     "regression": "marching_bird_dog_reduced_rom"},
+    {"pattern": "core_anti_extension", "exercise": "dead_bug",
+     "regression": "dead_bug_reduced_rom"},
     {"pattern": "loaded_carry_conditioning", "exercise": "light_farmer_carry_or_brisk_walk",
      "regression": "walk_only"},
 ]

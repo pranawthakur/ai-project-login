@@ -178,7 +178,7 @@ def low_back_strain_protocol(cs: ClientState, pain_scale: int = 0, radiating_leg
             "duration": "until_pain_scale_le_3_for_48h"})
     if 1 <= pain_scale <= 3:
         return Decision(GateResult.RESTRICT, "subacute_phase", data={
-            "permit": ["wall_tap_rdl", "bird_dog", "dead_bug", "goblet_squat_light", "walking", "light_cycling"],
+            "permit": ["wall_tap_rdl", "dead_bug", "goblet_squat_light", "walking", "light_cycling"],
             "remove": ["barbell_deadlift_squat", "loaded_flexion"]})
     if pain_scale == 0 and recently_resolved:
         return Decision(GateResult.RESTRICT, "return_to_load", data={

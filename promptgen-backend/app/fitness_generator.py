@@ -153,6 +153,22 @@ _ACTIVITY_PROTEIN_SCORE = {
 }
 
 
+def _to_float_or_none(raw) -> float | None:
+    """Best-effort str->float for optional profile fields (waist_cm,
+    height_cm, body_fat_pct) coming from Form(...) strings or None. Empty
+    string, None, or anything unparsable -> None rather than raising or
+    silently defaulting to 0 — a missing/blank optional field must fall
+    through resolve_bw_gate_ok's "no signal" path, not get treated as a
+    real (and wrong) 0cm/0% value."""
+    if raw is None:
+        return None
+    try:
+        val = float(str(raw).strip())
+    except (TypeError, ValueError):
+        return None
+    return val if val > 0 else None
+
+
 def _bmi_protein_score(bmi: float) -> float:
     """
     Higher BMI (more total mass, proportionally more fat) pulls the multiplier
@@ -944,6 +960,10 @@ def build_deterministic_workout_days(profile: dict, weekly_template: list, vol: 
         picks, _used_fallback, _injury_kw = select_day_exercises(
             plan, equipment_raw, notes_raw, experience_raw, rng,
             goal_raw=goal,
+            bw_capability_answer=profile.get("bw_capability_answer"),
+            bw_waist_cm=_to_float_or_none(profile.get("waist_cm")),
+            bw_height_cm=_to_float_or_none(profile.get("height_cm")),
+            bw_body_fat_pct=_to_float_or_none(profile.get("body_fat_pct")),
         )
 
         # Post-generation QA + auto-repair pass (validator.py). This is

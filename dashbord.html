@@ -226,6 +226,16 @@ pre { white-space: pre-wrap; background: #0f0a1c; color: var(--fg); border: 1px 
     <div><label class="lbl">Target weight (kg)</label><input id="target" type="number" placeholder="e.g. 65" /></div>
   </div>
   <div id="bmiBox"></div>
+  <div class="grid c2 mt">
+    <div><label class="lbl">Can you currently do a full pull-up?</label>
+      <select id="canPullUp">
+        <option value="">Not sure</option>
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+      </select>
+    </div>
+    <div><label class="lbl">Waist (cm) — optional, helps us pick safe exercises</label><input id="waistCm" type="number" placeholder="e.g. 85" /></div>
+  </div>
   <div class="mt"><label class="lbl">State / region in India (helps pick familiar foods)</label><input id="region" placeholder="e.g. Gujarat, Punjab, Tamil Nadu, Maharashtra" /></div>
 </div>
 
@@ -837,6 +847,8 @@ async function handleSubmit() {
     height: $("height").value,
     weight: $("weight").value,
     target: $("target").value,
+    can_pull_up: $("canPullUp").value,
+    waist_cm: $("waistCm").value,
     goal: $("goal").value,
     experience: $("experience").value,
     activity: $("activity").value,

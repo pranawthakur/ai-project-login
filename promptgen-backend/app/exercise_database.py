@@ -193,6 +193,7 @@ EXERCISE_DB = {
                 'cue': 'Focus on: setup, bracing, depth, bar path',
                 'contraindicated_for': ('knee', 'lower back', 'hip', 'spine'),
                 '_exercise_id': 'pistol_squat',
+                '_bw_gated': True,
                 '_movement_id': 'squat',
             },
             {
@@ -473,14 +474,6 @@ EXERCISE_DB = {
                 'cue': 'Focus on: setup, bracing, hip hinge pattern, bar path',
                 'contraindicated_for': ('lower back',),
                 '_exercise_id': 'reverse_hyperextension',
-                '_movement_id': 'hinge',
-            },
-            {
-                'name': 'Band Good Morning',
-                'requires': 'Resistance bands',
-                'cue': 'Focus on: setup, bracing, hip hinge pattern, bar path',
-                'contraindicated_for': ('lower back',),
-                '_exercise_id': 'banded_good_morning',
                 '_movement_id': 'hinge',
             },
             {
@@ -781,14 +774,6 @@ EXERCISE_DB = {
                 'cue': 'Focus on: setup, range of motion',
                 'contraindicated_for': ('knee',),
                 '_exercise_id': 'clamshell',
-                '_movement_id': 'isolation_leg',
-            },
-            {
-                'name': 'Fire Hydrant',
-                'requires': None,
-                'cue': 'Focus on: setup, range of motion',
-                'contraindicated_for': ('knee',),
-                '_exercise_id': 'fire_hydrant',
                 '_movement_id': 'isolation_leg',
             },
             {
@@ -1144,6 +1129,7 @@ EXERCISE_DB = {
                 'cue': 'Focus on: setup, grip, scapular control, range of motion',
                 'contraindicated_for': ('shoulder', 'elbow'),
                 '_exercise_id': 'pull_up',
+                '_bw_gated': True,
                 '_movement_id': 'vertical_pull',
             },
             {
@@ -1152,6 +1138,7 @@ EXERCISE_DB = {
                 'cue': 'Focus on: setup, grip, scapular control, range of motion',
                 'contraindicated_for': ('shoulder', 'elbow'),
                 '_exercise_id': 'chin_up',
+                '_bw_gated': True,
                 '_movement_id': 'vertical_pull',
             },
             {
@@ -1160,6 +1147,7 @@ EXERCISE_DB = {
                 'cue': 'Focus on: setup, grip, scapular control, range of motion',
                 'contraindicated_for': ('shoulder', 'elbow'),
                 '_exercise_id': 'weighted_pull_up',
+                '_bw_gated': True,
                 '_movement_id': 'vertical_pull',
             },
             {
@@ -1168,6 +1156,7 @@ EXERCISE_DB = {
                 'cue': 'Focus on: setup, grip, scapular control, range of motion',
                 'contraindicated_for': ('shoulder', 'elbow'),
                 '_exercise_id': 'weighted_chin_up',
+                '_bw_gated': True,
                 '_movement_id': 'vertical_pull',
             },
             {
@@ -1226,6 +1215,7 @@ EXERCISE_DB = {
                 'cue': 'Focus on: setup, grip, scapular control, range of motion',
                 'contraindicated_for': ('shoulder', 'elbow'),
                 '_exercise_id': 'kipping_pull_up',
+                '_bw_gated': True,
                 '_movement_id': 'vertical_pull',
             },
             {
@@ -1234,6 +1224,7 @@ EXERCISE_DB = {
                 'cue': 'Focus on: setup, grip, scapular control, range of motion',
                 'contraindicated_for': ('shoulder', 'elbow'),
                 '_exercise_id': 'archer_pull_up',
+                '_bw_gated': True,
                 '_movement_id': 'vertical_pull',
             },
             {
@@ -1256,6 +1247,7 @@ EXERCISE_DB = {
                 'cue': 'Focus on: setup, grip, scapular control, range of motion',
                 'contraindicated_for': ('shoulder', 'elbow'),
                 '_exercise_id': 'chest_to_bar_pull_up',
+                '_bw_gated': True,
                 '_movement_id': 'vertical_pull',
             },
             {
@@ -1264,6 +1256,7 @@ EXERCISE_DB = {
                 'cue': 'Focus on: setup, grip, scapular control, range of motion',
                 'contraindicated_for': ('shoulder', 'elbow'),
                 '_exercise_id': 'l_sit_pull_up',
+                '_bw_gated': True,
                 '_movement_id': 'vertical_pull',
             },
             {
@@ -1472,6 +1465,7 @@ EXERCISE_DB = {
                 'requires': None,
                 'cue': 'Focus on: setup, grip, range of motion',
                 '_exercise_id': 'decline_push_up',
+                '_bw_gated': True,
                 '_movement_id': 'horizontal_push',
             },
             {
@@ -1546,6 +1540,7 @@ EXERCISE_DB = {
                 'requires': None,
                 'cue': 'Focus on: setup, grip, range of motion',
                 '_exercise_id': 'dips_chest',
+                '_bw_gated': True,
                 '_movement_id': 'horizontal_push',
             },
             {
@@ -1748,6 +1743,7 @@ EXERCISE_DB = {
                 'requires': None,
                 'cue': 'Focus on: setup, bracing, overhead stability, bar path',
                 '_exercise_id': 'handstand_push_up',
+                '_bw_gated': True,
                 '_movement_id': 'vertical_push',
             },
             {
@@ -1974,13 +1970,6 @@ EXERCISE_DB = {
                 '_movement_id': 'isolation_shoulder',
             },
             {
-                'name': 'Band Shoulder Dislocate (Mobility)',
-                'requires': 'Resistance bands',
-                'cue': 'Focus on: setup, range of motion, control',
-                '_exercise_id': 'banded_shoulder_dislocate',
-                '_movement_id': 'isolation_shoulder',
-            },
-            {
                 'name': 'Plate Front Raise (Iso Hold)',
                 'requires': 'Barbell',
                 'cue': 'Focus on: setup, range of motion, control',
@@ -2186,13 +2175,6 @@ EXERCISE_DB = {
                 '_movement_id': 'isolation_arm',
             },
             {
-                'name': 'Hand Gripper Squeeze',
-                'requires': None,
-                'cue': 'Focus on: setup, range of motion',
-                '_exercise_id': 'gripper_squeeze',
-                '_movement_id': 'isolation_arm',
-            },
-            {
                 'name': 'Towel Grip Pull-Up',
                 'requires': None,
                 'cue': 'Focus on: setup, range of motion',
@@ -2211,13 +2193,6 @@ EXERCISE_DB = {
                 'requires': ('Dumbbells', 'Kettlebells'),
                 'cue': 'Focus on: setup, range of motion',
                 '_exercise_id': 'farmer_hold',
-                '_movement_id': 'isolation_arm',
-            },
-            {
-                'name': 'Rice Bucket Training',
-                'requires': None,
-                'cue': 'Focus on: setup, range of motion',
-                '_exercise_id': 'rice_bucket_training',
                 '_movement_id': 'isolation_arm',
             },
             {
@@ -2287,6 +2262,7 @@ EXERCISE_DB = {
                 'requires': None,
                 'cue': 'Focus on: setup, range of motion',
                 '_exercise_id': 'dips_triceps',
+                '_bw_gated': True,
                 '_movement_id': 'isolation_arm',
             },
             {
@@ -2529,13 +2505,6 @@ EXERCISE_DB = {
                 '_movement_id': 'core',
             },
             {
-                'name': 'Bird Dog',
-                'requires': None,
-                'cue': 'Focus on: setup, bracing, breathing',
-                '_exercise_id': 'bird_dog',
-                '_movement_id': 'core',
-            },
-            {
                 'name': 'Mountain Climber',
                 'requires': None,
                 'cue': 'Focus on: setup, bracing, breathing',
@@ -2578,24 +2547,10 @@ EXERCISE_DB = {
                 '_movement_id': 'core',
             },
             {
-                'name': 'Stability Ball Stir-the-Pot',
-                'requires': None,
-                'cue': 'Focus on: setup, bracing, breathing',
-                '_exercise_id': 'stir_the_pot',
-                '_movement_id': 'core',
-            },
-            {
                 'name': 'Suitcase Carry (Anti-Lateral-Flexion)',
                 'requires': ('Dumbbells', 'Kettlebells'),
                 'cue': 'Focus on: setup, bracing, breathing',
                 '_exercise_id': 'suitcase_carry_core',
-                '_movement_id': 'core',
-            },
-            {
-                'name': 'Band Pallof Press',
-                'requires': 'Resistance bands',
-                'cue': 'Focus on: setup, bracing, breathing',
-                '_exercise_id': 'band_pallof_press',
                 '_movement_id': 'core',
             },
             {
@@ -2821,13 +2776,6 @@ EXERCISE_DB = {
                 '_movement_id': 'isolation_shoulder',
             },
             {
-                'name': 'Wall Slide (Shoulder Mobility)',
-                'requires': None,
-                'cue': 'Focus on: setup, range of motion, control',
-                '_exercise_id': 'wall_slide',
-                '_movement_id': 'isolation_shoulder',
-            },
-            {
                 'name': 'Cable Y-Raise',
                 'requires': None,
                 'cue': 'Focus on: setup, range of motion, control',
@@ -2882,7 +2830,81 @@ def _blocked_by_injury(ex: dict, injury_keywords: set) -> bool:
     return any(t in injury_keywords for t in tags)
 
 
-def _filter_pool(pool: list, available_lower: set, injury_keywords: set) -> tuple:
+# ── BODYWEIGHT-RELATIVE-STRENGTH GATE (Phase 1) ─────────────────────────────
+# Exercises tagged '_bw_gated': True require moving your own full bodyweight
+# through range of motion under load (pull-up/chin-up family, dips, pistol
+# squat, handstand push-up, decline push-up) — unlike a barbell squat/bench/
+# press, the "weight" here isn't selectable, so a beginner can't just pick a
+# lighter load. Absolute bodyweight is NOT used to gate these (a heavier but
+# muscular/low-body-fat person can do them fine) — see _passes_bw_gate below
+# for the actual signal used. This mirrors _blocked_by_injury/_filter_pool's
+# existing pattern: exclude from the pool, let the normal fallback options
+# (lat pulldown, assisted dip machine, incline push-up, hack squat, etc.)
+# already sitting in the same movement's pool fill the slot instead.
+def _blocked_by_bw_gate(ex: dict, bw_gate_ok: bool) -> bool:
+    return ex.get("_bw_gated", False) and not bw_gate_ok
+
+
+def _passes_bw_gate(
+    capability_answer: str | None = None,
+    waist_cm: float | None = None,
+    height_cm: float | None = None,
+    body_fat_pct: float | None = None,
+) -> bool:
+    """
+    Decides whether the bodyweight-relative-strength-gated exercise pool
+    (pull-up/chin-up family, dips, pistol squat, handstand push-up, decline
+    push-up) is offered to this person. Checked in priority order —
+    strongest, least-guessable signal first:
+
+    1) Direct self-report (capability_answer): "yes" -> pass, "no" -> fail.
+       This is what a real coach would actually ask instead of guessing off
+       a number, and it's the only signal that tells a muscular 104kg
+       person apart from an overweight 104kg person with certainty. "unsure"
+       or None falls through to the next signal.
+
+    2) Waist-to-height ratio (WHtR = waist_cm / height_cm), used only when
+       there's no direct answer. WHtR is a far better adiposity proxy than
+       BMI or raw weight because it isn't confounded by muscle mass the way
+       weight-based numbers are -- two people at the same weight can have
+       very different waist measurements. WHtR < 0.53 -> pass (per common
+       clinical low-risk cutoff); >= 0.53 -> fail-conservative (offer the
+       regression instead, they can self-correct via Phase 3's auto-
+       promotion once they're actually completing it easily).
+
+    3) body_fat_pct, only if provided and WHtR wasn't available. Uses a
+       simple <22% pass threshold. Deliberately last-priority: it's rarely
+       filled in at intake (only added on later check-ins), and WHtR from
+       Phase 2 will usually already be present as intake data by then.
+
+    4) No signal at all -> fail-conservative (regression/assisted variant).
+       Never blocks the person permanently -- Phase 3 promotes them once
+       check-in feedback shows the regression is easy.
+
+    NOTE (Phase 1 scope): this function is intentionally self-contained and
+    not yet wired to real intake fields -- fitness_generator.py doesn't
+    collect capability_answer/waist_cm yet. See HANDOFF.md Phase 2 for that
+    wiring. Calling select_day_exercises() without these kwargs defaults to
+    bw_gate_ok=True (today's existing behavior, unchanged) so this phase
+    ships with zero behavior change until Phase 2 turns it on.
+    """
+    answer = str(capability_answer or "").strip().lower()
+    if answer in ("yes", "y", "true"):
+        return True
+    if answer in ("no", "n", "false"):
+        return False
+
+    if waist_cm and height_cm:
+        whtr = waist_cm / height_cm
+        return whtr < 0.53
+
+    if body_fat_pct is not None:
+        return body_fat_pct < 22.0
+
+    return False
+
+
+def _filter_pool(pool: list, available_lower: set, injury_keywords: set, bw_gate_ok: bool = True) -> tuple:
     """Return (filtered_pool, used_fallback).
 
     FAIL-CONSERVATIVE, PER KB FILE 12: the injury filter is NEVER relaxed,
@@ -2911,14 +2933,27 @@ def _filter_pool(pool: list, available_lower: set, injury_keywords: set) -> tupl
         # the caller must skip this slot, not substitute.
         return [], True
 
-    equipment_ok = [ex for ex in injury_safe_pool if _requirement_met(ex["requires"], available_lower)]
+    # Bodyweight-relative-strength gate, same fail-conservative treatment as
+    # the injury filter above: if bw_gate_ok is False, gated exercises are
+    # dropped and NEVER reintroduced by the equipment-relax fallback below.
+    # Unlike the injury filter, an empty result here is not expected to
+    # actually skip a slot in practice — every gated exercise sits in a pool
+    # alongside non-gated alternates (lat_pulldown next to pull_up, etc.) —
+    # but if some future pool genuinely has nothing else, skipping the slot
+    # is still the correct fallback, matching the injury filter's behavior.
+    bw_safe_pool = [ex for ex in injury_safe_pool if not _blocked_by_bw_gate(ex, bw_gate_ok)]
+    if not bw_safe_pool:
+        return [], True
+
+    equipment_ok = [ex for ex in bw_safe_pool if _requirement_met(ex["requires"], available_lower)]
     if equipment_ok:
         return equipment_ok, False
 
-    # Equipment-limited only (not injury-limited): relax equipment matching
-    # as a last resort, but the injury-safe filter still applies to what's
-    # returned — this fallback can never reintroduce an unsafe exercise.
-    return injury_safe_pool, True
+    # Equipment-limited only (not injury- or bw-gate-limited): relax
+    # equipment matching as a last resort, but the injury-safe and
+    # bw-gate-safe filters still apply to what's returned — this fallback
+    # can never reintroduce an unsafe or ungated-inappropriate exercise.
+    return bw_safe_pool, True
 
 
 # Bigger muscle groups first — used both to order compounds/isolation and,
@@ -2967,6 +3002,101 @@ BEGINNER_CAP_OTHER_DAY = 5
 BEGINNER_CAP_UPPER_DAY = 15
 
 
+def resolve_bw_gate_ok(
+    bw_capability_answer: str | None = None,
+    bw_waist_cm: float | None = None,
+    bw_height_cm: float | None = None,
+    bw_body_fat_pct: float | None = None,
+) -> bool:
+    """
+    Shared entry point for the bw-gate decision, used by BOTH
+    exercise_database.select_day_exercises() and exercise_selector.py's
+    select_day_exercises_detailed() / find_substitute() — factored out here
+    so the two selectors can never silently drift on what "no signal
+    supplied yet" vs. "signal supplied" means. See _passes_bw_gate's own
+    docstring for the actual priority-order decision.
+
+    No signal at all (all four args None) -> True, i.e. today's/pre-gate
+    behavior, unchanged, on the theory that a caller who hasn't been
+    updated to pass these yet shouldn't have its output silently change.
+    A caller that HAS started passing real intake data (even just one
+    field) gets the real fail-conservative gate from _passes_bw_gate.
+    """
+    # BUGFIX: this used to check only 3 of the 4 args (missing
+    # bw_height_cm), so any real /result submission — where height_cm is
+    # ALWAYS populated (main.py defaults it to "170" if left blank) but
+    # capability_answer/waist_cm/body_fat_pct are legitimately blank —
+    # took this "no signal yet, old caller" shortcut and returned True
+    # (gate open, ungated) instead of falling through to _passes_bw_gate's
+    # real fail-conservative default (False). That silently defeated the
+    # entire Phase 1/2 gate for the common case of a member leaving the
+    # optional pull-up question and waist measurement blank. Checking all
+    # four args (matching this function's own docstring) is correct: a
+    # genuinely unmodified pre-Phase-1 caller passes NONE of the four
+    # kwargs at all, so they'd all be None including height_cm.
+    if (
+        bw_capability_answer is None
+        and bw_waist_cm is None
+        and bw_height_cm is None
+        and bw_body_fat_pct is None
+    ):
+        return True
+    return _passes_bw_gate(
+        capability_answer=bw_capability_answer,
+        waist_cm=bw_waist_cm,
+        height_cm=bw_height_cm,
+        body_fat_pct=bw_body_fat_pct,
+    )
+
+
+# ── Phase 3 — bw-gate auto-promotion support ────────────────────────────────
+# Deliberately hand-curated rather than auto-derived from `_movement_id`
+# grouping: movement_id in this data is coarser than "same capability" —
+# e.g. 'isolation_arm' bundles biceps curls, wrist work, AND triceps dips
+# together, and 'squat' bundles pistol_squat next to Barbell Back Squat,
+# leg press, Bulgarian split squat, etc. Auto-deriving "regression
+# exercise" from a shared movement_id would mean a member easily
+# completing a Barbell Curl for three cycles wrongly counts as evidence
+# they've outgrown pistol squats — same movement bucket, unrelated
+# capability. So this maps each bw_gated exercise_id to ONLY the specific
+# deliberately-easier bodyweight-regulated variant(s) of that exact
+# movement (the assisted-machine/band/incline/pike progressions already
+# sitting in the same pool as its safe fallback — see HANDOFF Phase 1's
+# own "pool-mates" list), not every equipment-different alternative in
+# the pool.
+BW_GATE_REGRESSION_MAP = {
+    # vertical_pull family
+    "pull_up":            ("assisted_pull_up", "band_assisted_pull_up"),
+    "chin_up":             ("assisted_pull_up", "band_assisted_pull_up"),
+    "weighted_pull_up":    ("assisted_pull_up", "band_assisted_pull_up"),
+    "weighted_chin_up":    ("assisted_pull_up", "band_assisted_pull_up"),
+    "kipping_pull_up":     ("assisted_pull_up", "band_assisted_pull_up"),
+    "archer_pull_up":      ("assisted_pull_up", "band_assisted_pull_up"),
+    "chest_to_bar_pull_up": ("assisted_pull_up", "band_assisted_pull_up"),
+    "l_sit_pull_up":       ("assisted_pull_up", "band_assisted_pull_up"),
+    # squat family
+    "pistol_squat":        ("assisted_pistol_squat", "resistance_band_pistol_squat"),
+    # horizontal_push family
+    "decline_push_up":     ("incline_push_up",),
+    "dips_chest":          ("assisted_dips_machine",),
+    # vertical_push family
+    "handstand_push_up":   ("pike_push_up",),
+    # isolation_arm family
+    "dips_triceps":        ("assisted_dips_machine", "bench_dip"),
+}
+
+
+def get_bw_gate_regression_exercise_ids() -> dict:
+    """
+    gated exercise_id -> tuple of its curated regression exercise_ids (see
+    BW_GATE_REGRESSION_MAP above). Exposed as a function rather than the
+    raw module constant so callers (main.py._apply_bw_gate_promotion)
+    have one stable entry point if this ever needs to become data-driven
+    later.
+    """
+    return dict(BW_GATE_REGRESSION_MAP)
+
+
 def select_day_exercises(
     plan: dict,
     equipment_raw: str,
@@ -2974,6 +3104,10 @@ def select_day_exercises(
     experience_raw: str,
     rng: random.Random,
     avoid_exercise_ids: frozenset = frozenset(),
+    bw_capability_answer: str | None = None,
+    bw_waist_cm: float | None = None,
+    bw_height_cm: float | None = None,
+    bw_body_fat_pct: float | None = None,
 ) -> tuple:
     """
     plan: the dict returned by fitness_generator._compute_day_plan()
@@ -2994,6 +3128,18 @@ def select_day_exercises(
           Used ONLY for the day's total exercise-count cap and for which
           muscles get first claim on isolation slots — never for gating
           which individual exercises are allowed.
+
+    bw_capability_answer / bw_waist_cm / bw_height_cm / bw_body_fat_pct:
+          Phase 1 plumbing for the bodyweight-relative-strength gate (see
+          _passes_bw_gate). All default to None. If NONE of them are
+          supplied (today's callers — fitness_generator.py doesn't collect
+          these yet), this function preserves its exact pre-Phase-1
+          behavior: bw_gate_ok=True, gated exercises (pull_up, chin_up,
+          dips, pistol_squat, handstand_push_up, decline_push_up, etc.)
+          remain fully available to everyone, same as before this change.
+          The gate only activates once a caller actually passes at least
+          one signal — see HANDOFF.md Phase 2 for wiring this from real
+          intake data.
 
     avoid_exercise_ids: exercise_ids to SOFT-avoid — used by
           build_deterministic_workout_days() for recovery-aware spacing
@@ -3028,6 +3174,14 @@ def select_day_exercises(
     experience_rank = _experience_rank(experience_raw)
     used_fallback = False
 
+    # Phase 1: only evaluate the bw-gate if a caller actually supplied a
+    # signal. No signal at all -> True, preserving pre-Phase-1 behavior
+    # exactly (see docstring above). Shared with exercise_selector.py via
+    # resolve_bw_gate_ok() so both selectors agree.
+    bw_gate_ok = resolve_bw_gate_ok(
+        bw_capability_answer, bw_waist_cm, bw_height_cm, bw_body_fat_pct,
+    )
+
     big_muscles = {"legs", "back", "chest", "shoulders"}
     ordered_muscles = _order_by_priority(plan["muscles"])
 
@@ -3051,7 +3205,7 @@ def select_day_exercises(
         pool = EXERCISE_DB.get(m, {}).get("compound", [])
         if not pool:
             continue
-        filtered, fb = _filter_pool(pool, available_lower, injury_keywords)
+        filtered, fb = _filter_pool(pool, available_lower, injury_keywords, bw_gate_ok)
         used_fallback = used_fallback or fb
         if not filtered:
             # Every compound option for this muscle is contraindicated for a
@@ -3089,7 +3243,7 @@ def select_day_exercises(
         pool = EXERCISE_DB.get(m, {}).get("isolation", [])
         if not pool:
             continue
-        filtered, fb = _filter_pool(pool, available_lower, injury_keywords)
+        filtered, fb = _filter_pool(pool, available_lower, injury_keywords, bw_gate_ok)
         used_fallback = used_fallback or fb
 
         if not filtered:

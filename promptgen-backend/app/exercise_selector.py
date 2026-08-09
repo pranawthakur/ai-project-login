@@ -70,6 +70,7 @@ from app.exercise_database import (
     BEGINNER_CAP_LEG_DAY,
     BEGINNER_CAP_OTHER_DAY,
     BEGINNER_CAP_UPPER_DAY,
+    resolve_bw_gate_ok,
 )
 from app import knowledge_retriever as kb
 
@@ -311,11 +312,23 @@ def select_day_exercises_detailed(
     experience_raw: str,
     rng: random.Random,
     goal_raw: str = "",
+    bw_capability_answer: str | None = None,
+    bw_waist_cm: float | None = None,
+    bw_height_cm: float | None = None,
+    bw_body_fat_pct: float | None = None,
 ) -> dict:
     """
     Full-detail exercise selection for one training day. Same inputs as
     exercise_database.select_day_exercises(), plus optional `goal_raw` for
     goal-aware compound filtering.
+
+    bw_capability_answer / bw_waist_cm / bw_height_cm / bw_body_fat_pct:
+        Bodyweight-relative-strength gate (Phase 1: app/exercise_database.py
+        resolve_bw_gate_ok / _passes_bw_gate). Controls whether pull_up,
+        chin_up, dips, pistol_squat, handstand_push_up, decline_push_up
+        (and their weighted/advanced variants) are eligible picks. All
+        default to None; if none are supplied, behavior is unchanged from
+        before this gate existed (see resolve_bw_gate_ok's docstring).
 
     Returns a dict:
         exercises        -> list of chosen exercise dicts (name, muscle,
@@ -339,6 +352,9 @@ def select_day_exercises_detailed(
     injury_keywords = _parse_injury_keywords(notes_raw)
     experience_rank = _experience_rank(experience_raw)
     recovery_goal = is_recovery_goal(goal_raw)
+    bw_gate_ok = resolve_bw_gate_ok(
+        bw_capability_answer, bw_waist_cm, bw_height_cm, bw_body_fat_pct,
+    )
     used_fallback = False
 
     big_muscles = {"legs", "back", "chest", "shoulders"}
@@ -362,7 +378,7 @@ def select_day_exercises_detailed(
         if len(pool) != len(EXERCISE_DB.get(m, {}).get("compound", [])):
             used_fallback = True  # recovery deprioritization actually changed the pool
 
-        filtered, fb = _filter_pool(pool, available_lower, injury_keywords)
+        filtered, fb = _filter_pool(pool, available_lower, injury_keywords, bw_gate_ok)
         used_fallback = used_fallback or fb
         if not filtered:
             if m in PROTECTED_COMPOUND_PATTERN:
@@ -396,7 +412,7 @@ def select_day_exercises_detailed(
         pool = EXERCISE_DB.get(m, {}).get("isolation", [])
         if not pool:
             continue
-        filtered, fb = _filter_pool(pool, available_lower, injury_keywords)
+        filtered, fb = _filter_pool(pool, available_lower, injury_keywords, bw_gate_ok)
         used_fallback = used_fallback or fb
         if not filtered:
             continue
@@ -446,6 +462,10 @@ def select_day_exercises(
     experience_raw: str,
     rng: random.Random,
     goal_raw: str = "",
+    bw_capability_answer: str | None = None,
+    bw_waist_cm: float | None = None,
+    bw_height_cm: float | None = None,
+    bw_body_fat_pct: float | None = None,
 ) -> tuple:
     """
     Drop-in replacement for exercise_database.select_day_exercises() with
@@ -456,6 +476,10 @@ def select_day_exercises(
     """
     detailed = select_day_exercises_detailed(
         plan, equipment_raw, notes_raw, experience_raw, rng, goal_raw,
+        bw_capability_answer=bw_capability_answer,
+        bw_waist_cm=bw_waist_cm,
+        bw_height_cm=bw_height_cm,
+        bw_body_fat_pct=bw_body_fat_pct,
     )
     return detailed["exercises"], detailed["used_fallback"], detailed["injury_keywords"]
 
@@ -472,6 +496,7 @@ def find_substitute(
     prefer_pattern: str | None = None,
     avoid_pattern: str | None = None,
     from_exercise_name: str | None = None,
+    bw_gate_ok: bool = True,
 ) -> dict | None:
     """
     Find the next-best replacement exercise for `muscle`/`slot`, excluding
@@ -479,6 +504,14 @@ def find_substitute(
     elsewhere in the same day, to avoid an accidental cross-slot
     duplicate), subject to the same equipment+injury constraints as normal
     selection.
+
+    bw_gate_ok: bodyweight-relative-strength gate (see resolve_bw_gate_ok
+        in exercise_database.py). Defaults to True (today's behavior,
+        unchanged) since validator.py — the current caller — doesn't have
+        per-member intake data in scope at repair time yet. Pass the
+        already-resolved bool through if/when that wiring is added; this
+        function intentionally takes the resolved bool, not raw signals,
+        since a repair pass has no new intake info to resolve from.
 
     Preference order:
       1. If `avoid_pattern` is given (repairing a duplicate-movement-
@@ -508,7 +541,7 @@ def find_substitute(
          behaviour used everywhere else in this module.
     """
     pool = EXERCISE_DB.get(muscle, {}).get(slot, [])
-    filtered, _ = _filter_pool(pool, available_lower, injury_keywords)
+    filtered, _ = _filter_pool(pool, available_lower, injury_keywords, bw_gate_ok)
     candidates = [ex for ex in filtered if ex["name"] not in exclude_names]
     if not candidates:
         return None

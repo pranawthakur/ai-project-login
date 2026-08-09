@@ -37,6 +37,14 @@ class Settings(BaseSettings):
     # already commits to on the dev-console side.
     dev_test_key: str = ""
 
+    # Optional. Gates every /api/admin/* route (see main.py's
+    # require_admin_key) - these describe the SYSTEM (deployment health,
+    # metrics, KB version, orchestration order, config, governance) for
+    # whoever operates this app, not member data, but were shipped with
+    # NO auth at all pending this. Same fail-closed posture as
+    # dev_test_key above: unset -> 503, not a silently-open route.
+    admin_api_key: str = ""
+
     @property
     def frontend_origins(self) -> list[str]:
         return [o.strip() for o in self.frontend_origin.split(",") if o.strip()]

@@ -36,6 +36,7 @@ from app.fitness_generator import (
     build_deterministic_plan_data,
     ACTIVITY_LABEL,
     _meal_slots_for_count,
+    _to_float_or_none,
 )
 from app.safety_engine import (
     safety_gate,
@@ -78,6 +79,7 @@ from app import research_integration_engine
 from app import load_prescription_engine
 from app import warmup_ramp_engine
 from app.exercise_database import get_full_exercise_profile
+from app import exercise_database
 # Sessions 7-8: biomechanics/validation (built KB-sourced, previously
 # missing entirely) + the 5 previously data-only KB engines (movement,
 # joint stress, recovery, skill, tempo) that had raw data but no decision
@@ -897,29 +899,43 @@ def get_analytics(member: dict = Depends(get_current_member)):
 
 
 # ── Engines 28/31/32/33/34/35 — real infra visibility, not fitness logic.
-# No member-auth dependency: these describe the SYSTEM, not a member's
-# data, and are meant for whoever operates this app, not the app's users.
-# Deliberately unauthenticated for now (same as this app's other internal
-# tooling) — add real admin auth before exposing these outside a trusted
-# network, same caveat monitoring_engine.py's own docstring states about
-# not being a substitute for real observability infra.
+# These describe the SYSTEM, not a member's data, and are meant for
+# whoever operates this app, not the app's users — so member auth
+# (get_current_member) is the wrong tool here (it would require an admin
+# to also be a logged-in gym member). Gated instead by a shared secret
+# (ADMIN_API_KEY), same fail-closed pattern as /generate/test's
+# DEV_TEST_KEY above: unset -> 503 (route disabled, never silently open),
+# wrong/missing header -> 401. Previously shipped with NO auth at all;
+# see require_admin_key below and DEPLOY_READINESS.md for the fix.
+def require_admin_key(
+    x_admin_api_key: str | None = Header(default=None, alias="X-Admin-Api-Key"),
+) -> None:
+    if not settings.admin_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="ADMIN_API_KEY is not set on this deployment — /api/admin/* routes are disabled.",
+        )
+    if x_admin_api_key != settings.admin_api_key:
+        raise HTTPException(status_code=401, detail="Invalid or missing X-Admin-Api-Key.")
+
+
 @app.get("/api/admin/health")
-def get_deployment_health():
+def get_deployment_health(_: None = Depends(require_admin_key)):
     return deployment_engine.validate_environment()
 
 
 @app.get("/api/admin/metrics")
-def get_monitoring_metrics():
+def get_monitoring_metrics(_: None = Depends(require_admin_key)):
     return monitoring_engine.get_metrics()
 
 
 @app.get("/api/admin/kb-version")
-def get_kb_version():
+def get_kb_version(_: None = Depends(require_admin_key)):
     return kb_versioning_engine.get_kb_version_info()
 
 
 @app.get("/api/admin/orchestration")
-def get_orchestration_order():
+def get_orchestration_order(_: None = Depends(require_admin_key)):
     return {
         "declared_order": orchestration_engine.get_declared_order(),
         "validation": orchestration_engine.validate_dependencies(),
@@ -927,17 +943,17 @@ def get_orchestration_order():
 
 
 @app.get("/api/admin/configuration")
-def get_configuration():
+def get_configuration(_: None = Depends(require_admin_key)):
     return configuration_engine.get_full_config()
 
 
 @app.get("/api/admin/governance")
-def get_governance_evaluation():
+def get_governance_evaluation(_: None = Depends(require_admin_key)):
     return governance_engine.evaluate_release()
 
 
 @app.post("/api/admin/improvement-proposals")
-def create_improvement_proposal(body: dict):
+def create_improvement_proposal(body: dict, _: None = Depends(require_admin_key)):
     return continuous_improvement_engine.propose_improvement(
         body["source"], body["affected_engines"], body["improvement_type"],
         body["evidence_level"], body["description"],
@@ -945,7 +961,7 @@ def create_improvement_proposal(body: dict):
 
 
 @app.post("/api/admin/research-integration")
-def create_research_submission(body: dict):
+def create_research_submission(body: dict, _: None = Depends(require_admin_key)):
     return research_integration_engine.submit_research(
         body["publication_id"], body["source_type"], body["evidence_grade"],
         body["affected_engines"], body["reviewer"],
@@ -1933,6 +1949,15 @@ async def result_page(
     allergies:  str = Form("none"),
     # ── Health notes ─────────────────────────────────────────────────────────
     notes:      str = Form(""),
+    # ── Bodyweight-relative-strength gate (Phase 2) ──────────────────────────
+    # Optional. "yes"/"no"/"unsure" (or blank, same as unsure) — see
+    # exercise_database.py's _passes_bw_gate for how this (plus the WHtR
+    # fallback below) decides whether pull_up/chin_up/dips/pistol_squat/
+    # handstand_push_up/decline_push_up are eligible picks. Blank/omitted
+    # is safe: falls through to the WHtR check, then to a conservative
+    # default — never crashes, never required.
+    can_pull_up: str = Form(""),
+    waist_cm:    str = Form(""),
 ):
     profile = {
         # Identity
@@ -1959,6 +1984,11 @@ async def result_page(
         "allergies":          allergies or "none",
         # Health
         "medical_notes":      notes or "none",
+        # Bodyweight-relative-strength gate — both optional, None (not "")
+        # when blank so resolve_bw_gate_ok() correctly reads them as "no
+        # signal supplied" rather than a real empty-string answer.
+        "bw_capability_answer": (can_pull_up or "").strip().lower() or None,
+        "waist_cm":            waist_cm or None,
     }
 
     # ── Lock check: an active, unexpired plan already exists → normally
@@ -2040,6 +2070,113 @@ def _apply_latest_checkin_to_profile(member_id: str, profile: dict) -> dict:
     return profile
 
 
+# ── bw-gate Phase 3: auto-promotion off the regression exercises' own
+# feedback history — see HANDOFF Phase1/Phase2 bw_gate docs for the
+# feature this completes.
+BW_GATE_PROMOTION_STREAK = 3  # matches feedback_engine.check_consecutive_pattern's own minimum
+
+
+def _apply_bw_gate_promotion(member_id: str, profile: dict) -> dict:
+    """
+    If this member has been consistently rating one of their bw-gate
+    regression exercises (assisted_pull_up, lat_pulldown, assisted_dips_
+    machine, etc — see exercise_database.get_bw_gate_regression_exercise_
+    ids) "too_easy" for BW_GATE_PROMOTION_STREAK straight logged cycles,
+    treat that the same way a direct "yes" capability answer would be
+    treated: they've outgrown the regression, so the gated pool (real
+    pull-ups/dips/etc) should be offered next cycle without making them
+    re-answer the intake question.
+
+    No new tracking engine or promotion table — recomputed straight from
+    workout_exercise_feedback every call, reusing feedback_engine's
+    existing FB002/consecutive-pattern classification (the same logic
+    that already flags 3 straight "too_easy" ratings as
+    "suggest_progression" for load work), same posture as plateau_engine.py
+    recomputing plateau status fresh each time rather than caching a
+    verdict that could drift from the real feedback rows.
+
+    Skips entirely (no-op, returns profile unchanged) if:
+      - the gate is already open (a "yes" answer or a passing WHtR is
+        already on file — resolve_bw_gate_ok already reads True, nothing
+        to promote), or
+      - the member gave an EXPLICIT "no" THIS cycle — current, first-hand
+        input outweighs an inferred pattern from past feedback, so this
+        never silently overrides someone who just told the intake form
+        they can't do it.
+
+    Fails soft, same posture as _apply_latest_checkin_to_profile: any
+    read error here just leaves profile exactly as it was, never blocks
+    plan generation.
+    """
+    try:
+        already_ok = exercise_database.resolve_bw_gate_ok(
+            profile.get("bw_capability_answer"),
+            _to_float_or_none(profile.get("waist_cm")),
+            _to_float_or_none(profile.get("height_cm")),
+            _to_float_or_none(profile.get("body_fat_pct")),
+        )
+        if already_ok:
+            return profile
+        if str(profile.get("bw_capability_answer") or "").strip().lower() in ("no", "n", "false"):
+            return profile
+
+        regression_map = exercise_database.get_bw_gate_regression_exercise_ids()
+        regression_names = set()
+        for ex_ids in regression_map.values():
+            for ex_id in ex_ids:  # ex_ids is a tuple of regression exercise_ids
+                meta = (get_full_exercise_profile(ex_id) or {}).get("metadata") or {}
+                name = meta.get("display_name")
+                if name:
+                    regression_names.add(name)
+        if not regression_names:
+            return profile
+
+        res = (
+            supabase.table("workout_exercise_feedback")
+            .select("exercise, cycle_number, difficulty, notes")
+            .eq("member_id", member_id)
+            .in_("exercise", list(regression_names))
+            .order("cycle_number")
+            .execute()
+        )
+        rows = res.data or []
+        if not rows:
+            return profile
+
+        by_exercise: dict = {}
+        for r in rows:
+            by_exercise.setdefault(r["exercise"], []).append(
+                (r["cycle_number"], r.get("difficulty"), r.get("notes")),
+            )
+
+        for exercise_name, history in by_exercise.items():
+            history.sort(key=lambda t: t[0])
+            recent = history[-BW_GATE_PROMOTION_STREAK:]
+            classifications = [
+                feedback_engine.classify_feedback(difficulty, notes, exercise_id=exercise_name)["classification"]
+                for _, difficulty, notes in recent
+            ]
+            if feedback_engine.check_consecutive_pattern(classifications) == "suggest_progression":
+                profile["bw_capability_answer"] = "yes"
+                try:
+                    decision_audit_engine.record_decision(
+                        member_id, "bw_gate_promotion",
+                        source_engines=["feedback_engine", "exercise_database"],
+                        input_data={
+                            "exercise": exercise_name,
+                            "recent_cycles": [c for c, _, _ in recent],
+                            "recent_difficulty": [d for _, d, _ in recent],
+                        },
+                        output_data={"bw_capability_answer": "yes"},
+                    )
+                except Exception:
+                    pass
+                return profile
+    except Exception as e:
+        print(f"[bw_gate_promotion] could not evaluate promotion for member={member_id}: {e}")
+    return profile
+
+
 @app.post("/api/regenerate", response_class=HTMLResponse)
 async def regenerate_plan(member: dict = Depends(get_current_member)):
     prev_plan = _get_latest_plan_any_status(member["id"])
@@ -2059,5 +2196,6 @@ async def regenerate_plan(member: dict = Depends(get_current_member)):
     # into the stored intake dict itself.
     profile = dict(intake)
     profile = _apply_latest_checkin_to_profile(member["id"], profile)
+    profile = _apply_bw_gate_promotion(member["id"], profile)
 
     return await _generate_and_save_plan(member, profile, source_label="regenerate")
