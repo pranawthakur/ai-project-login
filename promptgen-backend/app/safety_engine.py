@@ -26,7 +26,7 @@ WHY THIS EXISTS AS ITS OWN MODULE
     handling, no emergency-symptom check, and no concept of "we don't know
     enough about this client to program them aggressively" (File 11's
     confidence tier). This module is the missing front door: every request
-    must pass through safety_gate() before generate_with_gemini() or
+    must pass through safety_gate() before generate_with_ollama() or
     build_deterministic_workout_days() are called.
 """
 

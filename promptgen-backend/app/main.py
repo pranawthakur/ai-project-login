@@ -1,7 +1,6 @@
 import asyncio
 import copy
 import os
-import time
 import traceback
 from collections import Counter
 from datetime import datetime, timedelta, timezone
@@ -10,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import settings
-from app.auth import issue_member_token, revoke_member_token
+from app.auth import issue_member_token
 from app.membership import (
     get_current_member,
     find_member_by_login_code,
@@ -18,7 +17,7 @@ from app.membership import (
 )
 from app.gym_scope import resolve_gym_id, GymLookupError
 from app.db import supabase
-from app.gemini_client import generate_with_gemini
+from app.ollama_client import generate_with_ollama
 from app.schemas import (
     GenerateRequest, GenerateResponse, FeedbackSubmission, CheckinSubmission,
     SetFeedbackSubmission, ExerciseFeedbackSubmission,
@@ -181,18 +180,11 @@ app.mount(
 # turns into a second billed Gemini request.
 _inflight_results: dict[str, asyncio.Task] = {}
 
-# Holds strong references to the fire-and-forget background generation
-# tasks kicked off by POST /api/plan/diet (see plan_diet_fast below) — an
-# asyncio.Task with no external reference is eligible for garbage
-# collection even while still running, which would silently kill
-# in-progress plan generation. Cleared automatically via the task's own
-# done-callback once it finishes.
-_background_generation_tasks: set[asyncio.Task] = set()
-
-import logging
-
-logger = logging.getLogger("uvicorn.error")
-logger.info("gemini_key_configured=%s", bool(settings.gemini_api_key))
+print("Gemini key loaded:", bool(settings.gemini_api_key))
+print(
+    "Gemini key prefix:",
+    settings.gemini_api_key[:5] if settings.gemini_api_key else "NONE"
+)
 
 
 @app.get("/health")
@@ -241,33 +233,9 @@ def member_login_redirect(gym: str | None = None):
 # point):
 #   POST /member/login - code only. Issues a session token immediately.
 #
-# Rate limiting: the login code is the only factor (no password), so it's
-# brute-forceable without throttling. This is a simple in-memory sliding
-# window keyed by client IP + gym — good enough for this app's current
-# single-process Render deployment. It resets on process restart and won't
-# coordinate across multiple instances; if this app ever runs more than one
-# backend instance, swap this for a shared store (Redis) instead.
-_LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 8
-_LOGIN_RATE_LIMIT_WINDOW_SECONDS = 60
-_login_attempts: dict[str, list[float]] = {}
-
-
-def _check_login_rate_limit(request: Request, gym_id: str) -> None:
-    client_ip = request.client.host if request.client else "unknown"
-    key = f"{client_ip}:{gym_id}"
-    now = time.time()
-    window_start = now - _LOGIN_RATE_LIMIT_WINDOW_SECONDS
-
-    attempts = [t for t in _login_attempts.get(key, []) if t > window_start]
-    if len(attempts) >= _LOGIN_RATE_LIMIT_MAX_ATTEMPTS:
-        raise HTTPException(
-            status_code=429,
-            detail="Too many login attempts. Please wait a minute and try again.",
-        )
-    attempts.append(now)
-    _login_attempts[key] = attempts
-
-
+# Known gap: no rate limiting on this endpoint. The code is the only
+# factor, so per-IP/per-gym attempt throttling is worth adding before this
+# goes to real users at scale — left as a follow-up.
 def _resolve_gym_or_404(request: Request, x_gym_slug: str | None, body_gym: str | None) -> str:
     slug = _extract_gym_slug(request, x_gym_slug) or body_gym
     try:
@@ -290,7 +258,6 @@ def member_login(
     x_gym_slug: str | None = Header(default=None, alias="X-Gym-Slug"),
 ):
     gym_id = _resolve_gym_or_404(request, x_gym_slug, body.gym)
-    _check_login_rate_limit(request, gym_id)
     code = _require_code(body.code)
 
     member = find_member_by_login_code(gym_id, code)
@@ -304,20 +271,6 @@ def member_login(
         "token": token,
         "member": {"id": member["id"], "name": member.get("name"), "gym_id": gym_id},
     }
-
-
-@app.post("/member/logout")
-def member_logout(member: dict = Depends(get_current_member)):
-    """Revokes the current session token's jti so it can no longer be
-    used (e.g. lost/stolen device). Requires
-    sql/add_revoked_member_tokens.sql to have been run — if it hasn't,
-    this still returns success (frontend clears its local token either
-    way) but the token technically remains valid until it expires; see
-    revoke_member_token()'s own fail-open note."""
-    jti = member.get("jti")
-    if jti:
-        revoke_member_token(jti, member["id"])
-    return {"status": "logged_out"}
 
 
 # ── Dev-only raw engine test endpoint ───────────────────────────────────────
@@ -358,6 +311,88 @@ def generate_test(
     return {"safety_gate": gate, "days": days}
 
 
+# ── Dev-only FULL generation preview ────────────────────────────────────────
+# Unlike /generate/test above (deterministic engine only, no LLM, no DB),
+# this runs the exact same production pipeline a real member's plan goes
+# through — _generate_and_save_plan() — completely unmodified, so what a
+# developer sees here is 100% representative of real output quality
+# (including the Trainer Review LLM pass). The only difference from a real
+# member request: instead of an authenticated member's own row, this always
+# uses one of a handful of fixed, permanent "Dev QA" member rows (seeded by
+# dev_qa_seed.sql) that exist purely for this purpose and were never a real
+# gym signup. Same X-Dev-Test-Key gate as /generate/test — no member login,
+# no gym context, callable directly and repeatedly by the dev console.
+#
+# `_dev_slot` (1-3 by default, matches how many rows dev_qa_seed.sql seeds)
+# picks which fixed Dev QA member to attach the generated plan to. Each
+# slot has its own independent plan history, so cycle_number increments
+# per-slot exactly like a real member's would across biweekly check-ins —
+# switch slots for an unrelated fresh comparison, or reuse one to see how
+# the adaptive-progression logic responds run over run.
+@app.post("/generate/full")
+async def generate_full_dev_preview(
+    body: dict = Body(...),
+    x_dev_test_key: str | None = Header(default=None, alias="X-Dev-Test-Key"),
+):
+    if not settings.dev_test_key:
+        raise HTTPException(
+            status_code=503,
+            detail="DEV_TEST_KEY is not set on this deployment — /generate/full is disabled.",
+        )
+    if x_dev_test_key != settings.dev_test_key:
+        raise HTTPException(status_code=401, detail="Invalid or missing X-Dev-Test-Key.")
+
+    slot = str(body.pop("_dev_slot", "1") or "1")
+    login_code = f"DEVQA{slot}"
+
+    gym_res = supabase.table("gyms").select("id").eq("slug", "dev-qa").limit(1).execute()
+    if not gym_res.data:
+        raise HTTPException(
+            status_code=503,
+            detail="Dev QA gym not seeded yet — run dev_qa_seed.sql against this Supabase project.",
+        )
+    gym_id = gym_res.data[0]["id"]
+
+    member_res = (
+        supabase.table("members")
+        .select("*")
+        .eq("gym_id", gym_id)
+        .eq("login_code", login_code)
+        .limit(1)
+        .execute()
+    )
+    if not member_res.data:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Dev QA member slot '{slot}' not seeded — run dev_qa_seed.sql, or use a slot number it created.",
+        )
+    member = member_res.data[0]
+
+    profile = {
+        "name":               body.get("name") or "Dev QA",
+        "age":                str(body.get("age") or "25"),
+        "gender":             body.get("gender") or "Male",
+        "height_cm":          str(body.get("height") or "170"),
+        "current_weight_kg":  str(body.get("weight") or "70"),
+        "target_weight_kg":   str(body.get("target") or "—"),
+        "goal":               body.get("goal") or "Fat loss",
+        "experience":         body.get("experience") or "Intermediate",
+        "activity_key":       body.get("activity") or "moderate",
+        "days_per_week":      str(body.get("days") or "4"),
+        "session_duration":   body.get("duration") or "45-60 min",
+        "equipment":          body.get("equipment") or "full gym",
+        "diet_pref":          body.get("diet") or "Non-vegetarian",
+        "meals_per_day":      str(body.get("meals") or "5"),
+        "diet_rotation":      body.get("rotation") or "short_rotation",
+        "region":             body.get("region") or "India",
+        "budget":             body.get("budget") or "medium",
+        "allergies":          body.get("allergies") or "none",
+        "medical_notes":      body.get("notes") or "none",
+    }
+
+    return await _generate_and_save_plan(member, profile, source_label="dev_preview")
+
+
 # ── Existing JSON API (kept intact) ─────────────────────────────────────────
 @app.post("/api/generate", response_model=GenerateResponse)
 async def generate(
@@ -365,7 +400,7 @@ async def generate(
     member: dict = Depends(get_current_member),
 ):
     try:
-        result = await generate_with_gemini(body.prompt, body.system)
+        result = await generate_with_ollama(body.prompt, body.system)
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
     return GenerateResponse(result=result)
@@ -583,22 +618,18 @@ def my_plan(
 @app.get("/api/plan-workout-status")
 def plan_workout_status(member: dict = Depends(get_current_member)):
     """Polled by Templates/result.html while the workout section is
-    showing a placeholder — either the "building your workout" skeleton
-    (workout._generation_pending, saved immediately by POST /api/plan/diet
-    while the real generation runs in the background — see
-    plan_diet_fast) or the later "verifying exercise safety" placeholder
-    (workout._review_pending, see _finish_trainer_review). Either flag
-    means "keep polling"; once the active plan row is updated with real
-    content neither flag is set anymore and this starts returning the
-    finished HTML for the frontend to swap in — same rendered_html field
-    /api/my-plan already exposes, just gated on the pending flags so the
+    showing its "verifying exercise safety" placeholder (see _run()'s
+    pre_review_days / _finish_trainer_review in _generate_and_save_plan).
+    Once the background Trainer Review pass patches the active plan row,
+    `_review_pending` flips to False and this starts returning the
+    updated HTML for the frontend to swap in — same rendered_html field
+    /api/my-plan already exposes, just gated on the pending flag so the
     poll loop knows when it's actually done rather than re-fetching a
     still-pending copy."""
     plan = _get_active_plan(member["id"])
     if not plan:
         return {"pending": False, "has_plan": False}
-    workout = (plan.get("plan_json") or {}).get("workout") or {}
-    pending = bool(workout.get("_generation_pending") or workout.get("_review_pending"))
+    pending = bool(((plan.get("plan_json") or {}).get("workout") or {}).get("_review_pending"))
     if pending:
         return {"pending": True}
     return {"pending": False, "html": plan["rendered_html"]}
@@ -1177,7 +1208,7 @@ async def _finish_trainer_review(
         vol = pending_review_context["vol"]
 
         reviewed = await build_and_review_workout_days(
-            profile, weekly_template, vol, generate_with_gemini,
+            profile, weekly_template, vol, generate_with_ollama,
             prev_review_cache=prev_review_cache,
         )
 
@@ -1656,13 +1687,6 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
 
     # Save so this doesn't get regenerated on the member's next login —
     # the lock check at the top of /result reads from this table.
-    # Expire any other row still marked "active" first (e.g. the pending
-    # skeleton POST /api/plan/diet saves immediately so a reload has
-    # something to show while this function is still running) so exactly
-    # one active plan exists per member afterward, never two.
-    supabase.table("plans").update({"status": "expired"}).eq(
-        "member_id", member["id"]
-    ).eq("status", "active").execute()
     insert_res = supabase.table("plans").insert({
         "member_id": member["id"],
         "cycle_number": next_cycle,
@@ -1751,7 +1775,6 @@ async def plan_diet_fast(
     experience: str = Form("Intermediate"),
     activity:   str = Form("moderate"),
     days:       str = Form("4"),
-    training_days: str = Form(""),  # weekday names from the calendar picker, e.g. "Monday,Wednesday,Friday"
     duration:   str = Form("45-60 min"),
     equipment:  str = Form("full gym"),
     diet:       str = Form("Non-vegetarian"),
@@ -1773,7 +1796,6 @@ async def plan_diet_fast(
         "experience":         experience,
         "activity_key":       activity,
         "days_per_week":      days or "4",
-        "training_days":      training_days,
         "session_duration":   duration,
         "equipment":          equipment or "full gym",
         "diet_pref":          diet,
@@ -1787,12 +1809,6 @@ async def plan_diet_fast(
 
     prev_plan = _get_latest_plan_any_status(member["id"])
     next_cycle = (prev_plan["cycle_number"] + 1) if prev_plan else 1
-    # Raw-intake snapshot, taken BEFORE any of the mutations below
-    # (build_user_prompt adds _weekly_template/_vol, etc.) — this is what
-    # gets handed to the background _generate_and_save_plan() task further
-    # down, so it starts from the same clean intake shape /result always
-    # has, not whatever this function has mutated profile into by then.
-    raw_profile_for_background = dict(profile)
     profile["_member_id"] = member["id"]
     profile["_cycle_number"] = next_cycle
 
@@ -1869,53 +1885,8 @@ async def plan_diet_fast(
         "_generation_pending": True,
         "_pending_day_count": len(weekly_template) or 7,
     }
-    # Stamped so a later /result call (if one ever happens, e.g. an old
-    # cached tab) can still do its usual intake-match lock check against
-    # this row rather than comparing against nothing.
-    data["_intake"] = raw_profile_for_background
 
     html = render_dashboard(data)
-
-    # ── Save this skeleton as the member's active plan RIGHT NOW ──────────
-    # Previously nothing was persisted until the full /result generation
-    # finished (1-2 minutes later), so a page reload during that window
-    # found no active plan at all ("No plan found — go back to the form").
-    # Saving here means a reload's GET /api/my-plan finds this pending
-    # skeleton immediately and the template's own polling (see
-    # Templates/result.html) picks up the finished plan automatically —
-    # no resubmission needed.
-    supabase.table("plans").update({"status": "expired"}).eq(
-        "member_id", member["id"]
-    ).eq("status", "active").execute()
-    supabase.table("plans").insert({
-        "member_id": member["id"],
-        "cycle_number": next_cycle,
-        "plan_json": data,
-        "rendered_html": html,
-        "status": "active",
-        "valid_until": (
-            datetime.now(timezone.utc)
-            + timedelta(days=configuration_engine.get_config("plan_validity_days"))
-        ).isoformat(),
-    }).execute()
-
-    # ── Kick off the real, full generation IN THE BACKGROUND ──────────────
-    # This is the actual fix for "generation is lost on reload/disconnect":
-    # it no longer depends on the browser tab staying open and separately
-    # POSTing to /result — that used to be the ONLY thing that triggered
-    # real generation, driven by a one-time-use sessionStorage payload that
-    # a reload had already consumed. Now the server starts the real work
-    # itself, right here, the moment the fast diet pass is done. If /result
-    # (or /api/regenerate) also gets called for this member with the same
-    # source_label, _generate_and_save_plan's own _inflight_results dedup
-    # (see below) makes it attach to this SAME task rather than double-
-    # generating / double-billing Gemini.
-    background_task = asyncio.create_task(
-        _generate_and_save_plan(member, dict(raw_profile_for_background), source_label="form")
-    )
-    _background_generation_tasks.add(background_task)
-    background_task.add_done_callback(_background_generation_tasks.discard)
-
     return HTMLResponse(content=html, headers={"X-Plan-Status": "ok"})
 
 
@@ -1937,7 +1908,6 @@ async def result_page(
     # ── Training preferences ─────────────────────────────────────────────────
     activity:   str = Form("moderate"),       # sedentary/light/moderate/very_active/extreme
     days:       str = Form("4"),              # training days per week
-    training_days: str = Form(""),            # weekday names from the calendar picker, e.g. "Monday,Wednesday,Friday"
     duration:   str = Form("45-60 min"),
     equipment:  str = Form("full gym"),
     # ── Diet preferences ─────────────────────────────────────────────────────
@@ -1964,7 +1934,6 @@ async def result_page(
         # Training
         "activity_key":       activity,           # raw key used for factor lookup
         "days_per_week":      days or "4",
-        "training_days":      training_days,
         "session_duration":   duration,
         "equipment":          equipment or "full gym",
         # Diet — pass the RAW value so diet_token lookup can fuzzy-match it

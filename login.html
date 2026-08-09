@@ -264,7 +264,7 @@
   // dashboard, both separate repos) lands here as /member/login?gym=<slug>
   // — or, if you're on Vercel's rewrite, the raw URL is whatever
   // vercel.json maps /member/login to. Either way, capture the slug once
-  // and remember it in localStorage so dashboard.html / the /result flow
+  // and remember it in localStorage so dashbord.html / the /result flow
   // can send it back as an X-Gym-Slug header on every API call. No slug
   // present -> falls back to the single demo gym on the backend.
   const gymSlugParam = new URLSearchParams(window.location.search).get('gym');
@@ -323,7 +323,7 @@
     // token itself is long-lived (see promptgen-backend/app/auth.py).
     localStorage.setItem('memberToken', data.token);
     localStorage.setItem('memberName', (data.member && data.member.name) || '');
-    window.location.href = 'dashboard.html';
+    window.location.href = 'dashbord.html';
   }
 
   // ── Log in with the code alone ──────────────────────────────────────────

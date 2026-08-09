@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     # signing tokens with a blank/guessable key.
     member_session_secret: str = ""
 
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.1"
     frontend_origin: str = "http://127.0.0.1:5500,https://ai-project-login-44q4.vercel.app"
 
     # Dedicated target for the /member/login redirect (main.py). Deliberately

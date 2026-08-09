@@ -205,7 +205,7 @@ async def review_workout(
 ) -> dict:
     """
     Runs the Trainer Review stage. `llm_caller` matches
-    app.gemini_client.generate_with_gemini's signature:
+    app.ollama_client.generate_with_ollama's signature:
     `async def llm_caller(prompt: str, system: str | None = None) -> str`.
 
     Returns:

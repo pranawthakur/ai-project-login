@@ -50,50 +50,12 @@ def issue_member_token(member_id: str, gym_id: str | None) -> str:
         "gym_id": gym_id,
         "iat": now,
         "exp": now + _TOKEN_TTL_SECONDS,
-        # Random jti, checked against revoked_member_tokens on every
-        # verify (see verify_member_token / revoke_member_token below) so
-        # an individual session can be logged out without rotating
-        # MEMBER_SESSION_SECRET for everyone.
+        # A random jti isn't checked against a revocation list anywhere
+        # (no such table exists yet) — noted as a follow-up gap, same
+        # category as the missing rate-limit on /member/login.
         "jti": str(uuid.uuid4()),
     }
     return jwt.encode(payload, settings.member_session_secret, algorithm=_ALG)
-
-
-def revoke_member_token(jti: str, member_id: str) -> None:
-    """Marks a token's jti as revoked (e.g. on logout / "log out other
-    devices"). Requires the revoked_member_tokens table — see
-    sql/add_revoked_member_tokens.sql. Best-effort: if the table hasn't
-    been migrated yet, this is a no-op rather than a hard failure, so
-    logout still succeeds client-side (the frontend clears its own token
-    either way)."""
-    from app.db import supabase  # local import: keep auth.py DB-optional
-
-    try:
-        supabase.table("revoked_member_tokens").insert(
-            {"jti": jti, "member_id": member_id}
-        ).execute()
-    except Exception:
-        pass
-
-
-def _is_token_revoked(jti: str) -> bool:
-    from app.db import supabase
-
-    try:
-        res = (
-            supabase.table("revoked_member_tokens")
-            .select("jti")
-            .eq("jti", jti)
-            .limit(1)
-            .execute()
-        )
-        return bool(res.data)
-    except Exception:
-        # Table not migrated yet, or a transient DB error — fail open on
-        # the revocation check specifically (not on auth as a whole; the
-        # token still has to verify above), matching this app's existing
-        # "missing migration degrades gracefully" convention.
-        return False
 
 
 def verify_member_token(token: str) -> dict:
@@ -113,11 +75,6 @@ def verify_member_token(token: str) -> dict:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid session token.",
-        )
-    if payload.get("jti") and _is_token_revoked(payload["jti"]):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="This session has been logged out. Please log in again.",
         )
     return payload
 

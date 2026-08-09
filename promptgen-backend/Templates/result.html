@@ -696,7 +696,7 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
               {% endfor %}
             </div>
             <div id="workout-generation-error" class="day-conflict-note" style="display:none">
-              <strong>Taking longer than expected.</strong> Still working — no need to resubmit the form or refresh the page, this fills in automatically as soon as it's ready.
+              <strong>Taking longer than expected.</strong> Still working — no need to resubmit the form, this will fill in automatically. If nothing appears after a minute or two, refresh this page.
             </div>
           </div>
           {% else %}
@@ -1080,44 +1080,69 @@ html.nav-open,html.nav-open body{overflow:hidden;height:100%;overscroll-behavior
 </div>
 
 <script>
-// ── Poll for plan completion ──────────────────────────────────────────────
-// Covers BOTH pending states with one poller:
-//   - workout._generation_pending — diet is ready, the full workout/
-//     program hasn't been built yet. As of the fix below, the server
-//     starts this work itself the moment POST /api/plan/diet returns (see
-//     main.py's plan_diet_fast) — it no longer depends on this tab
-//     separately POSTing to /result with a one-time-use sessionStorage
-//     payload, which is what used to make generation silently die on a
-//     page reload (the payload was already consumed on the first load, so
-//     a reload had nothing left to resume from). This poller just asks
-//     the server "is it done yet" — safe to start fresh on every page
-//     load/reload, since it isn't the thing driving generation anymore.
-//   - workout._review_pending — the workout exists, Trainer Review's
-//     safety pass is still finishing (see main.py's _finish_trainer_review).
-// Either flag means "keep polling" — see GET /api/plan-workout-status.
-if (window.RESULT_GENERATION_PENDING || window.WORKOUT_REVIEW_PENDING) {
-  (function pollPlanStatus() {
+// ── Fire the full plan generation in the background ─────────────────────
+// Only runs when this page was rendered by the fast /api/plan/diet pass
+// (see main.py) instead of /result directly — dashbord.html stashes the
+// original form payload in sessionStorage right before redirecting here
+// (fitforge_pending_result_body) specifically so this can pick it up.
+// Reuses the exact same postMessage hand-off the Trainer Review poller
+// below (and the check-in regenerate flow) already use: ask the PARENT
+// page to swap the iframe's srcdoc, rather than trying to replace our
+// own document from inside itself.
+if (window.RESULT_GENERATION_PENDING) {
+  (async function runBackgroundPlanGeneration() {
+    const body = sessionStorage.getItem('fitforge_pending_result_body');
+    sessionStorage.removeItem('fitforge_pending_result_body');
+    const token = localStorage.getItem('memberToken');
+    if (!body || !token) {
+      const errEl = document.getElementById('workout-generation-error');
+      if (errEl) errEl.style.display = 'block';
+      return;
+    }
+    try {
+      const slug = localStorage.getItem('gymSlug');
+      const headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': 'Bearer ' + token,
+      };
+      if (slug) headers['X-Gym-Slug'] = slug;
+
+      const res = await fetch(window.BACKEND_BASE + '/result', {
+        method: 'POST', headers, body,
+      });
+      const html = await res.text();
+      if (res.ok) {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'fitforge:planUpdated', html }, '*');
+        }
+      } else {
+        const errEl = document.getElementById('workout-generation-error');
+        if (errEl) errEl.style.display = 'block';
+      }
+    } catch (e) {
+      console.warn('background /result call failed:', e);
+      const errEl = document.getElementById('workout-generation-error');
+      if (errEl) errEl.style.display = 'block';
+    }
+  })();
+}
+
+// ── Poll for Trainer Review completion ──────────────────────────────────
+// The workout section may render with a "verifying exercise safety"
+// placeholder (see this template's workout._review_pending branch) while
+// the backend's Trainer Review Gemini call finishes in the background —
+// see main.py's _finish_trainer_review. Everything else on this page
+// (diet, macros, recovery, program info) is already final regardless, so
+// only this poll — and only when the flag is actually set — runs.
+if (window.WORKOUT_REVIEW_PENDING) {
+  (function pollWorkoutReviewStatus() {
     const token = localStorage.getItem('memberToken');
     if (!token) return;
 
     const POLL_INTERVAL_MS = 3000;
-    // ~4 minutes of polling — comfortably past the usual 1-2 minute
-    // generation time, with room to spare on a slow day, before this
-    // gives up and leaves the "taking longer" note (which is already
-    // visible, see below) as the only thing on screen. Never a dead end
-    // either way: the poller keeps going even if attempts run out on a
-    // reload, because a fresh page load starts a fresh poll loop.
-    const MAX_ATTEMPTS = 80;
-    // Show the "still working" note if this is taking a while, but keep
-    // polling regardless — it's just a reassurance, not a stop condition.
-    const SHOW_SLOW_NOTE_AFTER_ATTEMPTS = 15; // ~45s
+    const MAX_ATTEMPTS = 20; // ~1 minute of polling, then give up quietly
 
     let attempts = 0;
-
-    function showSlowNote() {
-      const errEl = document.getElementById('workout-generation-error');
-      if (errEl) errEl.style.display = 'block';
-    }
 
     async function poll() {
       attempts += 1;
@@ -1130,9 +1155,10 @@ if (window.RESULT_GENERATION_PENDING || window.WORKOUT_REVIEW_PENDING) {
         if (res.ok) {
           const data = await res.json();
           if (!data.pending && data.html) {
-            // Ask the PARENT page to swap the iframe's srcdoc, rather than
-            // trying to replace our own document from inside itself (same
-            // hand-off path the check-in regenerate flow already uses).
+            // Same hand-off path the check-in regenerate flow already uses
+            // (see this file's checkin handler) — ask the PARENT page to
+            // swap the iframe's srcdoc rather than replacing our own
+            // document from inside itself.
             if (window.parent && window.parent !== window) {
               window.parent.postMessage({ type: 'fitforge:planUpdated', html: data.html }, '*');
             }
@@ -1142,7 +1168,6 @@ if (window.RESULT_GENERATION_PENDING || window.WORKOUT_REVIEW_PENDING) {
       } catch (e) {
         console.warn('plan-workout-status poll failed (will retry):', e);
       }
-      if (attempts === SHOW_SLOW_NOTE_AFTER_ATTEMPTS) showSlowNote();
       if (attempts < MAX_ATTEMPTS) {
         setTimeout(poll, POLL_INTERVAL_MS);
       }

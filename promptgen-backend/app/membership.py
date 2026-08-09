@@ -83,7 +83,4 @@ def get_current_member(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your account has been deactivated. Contact your gym.",
         )
-    # Carry the token's jti through so callers (e.g. POST /member/logout)
-    # can revoke this exact session without a second token-decode step.
-    member["jti"] = payload.get("jti")
     return member
