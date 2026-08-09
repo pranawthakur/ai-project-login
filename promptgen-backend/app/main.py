@@ -476,11 +476,13 @@ def _get_latest_plan_any_status(member_id: str) -> dict | None:
 
 
 REASSESSMENT_INTERVAL_DAYS = 14
-# TEMP TEST OVERRIDE: firing the check-in after 5 minutes instead of 14 days
-# so the flow can be verified quickly. Remove/revert this block to go back
-# to the real 14-day cadence.
+# Cadence is read from configuration_engine's single source of truth
+# (see that module's registry) rather than hardcoded here, so a future
+# dev-testing override is visible/documented in one place instead of
+# silently drifting from this file. Reverted to the real 14-day cycle
+# ahead of final submission — was a 5-minute test override during dev.
 from app import configuration_engine
-REASSESSMENT_INTERVAL_MINUTES_TEST = configuration_engine.get_config("reassessment_interval_minutes")
+REASSESSMENT_INTERVAL_MINUTES = configuration_engine.get_config("reassessment_interval_minutes")
 
 
 @app.get("/api/checkin/eligibility")
@@ -500,7 +502,7 @@ def checkin_eligibility(
 
     cycle_number = plan["cycle_number"]
     created_at = datetime.fromisoformat(plan["created_at"].replace("Z", "+00:00"))
-    eligible_at = created_at + timedelta(minutes=REASSESSMENT_INTERVAL_MINUTES_TEST)
+    eligible_at = created_at + timedelta(minutes=REASSESSMENT_INTERVAL_MINUTES)
     now = datetime.now(timezone.utc)
 
     history = checkin_engine.get_reassessment_history(member["id"], limit=1)

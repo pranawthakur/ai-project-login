@@ -24,14 +24,13 @@ from __future__ import annotations
 # truth rather than documentation that can silently drift from the code.
 _REGISTRY = {
     "reassessment_interval_minutes": {
-        "value": 5,
-        "is_test_override": True,
+        "value": 14 * 24 * 60,  # 20160 — real 14-day cycle length, in minutes
+        "is_test_override": False,
         "rationale": (
-            "Deliberately 5 minutes, not the real 14-day cycle length, "
-            "so the check-in -> plan-expiry -> regenerate flow can "
-            "actually be exercised during testing without a 2-week wait. "
-            "CONFIRMED deliberate by the user — session 24. Do not revert "
-            "to a 14-day-equivalent value without explicitly asking first."
+            "Real 14-day cycle length. Was deliberately 5 minutes during "
+            "dev testing (session 24) so the check-in -> plan-expiry -> "
+            "regenerate flow could be exercised without a 2-week wait. "
+            "Reverted to production value ahead of final submission."
         ),
     },
     "plan_validity_days": {

@@ -155,6 +155,51 @@ def _eligible(priority_list, user_tier, allergy_set, budget_tier, exclude=()):
             if i not in exclude and is_usable(i, user_tier, allergy_set, budget_tier)]
 
 
+# ── Realistic protein calorie-cost blending ─────────────────────────────────
+# fitness_generator._calculate_macros() used to assume protein costs a flat
+# 4 kcal/g (pure protein-macro density) when carving target_kcal into
+# protein/carb/fat. But _build_option() above sources real whole foods, and
+# none of them cost anywhere near 4 kcal per gram of protein once their own
+# carb/fat content is counted — e.g. curd ~17, paneer ~13.6, dal ~13-15,
+# whole egg ~12.4, vs. chicken/fish/whey ~5-6.6. Because the flat figure
+# under-priced protein, target_kcal ended up too small to actually fit
+# daily_protein_g via real foods, so _build_option's max_grams_by_kcal cap
+# (line ~191 above) kept silently trimming the protein portion below target
+# in meal after meal — a compounding under-delivery of the kind that shows
+# up as "my diet total protein is 20-30g short of the calculated target".
+#
+# This estimates a realistic blended kcal/g-protein figure from the SAME
+# priority-list data _build_option actually draws from (each slot's
+# top-of-list, variant_offset=0 pick — the default/most-common case), so
+# it's tier-aware without guessing: vegan/vegetarian diets lean on
+# higher-cost paneer/dal/curd and get a higher blended figure, non-veg
+# leans on cheaper chicken/fish/egg/whey and gets a lower one.
+_BLEND_SLOTS = ["breakfast", "mid", "lunch", "pre_workout", "post", "dinner"]
+_FALLBACK_PROTEIN_KCAL_PER_G = 6.5  # only used if every slot gets filtered out
+
+
+def estimate_protein_kcal_per_g(diet_pref_raw: str, allergy_set: set | None = None,
+                                 budget_tier: str = "premium") -> float:
+    """Average kcal-per-gram-of-protein across each meal slot's default
+    (top-priority, usable) protein source for this diet tier. budget_tier
+    defaults to "premium" so a member's grocery budget doesn't skew the
+    estimate — this is about diet-tier suitability (vegan/veg/egg/non-veg),
+    not affordability, and target_kcal has to be sized before budget_tier
+    even gets applied to a specific meal plan."""
+    user_tier = resolve_diet_tier(diet_pref_raw)
+    allergy_set = allergy_set or set()
+    costs = []
+    for slot in _BLEND_SLOTS:
+        proteins = _eligible(MEAL_TEMPLATES[slot]["protein_priority"], user_tier,
+                              allergy_set, budget_tier)
+        if not proteins:
+            continue
+        ing = INGREDIENTS[proteins[0]]
+        if ing["protein_g"] > 0:
+            costs.append(ing["kcal"] / ing["protein_g"])
+    return (sum(costs) / len(costs)) if costs else _FALLBACK_PROTEIN_KCAL_PER_G
+
+
 def _build_option(slot_config, target_kcal, target_protein_g, user_tier, allergy_set,
                    budget_tier, used_proteins, used_carbs, variant_offset=0,
                    extra_exclude_ids=frozenset()):

@@ -1635,8 +1635,33 @@ def _calculate_macros(profile: dict) -> dict:
         target_kcal = round(tdee)
         phase_label = "Maintenance"
 
-    # Carbs & fats from remaining calories after protein
-    protein_kcal = protein_g_mid * 4
+    # Carbs & fats from remaining calories after protein.
+    #
+    # protein_kcal used to be a flat protein_g_mid * 4 (pure protein-macro
+    # density). Real whole foods cost far more per gram of protein than
+    # that once their own carb/fat is counted (paneer/curd/dal run
+    # 12-17 kcal/g protein, not 4) — see diet_engine.estimate_protein_kcal_per_g
+    # for the full breakdown. That under-pricing meant target_kcal was
+    # consistently too small for diet_engine to actually hit
+    # daily_protein_g via real foods, so it kept getting silently capped
+    # down meal after meal. Using the tier-aware realistic figure here
+    # fixes that at the source.
+    diet_pref_raw = profile.get("diet_pref", "non-vegetarian")
+    protein_allergy_set = diet_engine.parse_allergies(profile.get("allergies", "none"))
+    protein_kcal_per_g = diet_engine.estimate_protein_kcal_per_g(diet_pref_raw, protein_allergy_set)
+    protein_kcal = protein_g_mid * protein_kcal_per_g
+
+    # If the deficit/surplus target_kcal above can't even fit the realistic
+    # protein cost plus a sane minimum for carbs+fat (30% of the day —
+    # nobody should be at 0 carb/fat), raise target_kcal just enough to fit
+    # both rather than let diet_engine silently starve the protein portion.
+    # Protecting the protein floor takes priority over hitting the exact
+    # deficit percentage — under-fueling protein on a cut costs muscle.
+    MIN_NONPROTEIN_KCAL_FRACTION = 0.30
+    min_required_kcal = round(protein_kcal / (1 - MIN_NONPROTEIN_KCAL_FRACTION))
+    if target_kcal < min_required_kcal:
+        target_kcal = min_required_kcal
+
     remaining    = target_kcal - protein_kcal
     fat_g        = round((remaining * 0.28) / 9)   # 28% of remaining from fat
     carb_g       = round((remaining * 0.72) / 4)   # 72% of remaining from carb
