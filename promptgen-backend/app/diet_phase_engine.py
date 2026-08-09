@@ -85,6 +85,34 @@ PHASE_TABLE = {
 DP004_DEFICIT_CAP_PCT = 0.15          # max deficit when recovery_capacity_score < 50
 DP004_RECOVERY_THRESHOLD = 50
 
+# Same experience-tier protein bands as fitness_generator.py's PROTEIN_MULTIPLIER
+# (duplicated here, not imported — same standalone-testing convention as
+# _bmr_tdee below; keep numerically identical if you change one).
+#
+# BUGFIX: this module previously took protein_per_kg straight from
+# PHASE_TABLE (a generic, experience-blind research band — e.g. cut =
+# 2.0-2.6 g/kg, using the TOP of that band unconditionally). That silently
+# overrode the beginner/intermediate/advanced multiplier the member/coach
+# actually configured: a beginner on a fat-loss goal landed on "cut" ->
+# 2.6 g/kg regardless of tier (70kg -> 182g/day, nowhere near the
+# beginner 1.0-1.1 g/kg band). PHASE_TABLE's protein_per_kg is now only
+# used for kcal_adjustment_pct/phase_duration_weeks/refeed_frequency;
+# protein itself is derived from the member's own experience-tier band,
+# with phase only nudging WHERE within that band (see compute_diet_phase).
+EXPERIENCE_PROTEIN_MULTIPLIER = {
+    "beginner":     (1.0, 1.1),
+    "intermediate": (1.2, 1.4),
+    "advanced":     (1.5, 2.0),
+}
+
+
+def _resolve_experience_key(experience_raw: str) -> str:
+    exp = str(experience_raw or "intermediate").lower()
+    for k in EXPERIENCE_PROTEIN_MULTIPLIER:
+        if exp.startswith(k[:3]):   # beg / int / adv prefix match
+            return k
+    return "intermediate"
+
 # Explicit-disclosure only — never inferred from body-composition talk,
 # calorie questions, or restrictive-sounding goals alone. Matches the same
 # "fails conservative, never guesses a clinical signal" philosophy as
@@ -196,8 +224,14 @@ def compute_diet_phase(
 
     target_kcal = round(tdee * (1 + kcal_adjustment_pct))
 
-    protein_low, protein_high = PHASE_TABLE[phase]["protein_per_kg"]
-    protein_per_kg = protein_high if phase in ("cut",) else round((protein_low + protein_high) / 2, 2)
+    exp_key = _resolve_experience_key(profile.get("experience", "intermediate"))
+    exp_low, exp_high = EXPERIENCE_PROTEIN_MULTIPLIER[exp_key]
+    # "cut" nudges toward the top of the MEMBER'S OWN tier band (preserve
+    # lean mass in a deficit); every other phase sits at the tier's
+    # midpoint. This is the fix — see EXPERIENCE_PROTEIN_MULTIPLIER's
+    # bugfix note above for why PHASE_TABLE's own protein_per_kg is no
+    # longer used here.
+    protein_per_kg = exp_high if phase == "cut" else round((exp_low + exp_high) / 2, 2)
     protein_g = round(weight_kg * protein_per_kg)
 
     protein_kcal = protein_g * 4

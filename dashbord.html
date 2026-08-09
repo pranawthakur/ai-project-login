@@ -5,22 +5,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>GymCoach Studio — Workout & Diet Plan Generator</title>
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+  // Applied synchronously, before CSS paints, so the page never flashes the
+  // wrong theme on load. Shares the same 'fitforge_theme' localStorage key
+  // as the plan-viewer page (Templates/result.html) so the choice a member
+  // makes on one page carries over to the other.
+  (function(){
+    try{
+      var saved = localStorage.getItem('fitforge_theme');
+      var theme = saved || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', theme);
+    }catch(e){}
+  })();
+</script>
 <style>
 :root {
-  --bg: #0a0c14; --bg-soft: #0d1018; --fg: #eaeef7; --muted: #7c8aa8; --card: #10131d;
-  --border: rgba(255,255,255,.05); --primary: #3d5cff; --primary-2: #1c2b6b;
-  --accent: #5b7cff; --danger: #f87171; --success: #4ade80;
+  --bg: #121317; --bg-soft: #17181d; --fg: #e6e7eb; --muted: #8a8d97; --card: #1b1d23;
+  --border: rgba(255,255,255,.08); --primary: #52608f; --primary-2: #2b3244;
+  --accent: #6b7797; --danger: #b3595a; --success: #5c9270;
   --grad-primary: var(--primary);
   --grad-hero: var(--primary);
   --grad-heading: var(--fg);
   --grad-warm: var(--primary);
-  --nm-light: rgba(255,255,255,.035);
-  --nm-dark: rgba(0,0,0,.65);
-  --shadow-glow: 0 14px 34px -16px rgba(61,92,255,.35);
-  --shadow-card: 9px 9px 20px var(--nm-dark), -7px -7px 16px var(--nm-light);
-  --shadow-card-inset: inset 4px 4px 9px var(--nm-dark), inset -4px -4px 9px var(--nm-light);
-  --radius: 18px;
+  --nm-light: rgba(0,0,0,0);
+  --nm-dark: rgba(0,0,0,.35);
+  --shadow-glow: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-card: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-card-inset: inset 0 1px 2px rgba(0,0,0,.3);
+  --radius: 10px;
 }
+html[data-theme="light"] {
+  --bg: #eef0f3; --bg-soft: #e5e7eb; --fg: #24262b; --muted: #666a73; --card: #ffffff;
+  --border: rgba(20,20,30,.12); --primary: #46528a; --primary-2: #d7d9e2;
+  --accent: #46528a; --danger: #a1403f; --success: #3d7a55;
+  --nm-light: rgba(0,0,0,0);
+  --nm-dark: rgba(20,25,40,.14);
+  --shadow-glow: 0 1px 2px rgba(0,0,0,.08);
+}
+html, body { transition: background-color .25s ease, color .25s ease; }
+.theme-toggle {
+  background: var(--card); border: 1px solid var(--border); color: var(--muted);
+  width: 34px; height: 34px; border-radius: 10px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; transition: all .2s;
+  box-shadow: 4px 4px 8px var(--nm-dark), -3px -3px 7px var(--nm-light);
+}
+.theme-toggle:hover { color: var(--accent); }
+.theme-toggle svg { width: 16px; height: 16px; }
+.theme-toggle .ic-sun { display: none; }
+html[data-theme="light"] .theme-toggle .ic-moon { display: none; }
+html[data-theme="light"] .theme-toggle .ic-sun { display: block; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: 'Inter',system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background: var(--bg); color: var(--fg); min-height: 100vh; overflow-x: hidden; position: relative; }
 .topnav { display:flex; align-items:center; justify-content:space-between; padding:16px 32px; border-bottom:1px solid var(--border); position:relative; z-index:5; background:var(--bg); }
@@ -35,13 +68,6 @@ body { margin: 0; font-family: 'Inter',system-ui,-apple-system,"Segoe UI",Roboto
 .avatar-pill span { font-size:13px; font-weight:600; color:var(--fg); }
 .logout-btn { background:var(--card); border:1px solid var(--border); color:var(--muted); width:34px; height:34px; border-radius:10px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s; box-shadow:4px 4px 8px var(--nm-dark), -3px -3px 7px var(--nm-light); }
 .logout-btn:hover { color:var(--accent); }
-.blobs { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-.blob { position: absolute; border-radius: 50%; filter: blur(90px); }
-.blob.a { width: 420px; height: 420px; top: -110px; left: -110px; background: radial-gradient(circle, #16224f 0%, transparent 72%); opacity: .55; animation: float1 18s ease-in-out infinite; }
-.blob.b { width: 500px; height: 500px; top: 140px; right: -150px; background: radial-gradient(circle, #0e1735 0%, transparent 72%); opacity: .5; animation: float2 22s ease-in-out infinite; }
-.blob.c { width: 340px; height: 340px; bottom: -90px; left: 35%; background: radial-gradient(circle, #101a3d 0%, transparent 72%); opacity: .4; animation: float1 20s ease-in-out infinite; }
-@keyframes float1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(14px,-26px)} }
-@keyframes float2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-18px,22px)} }
 @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
 @keyframes pop { 0%{opacity:0;transform:scale(.92)} 60%{opacity:1;transform:scale(1.03)} 100%{transform:scale(1)} }
 @keyframes spin { to{transform:rotate(360deg)} }
@@ -50,8 +76,8 @@ header { text-align: center; margin-bottom: 32px; animation: fadeUp .55s cubic-b
 .badge { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: var(--card); color: var(--accent); font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 999px; margin-bottom: 16px; box-shadow:4px 4px 8px var(--nm-dark), -3px -3px 7px var(--nm-light); }
 h1 { font-family:'Baloo 2',cursive; font-size: 2.2rem; font-weight: 800; margin: 0; letter-spacing: -.5px; color: var(--fg); }
 header p { color: var(--muted); max-width: 420px; margin: 12px auto 0; font-size: 14px; }
-.card { background: var(--card); border: none; border-radius: var(--radius); padding: 22px; margin-bottom: 20px; box-shadow: var(--shadow-card); animation: fadeUp .55s cubic-bezier(.16,1,.3,1) both; transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease; }
-.card:hover { transform: translateY(-3px); box-shadow: 11px 11px 24px var(--nm-dark), -8px -8px 18px var(--nm-light); }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; margin-bottom: 20px; box-shadow: var(--shadow-card); animation: fadeUp .55s cubic-bezier(.16,1,.3,1) both; transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 2px 6px rgba(0,0,0,.35); }
 .card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .icon { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--card); color: var(--accent); font-size: 18px; box-shadow: 5px 5px 10px var(--nm-dark), -4px -4px 9px var(--nm-light); }
 .card-head h3 { margin: 0; font-size: 1rem; color: var(--fg); }
@@ -104,7 +130,7 @@ header p { color: var(--muted); max-width: 420px; margin: 12px auto 0; font-size
 label.lbl { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
 input, select, textarea { width: 100%; padding: 9px 12px; font-size: 14px; color: var(--fg); border: 1px solid transparent; border-radius: 10px; background: var(--bg); box-shadow: var(--shadow-card-inset); outline: none; transition: border-color .2s, box-shadow .2s; font-family: inherit; }
 input::placeholder, textarea::placeholder { color: #4b5670; }
-input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: var(--shadow-card-inset), 0 0 0 3px rgba(61,92,255,.18); }
+input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: var(--shadow-card-inset); }
 select option { background: var(--card); color: var(--fg); }
 textarea { resize: vertical; min-height: 64px; }
 .bmi { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; background: var(--card); color: var(--fg); border-radius: 12px; padding: 12px 18px; margin: 12px 0; box-shadow: var(--shadow-card); animation: pop .3s cubic-bezier(.16,1,.3,1); }
@@ -141,16 +167,15 @@ pre { white-space: pre-wrap; background: var(--bg); color: var(--fg); border: 1p
 }
 #intakeWarnings strong { display: block; margin-bottom: 4px; color: #f0d38f; }
 #intakeWarnings ul { margin: 0; padding-left: 18px; }
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #eef1f7; --bg-soft: #e6e9f2; --fg: #1b2333; --muted: #5c6780; --card: #eef1f7;
-    --border: rgba(20,30,60,.08); --primary: #2f4be0; --primary-2: #c7d0ea;
-    --accent: #2f4be0; --danger: #dc2626; --success: #16a34a;
-    --nm-light: rgba(255,255,255,.9); --nm-dark: rgba(163,177,208,.55);
-  }
-  #intakeWarnings { background: #fff8ec; border-color: #f0d9a8; color: #7a5c1e; }
-  #intakeWarnings strong { color: #6b4c10; }
-}
+/* Light theme is now applied via html[data-theme="light"] (see <head>
+   script + .theme-toggle button below) instead of the OS-only
+   prefers-color-scheme media query this used to be, so a member's choice
+   is remembered rather than always following the OS setting. The old
+   auto-switch still contributes the very first visit: the <head> script
+   falls back to matchMedia('(prefers-color-scheme: light)') the first
+   time, before anything is saved to localStorage. */
+html[data-theme="light"] #intakeWarnings { background: #fff8ec; border-color: #f0d9a8; color: #7a5c1e; }
+html[data-theme="light"] #intakeWarnings strong { color: #6b4c10; }
 </style>
 </head>
 <body>
@@ -241,6 +266,20 @@ pre { white-space: pre-wrap; background: var(--bg); color: var(--fg); border: 1p
       setTimeout(() => { btn.textContent = original; btn.disabled = false }, 2000)
     }
   })
+
+  // Light / dark theme toggle. The inline <script> in <head> already set
+  // data-theme once, before paint, from localStorage (or OS preference the
+  // first time). This just wires up the button to flip it and remember the
+  // choice — shared 'fitforge_theme' key so it stays in sync with the plan
+  // viewer page. Guarded with ?. since by this point in the async flow
+  // (after the awaited fetch above) the nav markup below has already been
+  // parsed, but the check costs nothing and keeps this resilient either way.
+  document.getElementById('themeToggleBtn')?.addEventListener('click', () => {
+    const html = document.documentElement
+    const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'
+    html.setAttribute('data-theme', next)
+    try { localStorage.setItem('fitforge_theme', next) } catch (e) {}
+  })
 </script>
 <nav class="topnav">
   <div class="logo">
@@ -254,12 +293,15 @@ pre { white-space: pre-wrap; background: var(--bg); color: var(--fg); border: 1p
       <div class="circle" id="navInitial">–</div>
       <span id="navName">…</span>
     </div>
+    <button class="theme-toggle" id="themeToggleBtn" aria-label="Toggle light / dark theme" type="button">
+      <svg class="ic-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="ic-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+    </button>
     <button class="logout-btn" id="logoutBtn" title="Log out">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     </button>
   </div>
 </nav>
-<div class="blobs"><div class="blob a"></div><div class="blob b"></div><div class="blob c"></div></div>
 <div class="wrap">
 
 <header>
@@ -331,8 +373,11 @@ pre { white-space: pre-wrap; background: var(--bg); color: var(--fg); border: 1p
 <!-- WORKOUT -->
 <div class="card" style="animation-delay:.24s">
   <div class="card-head"><span class="icon">🏋️</span><h3>Workout preferences</h3></div>
-  <div class="grid c2">
-    <div><label class="lbl">Training days / week: <span id="daysVal">4</span></label><input id="days" type="range" min="2" max="6" step="1" value="4" /></div>
+  <div class="mt"><label class="lbl">Training days: <span id="daysVal">4</span> / week (tap to pick which days — min 2, max 6)</label>
+    <div class="chip-box"><div class="chips" id="daysChips"></div></div>
+    <input type="hidden" id="days" value="4" />
+  </div>
+  <div class="grid c2 mt">
     <div><label class="lbl">Session duration</label>
       <select id="duration">
         <option>30–45 min</option>
@@ -422,8 +467,12 @@ const BUDGET = {low:"Low (₹150–250/day on food)",medium:"Medium (₹250–45
 const PROTEIN_RANGE   = {Beginner:"1.0", Intermediate:"1.1–1.3", Advanced:"1.5–2.0"};
 const PROTEIN_MIDPOINT = {Beginner:1.0, Intermediate:1.2, Advanced:1.75};
 
+const WEEKDAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
 const availableEquipment = new Set(EQUIPMENT);
 const allergies = new Set();
+// Default training split: Mon/Tue/Thu/Fri (matches the old slider's default of 4 days/week)
+const trainingDays = new Set(["Mon","Tue","Thu","Fri"]);
 const $ = (id) => document.getElementById(id);
 
 function renderEquip() {
@@ -454,7 +503,33 @@ function renderAllergies() {
   });
 }
 
-renderEquip(); renderAllergies();
+function renderDays() {
+  const box = $("daysChips"); box.innerHTML = "";
+  WEEKDAYS.forEach(d => {
+    const c = document.createElement("button");
+    c.type = "button";
+    c.className = "chip" + (trainingDays.has(d) ? " active" : "");
+    c.textContent = d;
+    c.onclick = () => {
+      if (trainingDays.has(d)) {
+        if (trainingDays.size <= 2) return; // keep at least 2 training days/week
+        trainingDays.delete(d);
+      } else {
+        if (trainingDays.size >= 6) return; // cap at 6 training days/week
+        trainingDays.add(d);
+      }
+      renderDays();
+    };
+    box.appendChild(c);
+  });
+  // days_per_week is still all the backend understands, so the hidden
+  // #days field just tracks how many weekday chips are active — everything
+  // downstream (v("days"), the submit payload) keeps working unchanged.
+  $("daysVal").textContent = trainingDays.size;
+  $("days").value = trainingDays.size;
+}
+
+renderEquip(); renderAllergies(); renderDays();
 
 function computeBMI() {
   const h = parseFloat($("height").value), w = parseFloat($("weight").value);
@@ -526,7 +601,6 @@ function renderMacros() {
   if (el) el.addEventListener("input", () => { renderBMI(); });
 });
 
-$("days").addEventListener("input", e => $("daysVal").textContent = e.target.value);
 $("meals").addEventListener("input", e => $("mealsVal").textContent = e.target.value);
 
 // ─── DIET TYPE RULES ──────────────────────────────────────────────────────────
