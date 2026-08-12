@@ -1423,28 +1423,109 @@ def _prettify_token(token: str) -> str:
     return " + ".join(w.capitalize() for w in words)
 
 
-def _build_weekly_template(sequence: list, training_days_per_week: int) -> list:
+WEEKDAY_ALIAS_TO_INDEX = {
+    "mon": 0, "monday": 0,
+    "tue": 1, "tues": 1, "tuesday": 1,
+    "wed": 2, "weds": 2, "wednesday": 2,
+    "thu": 3, "thur": 3, "thurs": 3, "thursday": 3,
+    "fri": 4, "friday": 4,
+    "sat": 5, "saturday": 5,
+    "sun": 6, "sunday": 6,
+}
+
+
+def parse_training_day_indices(raw) -> set:
+    """
+    Parse a "Mon,Tue,Thu,Fri"-style string (or already-iterable of weekday
+    names) — as sent by dashbord.html's weekday-chip picker — into a set of
+    0-6 weekday indices (0=Monday, matching WEEKDAY_NAMES). Unrecognized
+    tokens are silently skipped rather than raising, since this only ever
+    upgrades the schedule when usable and falls back to the even-spread
+    algorithm otherwise (see _build_weekly_template).
+    """
+    if not raw:
+        return set()
+    if isinstance(raw, str):
+        tokens = [t.strip() for t in raw.split(",") if t.strip()]
+    else:
+        tokens = list(raw)
+    indices = set()
+    for t in tokens:
+        idx = WEEKDAY_ALIAS_TO_INDEX.get(str(t).strip().lower())
+        if idx is not None:
+            indices.add(idx)
+    return indices
+
+
+def apply_training_days_to_safe_sequence(default_sequence: list, training_day_indices=None) -> list:
+    """
+    Used by the safety-gate "default_template" (orange-tier) fallback —
+    remaps a conservative fixed pattern like DEFAULT_SAFE_SEQUENCE
+    (3x/week full-body, Mon/Wed/Fri) onto the member's ACTUAL picked
+    weekdays instead of always forcing Mon/Wed/Fri regardless of what they
+    selected. Preserves the original safety intent (same training-day
+    COUNT, same token per training slot, positionally) — only the specific
+    weekdays used change.
+
+    If the member picked fewer days than the safe template calls for, their
+    (more conservative) pick count wins outright rather than padding back
+    up to the template's count. If they picked none, or more than 3
+    picked days are available, falls back to `default_sequence` unchanged
+    (Mon/Wed/Fri) — spreading a 3x/week cap across a large arbitrary pick
+    set isn't obviously safer than the well-tested fixed default.
+    """
+    training_day_indices = {i for i in (training_day_indices or set()) if 0 <= i <= 6}
+    if not training_day_indices:
+        return list(default_sequence)
+
+    default_training_slots = [tok for tok in default_sequence if tok != "rest"]
+    picks_sorted = sorted(training_day_indices)
+
+    if len(picks_sorted) > len(default_training_slots):
+        # More picked days than the conservative template trains — don't
+        # guess which of the extra picks to drop; keep the well-tested
+        # fixed default rather than making an arbitrary selection.
+        return list(default_sequence)
+
+    template = ["rest"] * 7
+    for day_i, token in zip(picks_sorted, default_training_slots):
+        template[day_i] = token
+    return template
+
+
+def _build_weekly_template(sequence: list, training_days_per_week: int, training_day_indices=None) -> list:
     """
     Deterministically decide which of the 7 weekdays are training vs rest,
     and which split-day token each training slot gets — BEFORE the LLM ever
     runs. This is what removes "rest day placement" from the model's job
     entirely; it only has to fill in exercises for a schedule we've already
-    fixed. Rest days are spread as evenly as possible rather than bunched.
+    fixed.
+
+    If `training_day_indices` is given (the member's actual weekday picks,
+    e.g. {0,1,3,4} for Mon/Tue/Thu/Fri) those exact weekdays are used as the
+    training days — the displayed schedule then matches what was tapped on
+    the dashboard. Falls back to spreading rest days as evenly as possible
+    across the week when no explicit picks are available (e.g. legacy
+    callers that only ever sent a day count).
     """
     training_days_per_week = max(0, min(7, training_days_per_week))
     rest_days = 7 - training_days_per_week
 
-    rest_positions = set()
-    for i in range(1, rest_days + 1):
-        pos = round(i * 7 / (rest_days + 1)) - 1
-        rest_positions.add(max(0, min(6, pos)))
-    # Rounding can occasionally collide and leave us one rest slot short —
-    # backfill deterministically (first free slot) rather than under-resting.
-    i = 0
-    while len(rest_positions) < rest_days and i < 7:
-        if i not in rest_positions:
-            rest_positions.add(i)
-        i += 1
+    valid_indices = {i for i in (training_day_indices or set()) if 0 <= i <= 6}
+    if valid_indices:
+        rest_positions = {i for i in range(7) if i not in valid_indices}
+    else:
+        rest_positions = set()
+        for i in range(1, rest_days + 1):
+            pos = round(i * 7 / (rest_days + 1)) - 1
+            rest_positions.add(max(0, min(6, pos)))
+        # Rounding can occasionally collide and leave us one rest slot short —
+        # backfill deterministically (first free slot) rather than under-resting.
+        i = 0
+        while len(rest_positions) < rest_days and i < 7:
+            if i not in rest_positions:
+                rest_positions.add(i)
+            i += 1
 
     template = []
     seq_i = 0
@@ -1855,6 +1936,15 @@ def build_user_prompt(profile: dict) -> str:
 
     # ── 5. Warmup hints per training days
     training_days_per_week = int(profile.get("days_per_week", 4))
+    # If the member picked explicit weekdays (dashbord.html's day-strip
+    # chips), that picked count is authoritative over the separately-sent
+    # `days` count — keeps split selection (below) always sized to match
+    # the actual number of trained days, even if a caller ever sends the
+    # two out of sync (the dashboard itself keeps them in lockstep via
+    # renderDays(), but nothing enforced that server-side before this).
+    training_day_indices = parse_training_day_indices(profile.get("training_days"))
+    if training_day_indices:
+        training_days_per_week = len(training_day_indices)
     duration    = profile.get("session_duration", "45–60 min")
     region      = profile.get("region", "India")
     budget      = profile.get("budget", "medium")
@@ -1909,7 +1999,8 @@ def build_user_prompt(profile: dict) -> str:
     #      Exposed on `profile` (mutated in place, same pattern as
     #      activity_level_factor above) so main.py can reuse the exact same
     #      template after generation to force-correct labels and validate content.
-    weekly_template = _build_weekly_template(split["sequence"], training_days_per_week)
+    profile["_training_day_indices"] = training_day_indices
+    weekly_template = _build_weekly_template(split["sequence"], training_days_per_week, training_day_indices)
     profile["_weekly_template"] = weekly_template
     profile["_vol"] = vol
     weekly_schedule_str = "\n".join(
@@ -2409,7 +2500,9 @@ def generate_dashboard(profile: dict, llm_caller) -> str:
     user_prompt  = build_user_prompt(profile)
 
     if gate["action"] == "default_template":
-        profile["_weekly_template"] = DEFAULT_SAFE_SEQUENCE
+        profile["_weekly_template"] = apply_training_days_to_safe_sequence(
+            DEFAULT_SAFE_SEQUENCE, profile.get("_training_day_indices")
+        )
         profile["_vol"] = DEFAULT_SAFE_VOL
 
     raw_response = llm_caller(SYSTEM_PROMPT, user_prompt)
@@ -2420,17 +2513,24 @@ def generate_dashboard(profile: dict, llm_caller) -> str:
     # ignored, not merged. build_user_prompt() stashed the weekly
     # template + volume table on `profile` above so we don't recompute
     # the split/volume logic a second time here.
+    _fallback_training_day_indices = profile.get("_training_day_indices")
+    if _fallback_training_day_indices is None:
+        _fallback_training_day_indices = parse_training_day_indices(profile.get("training_days"))
+    _fallback_days_per_week = int(profile.get("days_per_week", 4))
+    if _fallback_training_day_indices:
+        _fallback_days_per_week = len(_fallback_training_day_indices)
     weekly_template = profile.get("_weekly_template") or _build_weekly_template(
         recommend_split({
             "experience": profile.get("experience", "intermediate"),
-            "days_per_week": int(profile.get("days_per_week", 4)),
+            "days_per_week": _fallback_days_per_week,
             "session_duration": profile.get("session_duration", "45–60 min"),
             "goal": profile.get("goal", "fat loss"),
             "height_cm": profile.get("height_cm", 170),
             "current_weight_kg": profile.get("current_weight_kg", 70),
             "activity_key": profile.get("activity_key", "moderate"),
         })["sequence"],
-        int(profile.get("days_per_week", 4)),
+        _fallback_days_per_week,
+        _fallback_training_day_indices,
     )
     vol = profile.get("_vol") or EXERCISE_VOLUME[_resolve_exp_key(profile)]
 
@@ -2468,23 +2568,32 @@ async def generate_dashboard_with_review(profile: dict, llm_caller, review_llm_c
     user_prompt = build_user_prompt(profile)
 
     if gate["action"] == "default_template":
-        profile["_weekly_template"] = DEFAULT_SAFE_SEQUENCE
+        profile["_weekly_template"] = apply_training_days_to_safe_sequence(
+            DEFAULT_SAFE_SEQUENCE, profile.get("_training_day_indices")
+        )
         profile["_vol"] = DEFAULT_SAFE_VOL
 
     raw_response = llm_caller(SYSTEM_PROMPT, user_prompt)
     data = parse_llm_json(raw_response)
 
+    _fallback_training_day_indices = profile.get("_training_day_indices")
+    if _fallback_training_day_indices is None:
+        _fallback_training_day_indices = parse_training_day_indices(profile.get("training_days"))
+    _fallback_days_per_week = int(profile.get("days_per_week", 4))
+    if _fallback_training_day_indices:
+        _fallback_days_per_week = len(_fallback_training_day_indices)
     weekly_template = profile.get("_weekly_template") or _build_weekly_template(
         recommend_split({
             "experience": profile.get("experience", "intermediate"),
-            "days_per_week": int(profile.get("days_per_week", 4)),
+            "days_per_week": _fallback_days_per_week,
             "session_duration": profile.get("session_duration", "45–60 min"),
             "goal": profile.get("goal", "fat loss"),
             "height_cm": profile.get("height_cm", 170),
             "current_weight_kg": profile.get("current_weight_kg", 70),
             "activity_key": profile.get("activity_key", "moderate"),
         })["sequence"],
-        int(profile.get("days_per_week", 4)),
+        _fallback_days_per_week,
+        _fallback_training_day_indices,
     )
     vol = profile.get("_vol") or EXERCISE_VOLUME[_resolve_exp_key(profile)]
 

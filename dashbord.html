@@ -983,6 +983,10 @@ async function handleSubmit() {
     experience: $("experience").value,
     activity: $("activity").value,
     days: $("days").value,
+    // Actual weekday picks (Mon-Sun order, not tap order) — lets the backend
+    // schedule the plan on the exact days chosen instead of just honoring
+    // the count. See fitness_generator.parse_training_day_indices.
+    training_days: WEEKDAYS.filter(d => trainingDays.has(d)).join(","),
     duration: $("duration").value,
     diet: $("diet").value,
     meals: $("meals").value,

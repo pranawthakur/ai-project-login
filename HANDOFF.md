@@ -1,6 +1,67 @@
 # GymCoach Studio — Integration Handoff
 
-## Session update (this pass): load_adjustment_engine wired live
+## Session update (this pass): weekday picks now actually wired to the schedule
+
+Bug: the dashboard's day-strip chip picker (Mon/Tue/Wed/... toggles) let a
+member pick specific training weekdays, but only the *count* of picks ever
+reached the backend — the actual weekday choices were discarded client-side.
+The backend only ever knew `days_per_week` as a number and picked its own
+schedule (deterministic even-spread starting Monday), so the displayed
+split never matched what a member actually tapped.
+
+- `dashbord.html`: submit payload now also sends `training_days` — the
+  picked weekdays as `"Mon,Tue,Thu,Fri"` (canonical Mon–Sun order, not tap
+  order), alongside the existing `days` count. Flows through both the fast
+  `/api/plan/diet` call and the background `/result` call automatically
+  (they share the same `body` via `sessionStorage["fitforge_pending_result_body"]`).
+- `fitness_generator.py`:
+  - New `WEEKDAY_ALIAS_TO_INDEX` / `parse_training_day_indices()` — parses
+    `"Mon,Tue,Thu,Fri"` (or full names, mixed case) into a `{0..6}` index
+    set, 0=Monday. Unrecognized tokens are silently skipped.
+  - `_build_weekly_template()` gained an optional `training_day_indices`
+    param — when given, those exact weekdays become the training days
+    (rest = everything else). Falls back to the original even-spread
+    algorithm when absent, so any caller still only sending a count
+    behaves exactly as before.
+  - `recommend_split()`'s day-count input is now resolved from
+    `len(training_day_indices)` when picks are present, instead of
+    trusting a separately-sent `days_per_week` that could in principle
+    disagree with the picks (dashboard keeps them in sync itself, but
+    nothing enforced that server-side before this).
+  - New `apply_training_days_to_safe_sequence()` — the safety-gate
+    "orange tier" conservative fallback (`DEFAULT_SAFE_SEQUENCE`, fixed
+    3x/week Mon/Wed/Fri) previously ignored weekday picks entirely. Now
+    remaps the same 3x/week full-body intent onto the member's actual
+    picks when 1–3 were given; falls back to Mon/Wed/Fri unchanged when
+    none were picked, or when more than 3 were picked (no safe way to
+    guess which extras to drop, so keeps the well-tested fixed default).
+  - `apply_deterministic_day_labels()` needed **no changes** — it already
+    labels positionally by weekday index, so once the template marks the
+    right indices as training/rest, day names/short codes fall out
+    correctly automatically.
+- `main.py`: `/result`, `/api/plan/diet`, and the dev_preview endpoint all
+  accept a new optional `training_days` field and thread it into
+  `profile["training_days"]`. Same safety-gate remap applied at all
+  `default_template` sites (`/generate/test` dev endpoint included, for
+  consistency, though it's not member-facing).
+
+Backward compatible: any caller that never sends `training_days` (old
+cached frontend, direct API calls, `/api/regenerate` replaying an old
+stored intake) behaves byte-for-byte identically to before this change.
+
+Verified: `_build_weekly_template`, `parse_training_day_indices`, and
+`apply_training_days_to_safe_sequence` logic-tested in isolation (see
+session transcript) — explicit picks land on the right weekdays, count
+mismatches resolve to the picks' length, safety fallback remaps correctly
+for 1–3 picks and degrades to the fixed default outside that range. Both
+`fitness_generator.py` and `main.py` compile clean; the edited
+`dashbord.html` script block parses clean under Node. **Not yet smoke-
+tested against a live Supabase/Render deploy** — recommend testing one
+real intake submission with a non-default weekday pick (e.g. Tue/Thu/Sat)
+before shipping, and one orange-tier (safety-gated) profile with a 2-day
+pick to confirm the fallback remap renders as expected.
+
+## Session update (previous pass): load_adjustment_engine wired live
 
 First of the 26 unwired engines is now actually live end to end, not just
 file-present:

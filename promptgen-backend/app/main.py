@@ -30,6 +30,8 @@ from app.fitness_generator import (
     enforce_schema,
     render_dashboard,
     apply_deterministic_day_labels,
+    parse_training_day_indices,
+    apply_training_days_to_safe_sequence,
     expand_days_to_biweekly,
     build_and_review_workout_days,
     build_deterministic_workout_days,
@@ -306,7 +308,11 @@ def generate_test(
     if gate["action"] == "block":
         return {"safety_gate": gate, "days": None}
 
-    weekly_template = DEFAULT_SAFE_SEQUENCE if gate["action"] == "default_template" else []
+    training_day_indices = parse_training_day_indices(profile.get("training_days"))
+    weekly_template = (
+        apply_training_days_to_safe_sequence(DEFAULT_SAFE_SEQUENCE, training_day_indices)
+        if gate["action"] == "default_template" else []
+    )
     vol = DEFAULT_SAFE_VOL if gate["action"] == "default_template" else {}
 
     days = build_deterministic_workout_days(profile, weekly_template, vol)
@@ -390,6 +396,7 @@ async def generate_full_dev_preview(
         "budget":             body.get("budget") or "medium",
         "allergies":          body.get("allergies") or "none",
         "medical_notes":      body.get("notes") or "none",
+        "training_days":      body.get("training_days") or "",
     }
 
     return_response = await _generate_and_save_plan(member, profile, source_label="dev_preview")
@@ -1379,8 +1386,12 @@ async def _generate_and_save_plan(member: dict, profile: dict, source_label: str
         # conservative template — applied AFTER build_user_prompt() so the
         # diet/macro text it generated is unaffected, but the actual workout
         # structure _run() reads below is now the safe template, not the
-        # normal formula-driven one.
-        profile["_weekly_template"] = DEFAULT_SAFE_SEQUENCE
+        # normal formula-driven one. Still remapped onto the member's own
+        # picked weekdays (build_user_prompt already parsed these into
+        # profile["_training_day_indices"]) rather than hardcoding Mon/Wed/Fri.
+        profile["_weekly_template"] = apply_training_days_to_safe_sequence(
+            DEFAULT_SAFE_SEQUENCE, profile.get("_training_day_indices")
+        )
         profile["_vol"] = DEFAULT_SAFE_VOL
 
     async def _run() -> tuple[dict, str, dict]:
@@ -1816,6 +1827,11 @@ async def plan_diet_fast(
     budget:     str = Form("medium"),
     allergies:  str = Form("none"),
     notes:      str = Form(""),
+    # Comma-separated weekday picks from dashbord.html's day-strip chips,
+    # e.g. "Mon,Tue,Thu,Fri". Optional — falls back to the even-spread
+    # algorithm (using `days` as a count) when blank. See
+    # fitness_generator.parse_training_day_indices / _build_weekly_template.
+    training_days: str = Form(""),
 ):
     profile = {
         "name":               name or "User",
@@ -1837,6 +1853,7 @@ async def plan_diet_fast(
         "budget":             budget,
         "allergies":          allergies or "none",
         "medical_notes":      notes or "none",
+        "training_days":      training_days or "",
     }
 
     prev_plan = _get_latest_plan_any_status(member["id"])
@@ -1859,7 +1876,9 @@ async def plan_diet_fast(
     # (len(weekly_template) * 2), not to build any workout content here.
     build_user_prompt(profile)
     if gate["action"] == "default_template":
-        profile["_weekly_template"] = DEFAULT_SAFE_SEQUENCE
+        profile["_weekly_template"] = apply_training_days_to_safe_sequence(
+            DEFAULT_SAFE_SEQUENCE, profile.get("_training_day_indices")
+        )
         profile["_vol"] = DEFAULT_SAFE_VOL
 
     data = build_deterministic_plan_data(profile)
@@ -1960,6 +1979,11 @@ async def result_page(
     # default — never crashes, never required.
     can_pull_up: str = Form(""),
     waist_cm:    str = Form(""),
+    # Comma-separated weekday picks from dashbord.html's day-strip chips,
+    # e.g. "Mon,Tue,Thu,Fri". Optional — falls back to the even-spread
+    # algorithm (using `days` as a count) when blank. See
+    # fitness_generator.parse_training_day_indices / _build_weekly_template.
+    training_days: str = Form(""),
 ):
     profile = {
         # Identity
@@ -1977,6 +2001,7 @@ async def result_page(
         "days_per_week":      days or "4",
         "session_duration":   duration,
         "equipment":          equipment or "full gym",
+        "training_days":      training_days or "",
         # Diet — pass the RAW value so diet_token lookup can fuzzy-match it
         "diet_pref":          diet,
         "meals_per_day":      meals or "5",
