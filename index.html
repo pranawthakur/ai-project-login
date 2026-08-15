@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GymCoach Studio</title>
+  <meta name="description" content="AI-powered coaching tools for gyms and their members." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#121317; --bg-2:#17181d;
+    --card:#1b1d23; --border:rgba(255,255,255,.1);
+    --fg:#e6e7eb; --muted:#8a8d97; --dim:#5f636d;
+    --p1:#6b5b8a; --p2:#565f86;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    min-height:100vh; background:var(--bg); color:var(--fg);
+    font-family:'Inter',sans-serif; position:relative; overflow-x:hidden;
+  }
+
+  nav{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 40px;border-bottom:1px solid var(--border);
+  }
+  .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;}
+  .logo-icon{
+    width:36px;height:36px;border-radius:11px;background:var(--card);
+    border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;font-size:17px;
+  }
+  .logo .studio{font-family:'Baloo 2',cursive;font-style:italic;font-weight:600;color:var(--muted);}
+
+  main{
+    display:flex;min-height:calc(100vh - 69px);align-items:center;justify-content:center;padding:24px;
+  }
+  .hero{max-width:640px;text-align:center;}
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;
+    border:1px solid var(--border); background:var(--card);
+    color:var(--muted); font-size:12px; font-weight:700; padding:6px 14px;
+    border-radius:999px; margin-bottom:22px;
+  }
+  h1{
+    font-family:'Baloo 2',cursive; font-size:3rem; font-weight:800; letter-spacing:-1px;
+    line-height:1.08; margin-bottom:18px;
+  }
+  h1 .accent{color:var(--p2);}
+  .hero p{color:var(--muted); font-size:16px; line-height:1.6; margin-bottom:32px;}
+  .cta{
+    display:inline-flex; align-items:center; gap:8px;
+    background:var(--p2); color:#fff; font-weight:700; font-size:15px;
+    padding:14px 30px; border-radius:12px; text-decoration:none;
+    transition:transform .2s ease, filter .2s ease;
+  }
+  .cta:hover{transform:translateY(-2px); filter:brightness(1.1);}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <div class="logo-icon">💪</div>
+    <div>GymCoach<span class="studio">.studio</span></div>
+  </div>
+</nav>
+
+<main>
+  <div class="hero">
+    <span class="badge">✨ AI coaching for Indian gym-goers</span>
+    <h1>Smart plans. <span class="accent">Real results.</span></h1>
+    <p>
+      Smart coaching tools your gym can use with every member —
+      tailored workouts, diet plans and progression, forged in seconds.
+      Log in to get started.
+    </p>
+    <a class="cta" href="login.html">Log in →</a>
+  </div>
+</main>
+
+</body>
+</html>
