@@ -28,3 +28,7 @@ services:
         sync: false
       - key: MEMBER_SESSION_SECRET
         sync: false
+      - key: GYM_DASHBOARD_BASE_URL
+        sync: false
+      - key: MEMBER_APP_SERVICE_KEY
+        sync: false

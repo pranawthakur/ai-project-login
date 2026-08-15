@@ -48,19 +48,21 @@ def find_member_by_login_code(gym_id: str, code: str) -> dict | None:
     return res.data[0] if res.data else None
 
 
-def get_current_member(
-    request: Request,
-    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-) -> dict:
-    """
-    Replaces the old get_current_user + get_or_join_member pair. There is no
-    "user" separate from "member" anymore, and no join-on-first-login step —
-    membership is established once, up front, when the gym admin adds the
-    member. This dependency just: verifies the caller's self-issued session
-    token (see app/auth.py), and re-fetches the member row fresh from the DB
-    (not just trusting stale claims in the token) so a status change (e.g.
-    admin deactivates a member) takes effect on their very next request.
-    """
+# Phase 5 (build-plan-v2.md §3) — the two automatic statuses the
+# gym-dashboard's lifecycle cron can set on a member: 'payment_overdue'
+# (T+5, still recoverable by the member paying themselves) and 'suspended'
+# (T+15 — the same value the gym admin's manual Suspend action already
+# uses, per build-plan-v2.md's §1 note that the two share behaviour).
+# Distinct from any other non-active status a member might be in, which
+# stays a flat "contact your gym" dead end below — these two specifically
+# get a structured response the frontend uses to show a "renew to
+# continue" screen with a working Pay Now button, since blocking exactly
+# the member who needs to self-service-pay would make that recovery path
+# impossible.
+RENEWAL_LOCKED_STATUSES = {"payment_overdue", "suspended"}
+
+
+def _fetch_member(credentials: HTTPAuthorizationCredentials) -> dict:
     payload = verify_member_token(credentials.credentials)
     member_id = payload["sub"]
 
@@ -76,9 +78,67 @@ def get_current_member(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Member account no longer exists.",
         )
+    return res.data[0]
 
-    member = res.data[0]
+
+def get_current_member(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> dict:
+    """
+    Replaces the old get_current_user + get_or_join_member pair. There is no
+    "user" separate from "member" anymore, and no join-on-first-login step —
+    membership is established once, up front, when the gym admin adds the
+    member. This dependency just: verifies the caller's self-issued session
+    token (see app/auth.py), and re-fetches the member row fresh from the DB
+    (not just trusting stale claims in the token) so a status change (e.g.
+    admin deactivates a member) takes effect on their very next request.
+
+    Phase 5: this is the login-gate every other member-facing endpoint in
+    this app depends on (workout generation, check-in, analytics, etc. —
+    see app/main.py) — a member in RENEWAL_LOCKED_STATUSES is blocked from
+    all of it, exactly the "denies login/check-in ... renew to continue"
+    behaviour build-plan-v2.md's Phase 5 asks for. The two renewal
+    endpoints (app/renewal.py) deliberately use
+    get_current_member_allow_renewal_locked below instead of this function,
+    so a locked-out member can still reach the screen that lets them fix it.
+    """
+    member = _fetch_member(credentials)
+
+    if member.get("status") in RENEWAL_LOCKED_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "renewal_required",
+                "status": member.get("status"),
+                "message": "Your membership payment is overdue and access is paused. Renew to continue.",
+            },
+        )
     if member.get("status") != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been deactivated. Contact your gym.",
+        )
+    return member
+
+
+def get_current_member_allow_renewal_locked(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> dict:
+    """
+    Same identity check as get_current_member, but deliberately does NOT
+    block on RENEWAL_LOCKED_STATUSES — used only by GET /member/renewal-status
+    and POST /member/pay-now (app/renewal.py). Those two endpoints are
+    exactly how a payment_overdue/suspended member recovers, so gating them
+    behind the same "must be active" check as get_current_member would make
+    self-service renewal unreachable for the members who need it most. Any
+    OTHER non-active status is still blocked here, same as get_current_member
+    — fail-closed for anything that isn't specifically a renewal-recoverable
+    state.
+    """
+    member = _fetch_member(credentials)
+    if member.get("status") not in RENEWAL_LOCKED_STATUSES and member.get("status") != "active":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your account has been deactivated. Contact your gym.",

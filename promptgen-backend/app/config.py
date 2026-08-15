@@ -45,6 +45,20 @@ class Settings(BaseSettings):
     # dev_test_key above: unset -> 503, not a silently-open route.
     admin_api_key: str = ""
 
+    # ── Phase 3: renewal / Pay Now (calls ai-project-gym-dashboard) ──
+    # Base URL of the gym-dashboard backend's deployed Render service
+    # (gym-admin-dashboard-backend) — where the actual Razorpay
+    # payment-link creation + webhook live (Phase 2). This repo never
+    # talks to Razorpay directly; it always goes through that service.
+    gym_dashboard_base_url: str = ""
+    # Shared secret proving to gym-dashboard that a payment-link request
+    # came from this backend (which has already verified the member's
+    # own session token) rather than an arbitrary caller. Must match
+    # MEMBER_APP_SERVICE_KEY on the gym-dashboard side exactly. Unset ->
+    # POST /member/pay-now fails loud (503), same fail-closed pattern as
+    # member_session_secret/dev_test_key above.
+    member_app_service_key: str = ""
+
     @property
     def frontend_origins(self) -> list[str]:
         return [o.strip() for o in self.frontend_origin.split(",") if o.strip()]

@@ -176,6 +176,48 @@ pre { white-space: pre-wrap; background: var(--bg); color: var(--fg); border: 1p
    time, before anything is saved to localStorage. */
 html[data-theme="light"] #intakeWarnings { background: #fff8ec; border-color: #f0d9a8; color: #7a5c1e; }
 html[data-theme="light"] #intakeWarnings strong { color: #6b4c10; }
+/* ── Phase 3: renewal banner + Pay Now modal ─────────────────────────── */
+.renewal-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  background: var(--card); border: 1px solid var(--danger); border-radius: var(--radius);
+  padding: 14px 18px; margin-bottom: 20px; box-shadow: var(--shadow-card);
+  animation: fadeUp .55s cubic-bezier(.16,1,.3,1) both;
+}
+.renewal-banner.grace { border-color: var(--accent); }
+.renewal-banner p { margin: 0; font-size: 13.5px; color: var(--fg); }
+.renewal-banner .pay-now-btn {
+  border: none; cursor: pointer; color: #fff; background: var(--primary);
+  font-size: 13px; font-weight: 700; padding: 10px 18px; border-radius: 12px;
+  box-shadow: 5px 5px 12px var(--nm-dark), -4px -4px 9px var(--nm-light);
+  transition: transform .2s, filter .2s; white-space: nowrap;
+}
+.renewal-banner .pay-now-btn:hover { transform: translateY(-2px); filter: brightness(1.12); }
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.55); display: none;
+  align-items: center; justify-content: center; z-index: 1000; padding: 16px;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-card);
+  animation: pop .3s cubic-bezier(.16,1,.3,1) both;
+}
+.modal-box h3 { margin: 0 0 4px; font-size: 1.05rem; color: var(--fg); }
+.modal-box .modal-sub { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; }
+.plan-option {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+  margin-bottom: 10px; cursor: pointer; background: var(--bg-soft);
+  transition: border-color .15s, transform .15s;
+}
+.plan-option:hover { border-color: var(--primary); transform: translateY(-1px); }
+.plan-option .plan-name { font-weight: 700; font-size: 13.5px; color: var(--fg); }
+.plan-option .plan-meta { font-size: 11.5px; color: var(--muted); }
+.plan-option .plan-price { font-weight: 700; font-size: 14px; color: var(--fg); white-space: nowrap; }
+.modal-close-btn {
+  margin-top: 6px; width: 100%; border: 1px solid var(--border); background: transparent;
+  color: var(--muted); font-size: 12.5px; padding: 10px; border-radius: 10px; cursor: pointer;
+}
 </style>
 </head>
 <body>
@@ -221,8 +263,94 @@ html[data-theme="light"] #intakeWarnings strong { color: #6b4c10; }
   window.location.href = 'login.html'
 } else if (res.status === 403) {
   const err = await res.json().catch(() => ({}))
-  document.body.innerHTML = '<div style="font-family:sans-serif;padding:60px;text-align:center">' +
-    '<h2>Access restricted</h2><p>' + (err.detail || 'Contact your gym.') + '</p></div>'
+  const detail = err.detail
+  // Phase 5: get_current_member (app/membership.py) sends a structured
+  // detail — {code:'renewal_required', status, message} — for a member
+  // who's 'payment_overdue' (T+5) or 'suspended' (T+15), instead of the
+  // plain string every other 403 case still uses. Route those two to an
+  // actual recovery screen; everything else keeps the old dead-end message
+  // (nothing else can be self-serviced from here).
+  if (detail && typeof detail === 'object' && detail.code === 'renewal_required') {
+    await renderRenewalGate(detail)
+  } else {
+    const msg = (detail && typeof detail === 'object' && detail.message) || detail || 'Contact your gym.'
+    document.body.innerHTML = '<div style="font-family:sans-serif;padding:60px;text-align:center">' +
+      '<h2>Access restricted</h2><p>' + msg + '</p></div>'
+  }
+}
+
+// Phase 5 — full-page "renew to continue" gate, shown in place of the
+// normal dashboard for a payment_overdue/suspended member. Reuses the
+// .modal-box / .plan-option styling already defined in <head> (only
+// document.body gets replaced above, so those <style> rules still apply).
+// Talks to the same two endpoints as the Phase 3 renewal banner
+// (GET /member/renewal-status, POST /member/pay-now) — both now reachable
+// with this member's token even though they're locked out of everything
+// else, since app/renewal.py uses get_current_member_allow_renewal_locked
+// instead of the stricter dependency that just rejected the /api/my-plan
+// call above (see app/membership.py).
+async function renderRenewalGate(detail) {
+  document.body.innerHTML =
+    '<div style="max-width:420px;margin:60px auto;padding:0 20px;font-family:sans-serif">' +
+    '  <div class="modal-box">' +
+    '    <h3>Renew to continue</h3>' +
+    '    <p class="modal-sub" id="renewalGateMsg"></p>' +
+    '    <div id="renewalGatePlans"></div>' +
+    '  </div>' +
+    '</div>'
+  document.getElementById('renewalGateMsg').textContent =
+    detail.message || 'Your membership payment is overdue and access is paused. Renew to continue.'
+
+  const listEl = document.getElementById('renewalGatePlans')
+  let status
+  try {
+    const res = await fetch('https://ai-project-login.onrender.com/member/renewal-status', {
+      headers: { Authorization: `Bearer ${memberToken}`, ...window.__gymHeaders() }
+    })
+    status = res.ok ? await res.json() : null
+  } catch (e) {
+    console.warn('renewal-status check failed', e)
+    status = null
+  }
+
+  const plans = (status && status.plans) || []
+  if (!plans.length) {
+    listEl.innerHTML = '<p style="font-size:12.5px;color:var(--muted)">Your gym hasn\'t set up any plans yet — ask them at the front desk.</p>'
+    return
+  }
+
+  plans.forEach(plan => {
+    const el = document.createElement('div')
+    el.className = 'plan-option'
+    el.innerHTML = `<div><div class="plan-name">${plan.name}</div>` +
+      `<div class="plan-meta">${plan.duration_months} month${plan.duration_months === 1 ? '' : 's'}</div></div>` +
+      `<div class="plan-price">₹${plan.price}</div>`
+    el.addEventListener('click', async () => {
+      const original = el.innerHTML
+      el.style.pointerEvents = 'none'
+      el.style.opacity = '.6'
+      try {
+        const res = await fetch('https://ai-project-login.onrender.com/member/pay-now', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${memberToken}`,
+            ...window.__gymHeaders()
+          },
+          body: JSON.stringify({ plan_id: plan.id })
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data.detail || 'Could not start payment.')
+        window.location.href = data.short_url
+      } catch (err) {
+        el.innerHTML = original
+        el.style.pointerEvents = ''
+        el.style.opacity = ''
+        alert(err.message || 'Could not start payment. Please try again or contact your gym.')
+      }
+    })
+    listEl.appendChild(el)
+  })
 }
   } catch (e) {
     // If this check fails (network hiccup etc.), fall through to the
@@ -279,7 +407,122 @@ html[data-theme="light"] #intakeWarnings strong { color: #6b4c10; }
     const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light'
     html.setAttribute('data-theme', next)
     try { localStorage.setItem('fitforge_theme', next) } catch (e) {}
+  })  // ── Phase 3: renewal banner + Pay Now ───────────────────────────────────
+  // Runs after the my-plan check above so a restricted (403) account
+  // already short-circuited the page before we get here.
+  async function loadRenewalStatus() {
+    try {
+      const res = await fetch('https://ai-project-login.onrender.com/member/renewal-status', {
+        headers: { Authorization: `Bearer ${memberToken}`, ...window.__gymHeaders() }
+      })
+      if (!res.ok) return null
+      return await res.json()
+    } catch (e) {
+      console.warn('renewal-status check failed', e)
+      return null
+    }
+  }
+
+  function renderRenewalBanner(data) {
+    const banner = document.getElementById('renewalBanner')
+    if (!data || !data.should_show_renewal) { banner.style.display = 'none'; return }
+    const text = document.getElementById('renewalBannerText')
+    if (data.is_expired) {
+      banner.classList.remove('grace')
+      text.textContent = '⚠️ Your membership has expired. Renew now to keep training.'
+    } else {
+      banner.classList.add('grace')
+      const d = data.days_until_expiry
+      text.textContent = `Your membership expires in ${d} day${d === 1 ? '' : 's'}. Renew early to avoid interruption.`
+    }
+    banner.style.display = 'flex'
+  }
+
+  function openPlanPicker(plans) {
+    const overlay = document.getElementById('planPickerOverlay')
+    const list = document.getElementById('planPickerList')
+    if (!plans || !plans.length) {
+      list.innerHTML = '<p style="font-size:12.5px;color:var(--muted)">Your gym hasn\'t set up any plans yet — ask them at the front desk.</p>'
+    } else {
+      list.innerHTML = ''
+      plans.forEach(plan => {
+        const el = document.createElement('div')
+        el.className = 'plan-option'
+        el.innerHTML = `<div><div class="plan-name">${plan.name}</div>` +
+          `<div class="plan-meta">${plan.duration_months} month${plan.duration_months === 1 ? '' : 's'}</div></div>` +
+          `<div class="plan-price">₹${plan.price}</div>`
+        el.addEventListener('click', () => startPayment(plan.id, el))
+        list.appendChild(el)
+      })
+    }
+    overlay.classList.add('open')
+  }
+
+  async function startPayment(planId, el) {
+    const original = el.innerHTML
+    el.style.pointerEvents = 'none'
+    el.style.opacity = '.6'
+    try {
+      const res = await fetch('https://ai-project-login.onrender.com/member/pay-now', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${memberToken}`,
+          ...window.__gymHeaders()
+        },
+        body: JSON.stringify({ plan_id: planId })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.detail || 'Could not start payment.')
+      // Hand off to Razorpay's hosted checkout page. It redirects back to
+      // this same dashboard (?payment=return) once the member finishes —
+      // see the ?payment=return handling below for what happens next.
+      window.location.href = data.short_url
+    } catch (err) {
+      el.innerHTML = original
+      el.style.pointerEvents = ''
+      el.style.opacity = ''
+      alert(err.message || 'Could not start payment. Please try again or contact your gym.')
+    }
+  }
+
+  document.getElementById('payNowBtn')?.addEventListener('click', async () => {
+    const overlay = document.getElementById('planPickerOverlay')
+    overlay.classList.add('open')
+    const status = await loadRenewalStatus()
+    openPlanPicker(status ? status.plans : [])
   })
+  document.getElementById('planPickerCloseBtn')?.addEventListener('click', () => {
+    document.getElementById('planPickerOverlay').classList.remove('open')
+  })
+
+  // Redirected back here by Razorpay after checkout (callback_url set in
+  // app/renewal.py's pay_now). The actual truth is the gym-dashboard
+  // webhook (Phase 2), which may land a few seconds after this redirect —
+  // so this polls renewal-status a few times rather than trusting a
+  // single immediate read, before settling on a final message.
+  async function handlePaymentReturn() {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('payment') !== 'return') return
+    window.history.replaceState({}, '', 'dashbord.html')
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const status = await loadRenewalStatus()
+      if (status && !status.should_show_renewal) {
+        alert('✅ Payment received — your membership is active.')
+        renderRenewalBanner(status)
+        return
+      }
+      await new Promise(r => setTimeout(r, 2000))
+    }
+    alert('We recorded your checkout, but the payment is still confirming on our end. If your membership status doesn\'t update in a few minutes, contact your gym.')
+  }
+
+  ;(async () => {
+    await handlePaymentReturn()
+    const status = await loadRenewalStatus()
+    renderRenewalBanner(status)
+  })()
+
 </script>
 <nav class="topnav">
   <div class="logo">
@@ -303,6 +546,20 @@ html[data-theme="light"] #intakeWarnings strong { color: #6b4c10; }
   </div>
 </nav>
 <div class="wrap">
+
+<div id="renewalBanner" class="renewal-banner" style="display:none">
+  <p id="renewalBannerText"></p>
+  <button class="pay-now-btn" id="payNowBtn" type="button">Pay Now</button>
+</div>
+
+<div class="modal-overlay" id="planPickerOverlay">
+  <div class="modal-box">
+    <h3>Choose a plan</h3>
+    <div class="modal-sub" id="planPickerSub">Renew your membership to keep training.</div>
+    <div id="planPickerList"><p style="font-size:12.5px;color:var(--muted)">Loading plans…</p></div>
+    <button class="modal-close-btn" id="planPickerCloseBtn" type="button">Cancel</button>
+  </div>
+</div>
 
 <header>
   <span class="badge">✨ Personalized for Indian gym-goers</span>

@@ -14,6 +14,7 @@ from app.membership import (
     get_current_member,
     find_member_by_login_code,
     _extract_gym_slug,
+    RENEWAL_LOCKED_STATUSES,
 )
 from app.gym_scope import resolve_gym_id, GymLookupError
 from app.db import supabase
@@ -161,6 +162,14 @@ class ManualCORS(BaseHTTPMiddleware):
 app = FastAPI(title="Prompt Generator API")
 app.add_middleware(ManualCORS)
 
+# Phase 3 — renewal status + Pay Now (creates a Razorpay payment link via
+# ai-project-gym-dashboard). Kept in its own router module rather than
+# added inline here, matching the pattern gym-dashboard's Phase 2 started
+# (app/payments_razorpay.py there) — this file is already 2000+ lines.
+from app.renewal import router as renewal_router
+app.include_router(renewal_router)
+
+
 # ── Exercise reference images ───────────────────────────────────────────────
 # Static webP images, one per exercise, named after that exercise's
 # `_exercise_id` slug (e.g. barbell_back_squat.webp). Served read-only;
@@ -267,13 +276,27 @@ def member_login(
     member = find_member_by_login_code(gym_id, code)
     if not member:
         raise HTTPException(status_code=401, detail="Invalid code. Check with your gym and try again.")
-    if member.get("status") != "active":
+
+    member_status = member.get("status")
+    # Phase 5 (build-plan-v2.md §3): a member in RENEWAL_LOCKED_STATUSES
+    # ('payment_overdue' T+5, or 'suspended' T+15 — see app/membership.py)
+    # still gets a session token here, deliberately NOT a 403 — a fully
+    # blocked login would also block them from ever reaching
+    # /member/renewal-status or /member/pay-now to fix it themselves. The
+    # `renewal_required` flag is what tells the frontend to route them to
+    # the "renew to continue" screen instead of the normal dashboard (same
+    # gate get_current_member enforces on every other endpoint from here).
+    # Any other non-active status (not currently a real value in this
+    # system, kept fail-closed for any future one) is still a hard 403.
+    if member_status not in RENEWAL_LOCKED_STATUSES and member_status != "active":
         raise HTTPException(status_code=403, detail="Your account isn't active. Contact your gym.")
 
     token = issue_member_token(member["id"], gym_id)
     return {
         "token": token,
         "member": {"id": member["id"], "name": member.get("name"), "gym_id": gym_id},
+        "renewal_required": member_status in RENEWAL_LOCKED_STATUSES,
+        "status": member_status,
     }
 
 
