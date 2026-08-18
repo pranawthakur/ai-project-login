@@ -623,6 +623,19 @@ def _compute_day_plan(
             "isolation_by_muscle": {}, "total_exercises": 0,
         }
 
+    # BUGFIX (deadlift_focus mislabeling): TOKEN_MUSCLE_MAP maps this token
+    # to ["back"] only, so its compound pick was coming from `back`'s
+    # compound pool — which is horizontal-pull rows/pulldowns, never a
+    # hip-hinge movement. The actual hinge-pattern exercises (Good Morning,
+    # Barbell Hip Thrust, Kettlebell Swing, Back Extension, Cable
+    # Pull-Through, etc.) live under exercise_database.py's `legs` compound
+    # pool. This override tells select_day_exercises() to pull the `back`
+    # slot's compound from the `legs` pool filtered to _movement_id=='hinge'
+    # instead of `back`'s own pool — the day still reports/labels as
+    # training `back`, but the exercise itself is now an actual deadlift-
+    # pattern lift, matching the split's name. No effect on any other token.
+    compound_movement_override = {"back": "hinge"} if token == "deadlift_focus" else None
+
     # order highest → lowest priority, using the SAME table exercise_database.py
     # uses for display/trimming, so count-allocation and display never disagree.
     muscles = sorted(muscles, key=lambda m: MUSCLE_PRIORITY.get(m, 9))
@@ -757,12 +770,15 @@ def _compute_day_plan(
             total_iso = sum(isolation_by_muscle.values())
             total_exercises = compound_count + total_iso
 
-    return {
+    result = {
         "muscles": muscles,
         "compound_count": compound_count,
         "isolation_by_muscle": isolation_by_muscle,
         "total_exercises": total_exercises,
     }
+    if compound_movement_override:
+        result["compound_movement_override"] = compound_movement_override
+    return result
 
 
 def _render_day_plan_table(

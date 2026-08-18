@@ -3197,12 +3197,32 @@ def select_day_exercises(
     else:
         compound_muscle_set = big_muscles
 
+    # BUGFIX (deadlift_focus mislabeling — see fitness_generator._compute_
+    # day_plan): a plan can request that a given muscle's compound slot be
+    # filled from a DIFFERENT muscle's pool, restricted to a specific
+    # movement pattern, instead of that muscle's own pool. Currently only
+    # used for "back" -> pull hinge-pattern lifts (Good Morning, Hip
+    # Thrust, Kettlebell Swing, etc.) from the `legs` compound pool, since
+    # that's where this DB files hinge movements. Falls back to the
+    # muscle's own pool if the override yields nothing usable.
+    compound_movement_override = plan.get("compound_movement_override") or {}
+
     # 1) mandatory compounds — one per designated muscle, never trimmed
     compounds = []
     for m in ordered_muscles:
         if m not in compound_muscle_set:
             continue
-        pool = EXERCISE_DB.get(m, {}).get("compound", [])
+        override_movement = compound_movement_override.get(m)
+        if override_movement:
+            source_pool = EXERCISE_DB.get("legs", {}).get("compound", [])
+            pool = [e for e in source_pool if e.get("_movement_id") == override_movement]
+            if not pool:
+                # Nothing tagged with that movement pattern — fall back to
+                # the muscle's own normal compound pool rather than
+                # dropping the compound entirely.
+                pool = EXERCISE_DB.get(m, {}).get("compound", [])
+        else:
+            pool = EXERCISE_DB.get(m, {}).get("compound", [])
         if not pool:
             continue
         filtered, fb = _filter_pool(pool, available_lower, injury_keywords, bw_gate_ok)

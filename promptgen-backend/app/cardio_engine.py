@@ -121,7 +121,26 @@ _HIIT_ELIGIBLE_TIERS = {"intermediate", "advanced"}
 # Injury keywords relevant to impact-loading cardio specifically (subset
 # of exercise_database.INJURY_KEYWORDS — reusing that list/parser exactly,
 # not inventing a parallel one).
-_IMPACT_RELEVANT_INJURY_KEYWORDS = {"knee", "hip", "ankle"}
+#
+# BUGFIX (safety conflict found in audit): this set previously only had
+# {"knee", "hip", "ankle"} — the lower-limb weight-bearing joints. But
+# HIIT/interval cardio (sprints, jumps, plyometric-style intervals) loads
+# the spine and lower back just as much as it loads knees/hips/ankles.
+# A client who discloses a "lower back" / "spine" / "back injury" issue
+# already gets those terms correctly excluded from lifting exercises
+# (exercise_database.py's INJURY_KEYWORDS + _blocked_by_injury), but this
+# module wasn't checking the same terms before unlocking HIIT — so the
+# same disclosed injury could silently block a barbell squat while still
+# allowing a HIIT sprint/jump session. Expanded to cover every
+# INJURY_KEYWORDS term that's actually impact/spinal-loading relevant.
+# Deliberately still excludes upper-body-only terms (shoulder, rotator
+# cuff, wrist, elbow, neck) — those aren't impact-loading-relevant for
+# LISS/HIIT leg-based cardio the way they are for pressing/pulling lifts,
+# and over-including them would wrongly strip HIIT eligibility from
+# someone whose only disclosed issue is, say, a wrist problem.
+_IMPACT_RELEVANT_INJURY_KEYWORDS = {
+    "knee", "hip", "ankle", "lower back", "back injury", "spine",
+}
 
 
 def _goal_key(raw_goal: str) -> str:

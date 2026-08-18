@@ -28,8 +28,20 @@ Everything else the spec asks for IS real here:
   calling adherence_engine.get_adherence_profile() first — a low score
   blocks plateau diagnosis outright, matching AD005.
 
-  PL005 (pain) reuses progression_engine._contains_pain_language on the
+  PL005 (pain) reuses feedback_engine._contains_pain_language on the
   most recent cycle's notes and defers rather than declaring a plateau.
+
+  BUGFIX (safety-conflict audit): this previously imported
+  _contains_pain_language from load_adjustment_engine, whose PAIN_KEYWORDS
+  is a narrower 7-term list (hurt/pain/sharp/pinch/sore joint/injury/
+  tweak). feedback_engine.py's own classify_feedback() uses a broader
+  union that also catches "twinge", "popping", "numbness", "shooting" —
+  so a member writing "numbness in my shoulder" or "twinge in my knee"
+  was correctly routed to constraints_engine by classify_feedback() but
+  NOT recognized as pain here, meaning PL005 could still fire a plateau
+  diagnosis (and prescribe a load bump) on a cycle where the member had
+  actually reported a pain symptom. Switched to feedback_engine's copy —
+  the deliberately broader, canonical union — so both call sites agree.
 
 Never raises. Any missing data (member_id, exercise history <3 cycles,
 Supabase error) returns plateau_status="none" with a note explaining why,
@@ -40,7 +52,7 @@ from __future__ import annotations
 
 from app.adherence_engine import get_adherence_profile
 from app.db import supabase
-from app.load_adjustment_engine import _contains_pain_language
+from app.feedback_engine import _contains_pain_language
 from app.readiness_engine import get_readiness
 from app.recovery_capacity_engine import build_recovery_capacity
 

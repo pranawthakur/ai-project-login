@@ -364,6 +364,13 @@ def select_day_exercises_detailed(
     compound_muscle_set = (
         set(compound_muscles_override) if compound_muscles_override is not None else big_muscles
     )
+    # BUGFIX (deadlift_focus mislabeling): see matching note in
+    # fitness_generator._compute_day_plan / exercise_database.select_day_
+    # exercises. This is the selector actually used by the live pipeline
+    # (fitness_generator.py imports select_day_exercises from THIS module,
+    # not from exercise_database.py) — the override has to be honored here
+    # too, or the fix is a no-op in production.
+    compound_movement_override = plan.get("compound_movement_override") or {}
 
     compounds = []
     protected_patterns_met: dict[str, bool] = {}
@@ -372,10 +379,17 @@ def select_day_exercises_detailed(
     for m in ordered_muscles:
         if m not in compound_muscle_set:
             continue
-        pool = _compound_pool_for_goal(m, recovery_goal)
+        override_movement = compound_movement_override.get(m)
+        if override_movement:
+            source_pool = _compound_pool_for_goal("legs", recovery_goal)
+            pool = [e for e in source_pool if e.get("_movement_id") == override_movement]
+            if not pool:
+                pool = _compound_pool_for_goal(m, recovery_goal)
+        else:
+            pool = _compound_pool_for_goal(m, recovery_goal)
         if not pool:
             continue
-        if len(pool) != len(EXERCISE_DB.get(m, {}).get("compound", [])):
+        if not override_movement and len(pool) != len(EXERCISE_DB.get(m, {}).get("compound", [])):
             used_fallback = True  # recovery deprioritization actually changed the pool
 
         filtered, fb = _filter_pool(pool, available_lower, injury_keywords, bw_gate_ok)
