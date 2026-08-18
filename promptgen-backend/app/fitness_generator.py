@@ -72,6 +72,7 @@ from .programming_rules import (
     sets_reps_rest_for_goal,
     session_duration_cap,
 )
+from . import cardio_engine
 from . import knowledge_retriever as kb
 from . import trainer_review as trainer_review_mod
 from . import review_validation as review_validation_mod
@@ -882,6 +883,18 @@ _SAFETY_DEFAULT_BY_TOKEN = {
 }
 
 
+def _cardio_day_summary(placement_entry: dict) -> dict:
+    """Frontend/LLM-prompt-facing shape for a single cardio_engine.py
+    placement entry — deliberately drops the internal day_index (the
+    caller already knows which day this is) and renames is_hiit/mode to
+    plain-language fields."""
+    return {
+        "mode": placement_entry.get("mode"),
+        "minutes": placement_entry.get("minutes"),
+        "modality": "HIIT" if placement_entry.get("is_hiit") else "LISS",
+    }
+
+
 def build_deterministic_workout_days(profile: dict, weekly_template: list, vol: dict) -> list:
     """
     Builds the full workout.days[] content in Python — exercise selection,
@@ -936,25 +949,58 @@ def build_deterministic_workout_days(profile: dict, weekly_template: list, vol: 
     # day, not the pre-repair picks.
     week_exercises_by_day: list = []
 
-    for token in weekly_template:
+    # cardio_engine.py's placement, index-aligned with weekly_template (see
+    # build_user_prompt step 7b, which computes this once off the same
+    # weekly_template and stores it on profile). Empty dict fallback so
+    # this function still works unchanged if a caller builds days without
+    # ever going through build_user_prompt.
+    cardio_plan = profile.get("_cardio_plan") or {}
+    cardio_by_day_index = {p["day_index"]: p for p in cardio_plan.get("placement", [])}
+
+    for idx, token in enumerate(weekly_template):
+        cardio_here = cardio_by_day_index.get(idx)
+
         if token == "rest":
-            days.append({"is_rest": True})
+            day_entry = {"is_rest": True}
+            if cardio_here:
+                # A rest day cardio_engine assigned a standalone session to
+                # is no longer a pure rest day — same treatment as any other
+                # NO_LIFTING_TOKENS day below (warmup + safety text, no
+                # lifting exercises), just without a split-provided token.
+                day_entry = {
+                    "is_rest": False,
+                    "warmup_exercises": WARMUP_LIBRARY.get("cardio", []),
+                    "exercises": [],
+                    "safety": _SAFETY_DEFAULT_BY_TOKEN.get("cardio", ""),
+                    "cardio": _cardio_day_summary(cardio_here),
+                }
+            days.append(day_entry)
             week_exercises_by_day.append([])
             continue
 
         if token in NO_LIFTING_TOKENS:
-            days.append({
+            day_entry = {
                 "is_rest": False,
                 "warmup_exercises": WARMUP_LIBRARY.get(token, WARMUP_LIBRARY.get("cardio", [])),
                 "exercises": [],
                 "safety": _SAFETY_DEFAULT_BY_TOKEN.get(token, _SAFETY_DEFAULT_BY_TOKEN.get("cardio", "")),
-            })
+            }
+            if cardio_here:
+                day_entry["cardio"] = _cardio_day_summary(cardio_here)
+            days.append(day_entry)
             week_exercises_by_day.append([])
             continue
 
+        # Rule #5 (cardio_engine.py duration-budget interaction): a
+        # post-lifting finisher's minutes count against this day's session
+        # budget, so the lifting-exercise cap is recomputed against a
+        # reduced effective window rather than letting cardio run as
+        # unbudgeted overflow on top of an already-full session.
+        day_session_minutes = cardio_engine.effective_session_minutes(session_minutes, cardio_here)
+
         plan = _compute_day_plan(
             token, vol, exp_key,
-            goal=goal, muscle_frequency=muscle_frequency, session_minutes=session_minutes,
+            goal=goal, muscle_frequency=muscle_frequency, session_minutes=day_session_minutes,
             progression_context=progression_context,
         )
         picks, _used_fallback, _injury_kw = select_day_exercises(
@@ -1089,6 +1135,12 @@ def build_deterministic_workout_days(profile: dict, weekly_template: list, vol: 
             if progression_context.get("plateau_detected"):
                 notes.append("Progress has plateaued — consider pushing harder or varying exercises this cycle.")
             day_entry["_progression_note"] = " ".join(notes)
+        # cardio_engine.py finisher attachment (rule #4/#5) — day_session_minutes
+        # above already accounted for this in the exercise-count budget;
+        # this just surfaces what was attached so the frontend/LLM prompt
+        # can actually show it on the day.
+        if cardio_here:
+            day_entry["cardio"] = _cardio_day_summary(cardio_here)
         days.append(day_entry)
 
     # Weekly cross-day checks (push/pull balance, split consistency,
@@ -2003,6 +2055,26 @@ def build_user_prompt(profile: dict) -> str:
     weekly_template = _build_weekly_template(split["sequence"], training_days_per_week, training_day_indices)
     profile["_weekly_template"] = weekly_template
     profile["_vol"] = vol
+
+    # ── 7b. Deterministic cardio prescription (cardio_engine.py) — sessions/
+    #      week, minutes, LISS/HIIT modality, and placement (standalone on
+    #      rest days / existing cardio-designated days first, else a post-
+    #      lifting finisher). Computed once here, off the actual weekly
+    #      template so placement sees real rest-day positions, and stored on
+    #      profile the same way _weekly_template/_vol are, so
+    #      build_deterministic_workout_days() can look it up per day without
+    #      recomputing it.
+    cardio_plan = cardio_engine.build_cardio_plan(
+        goal=goal,
+        experience=exp_raw,
+        lifting_days_per_week=training_days_per_week,
+        weekly_template=weekly_template,
+        current_weight_kg=profile.get("current_weight_kg"),
+        target_weight_kg=profile.get("target_weight_kg"),
+        notes_raw=profile.get("medical_notes") or profile.get("notes") or "",
+    )
+    profile["_cardio_plan"] = cardio_plan
+
     weekly_schedule_str = "\n".join(
         f"  {WEEKDAY_NAMES[i]}: {'REST' if tok == 'rest' else tok.upper()}"
         for i, tok in enumerate(weekly_template)

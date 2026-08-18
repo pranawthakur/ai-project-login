@@ -376,6 +376,96 @@ def _activity_modifier(activity_key: str) -> int:
     }.get((activity_key or "moderate").lower(), 0)
 
 
+# Same 10%-of-current-bodyweight threshold as cardio_engine.py, kept as a
+# local literal (not imported) to match this file's existing style of
+# small self-contained helpers rather than cross-module private imports —
+# see _goal_flags/_experience_tier above for the same pattern.
+_WEIGHT_GAP_PCT_THRESHOLD = 0.10
+
+
+def _weight_gap_direction(current_weight_kg, target_weight_kg, goals: dict) -> str | None:
+    """
+    Returns "fat_loss" if the gap is >=10% of current bodyweight AND the
+    goal is fat_loss-flavoured, "muscle_gain" if >=10% AND goal is
+    muscle_gain/bodybuilding-flavoured, else None. Direction only ever
+    agrees with a goal signal already present — this is a tiebreaker
+    between options the goal has already made eligible, never something
+    that invents a new goal on its own.
+    """
+    try:
+        current = float(current_weight_kg)
+        target = float(target_weight_kg)
+    except (TypeError, ValueError):
+        return None
+    if current <= 0:
+        return None
+    gap = abs(current - target) / current
+    if gap < _WEIGHT_GAP_PCT_THRESHOLD:
+        return None
+    if goals.get("fat_loss"):
+        return "fat_loss"
+    if goals.get("muscle_gain") or goals.get("bodybuilding"):
+        return "muscle_gain"
+    return None
+
+
+def _has_disclosed_injury(notes_raw: str) -> bool:
+    """
+    Reuses exercise_database's own injury vocabulary + negation-aware
+    matcher (same one cardio_engine.py reuses for its HIIT gate) so
+    "no shoulder issues" doesn't wrongly read as an injury here either.
+    Any disclosed injury (not just the impact-relevant knee/hip/ankle
+    subset cardio_engine cares about) is relevant to split SELECTION,
+    because a real coach lowers total per-muscle frequency/fatigue for
+    an injured client regardless of which joint is involved.
+    """
+    from app.exercise_database import INJURY_KEYWORDS
+    from app.text_matching import text_has_unnegated_keyword
+    text = str(notes_raw or "").lower()
+    return any(text_has_unnegated_keyword(text, (kw,)) for kw in INJURY_KEYWORDS)
+
+
+def _training_age_bracket(training_age_yrs: float) -> str:
+    """
+    5-tier bracket a real coach actually thinks in, finer than the
+    beginner/intermediate/advanced experience string alone: a 0.3yr
+    "novice" and a 1.8yr "late-novice" both self-report as "beginner" but
+    a coach programs them very differently, and a 6yr "elite" lifter gets
+    more specialization latitude than a fresh 2yr "advanced".
+    """
+    if training_age_yrs < 1:
+        return "novice"
+    if training_age_yrs < 2:
+        return "early_intermediate"
+    if training_age_yrs < 4:
+        return "intermediate"
+    if training_age_yrs < 7:
+        return "advanced"
+    return "elite"
+
+
+def _readiness_score(training_age_yrs: float, activity_key: str, has_injury: bool) -> int:
+    """
+    A single composite "how much can this person's body actually absorb
+    right now" score — the way a coach weighs several inputs together
+    rather than checking them one at a time in isolation. Higher = more
+    volume/frequency/specialization tolerance; lower = program conservative.
+
+    Training-age bracket dominates (it's the strongest real-world signal
+    of recoverable work capacity); activity level nudges it; a disclosed
+    injury always pulls it down hard, because a coach never lets outside
+    conditioning override an active injury when deciding fatigue budget.
+    """
+    bracket_score = {
+        "novice": -2, "early_intermediate": -1, "intermediate": 0,
+        "advanced": 1, "elite": 2,
+    }[_training_age_bracket(training_age_yrs)]
+    score = bracket_score + _activity_modifier(activity_key)
+    if has_injury:
+        score -= 2
+    return score
+
+
 # ── CORE DECISION TREE ────────────────────────────────────────────────────────
 # Every branch below is keyed strictly off the (experience x days/week) cells
 # that actually appear in message.txt. Where a cell contains more than one
@@ -619,82 +709,192 @@ def _recommend_split_legacy_24row(profile: dict) -> dict:
 
 
 # ── MASTER-DOC ENTRY POINT (1_Master_Workout_Split_Table.md, §2) ───────────
-def _decide_master(training_age_yrs: float, days: int, goals: dict) -> dict:
+def _decide_master(
+    training_age_yrs: float,
+    days: int,
+    goals: dict,
+    activity_key: str = "moderate",
+    weight_gap_direction: str | None = None,
+    readiness: int = 0,
+) -> dict:
     """
     Implements the decision tree in 1_Master_Workout_Split_Table.md §2
-    literally, branch for branch. `days` is the raw requested days/week —
-    the master doc's tree does not apply the activity ±1 adjustment used by
-    the legacy table, so none is applied here.
+    literally, branch for branch. `days` is the EFFECTIVE lifting-day count
+    for this call (raw requested days/week minus any days already reserved
+    for standalone cardio — see recommend_split_master()).
 
     Two hardwired rules from the doc are enforced unconditionally, matching
     its own language ("this is a hardwired rule, not a preference"):
       - never assign Bro Split under 2 years training age (§2 coach note)
       - never program 7 hard days for a natural lifter (§2, days==7 branch)
+    Three more are CLIENT-mandated hard rules (§ handoff), also
+    unconditional: exactly 3 days -> PPL, exactly 6 days -> PPL, <=2 days ->
+    full body. These day-counts have exactly one table-eligible option each,
+    so there is nothing left to tiebreak on — readiness/weight-gap only have
+    visible effect at 4 and 5 days, the only branches with >1 real option
+    (same finding the original handoff flagged; still true after this pass).
+
+    `readiness` is the composite _readiness_score() (training-age bracket +
+    activity + injury) — a negative score means "program conservative",
+    positive means "this person can absorb more volume/specialization".
     """
     if days <= 2:
         return _cycle_split("full_body", max(days, 1))          # §2: Minimalist 2-Day Full Body
 
-    # Client hard-rule: exactly 3 training days/week always gets PPL,
-    # regardless of training age or goal signals (overrides the doc's
-    # Full-Body-A/B/C-for-<1yr and Full-Body-if-strength-focused branches).
     if days == 3:
         return _cycle_split("ppl", 3)                             # PPL (3-day) — mandatory per client rule
 
     if days == 4:
         if goals["strength"]:
-            return _cycle_split("compound_strength", 4)          # Squat/Bench/Deadlift 4-day
-        return _cycle_split("upper_lower", 4)                     # Upper/Lower ("bro split", hypertrophy default)
+            return _cycle_split("compound_strength", 4)          # Squat/Bench/Deadlift 4-day — explicit goal wins, no tiebreak needed
+        if weight_gap_direction == "muscle_gain" and readiness >= 0:
+            # Large gap toward muscle_gain nudges to the higher-volume tied
+            # option — Upper/Lower carries more weekly per-muscle volume
+            # than Compound Strength at this day count — but only when
+            # readiness doesn't already say "back off".
+            return _cycle_split("upper_lower", 4)
+        if readiness < 0:
+            # Novice/early-intermediate, low activity, and/or a disclosed
+            # injury -> the lower-total-fatigue tied option. Compound
+            # Strength is 4 focused barbell lifts/day; Upper/Lower spreads
+            # broader per-day volume across more exercises, which is more
+            # than a body that isn't ready to absorb it yet should get.
+            return _cycle_split("compound_strength", 4)
+        return _cycle_split("upper_lower", 4)                     # default
 
     if days == 5:
         if training_age_yrs >= 5 and goals["priority"]:
-            return _cycle_split("bro_split", 5)                   # explicit specialization signal only
-        return _cycle_split("ppl_upper_lower_hybrid", 5)          # default for <2yr and >=2yr hypertrophy alike
+            return _cycle_split("bro_split", 5)                   # explicit specialization signal only, no tiebreak needed
+        if readiness >= 2 and training_age_yrs >= 5:
+            # High readiness (elite/advanced bracket, good activity
+            # capacity, no injury) -> the tied higher-volume/specialized
+            # option, but never below the training-age floor that already
+            # gates bro_split above (never Bro Split under 2yrs, per §2).
+            return _cycle_split("bro_split", 5)
+        return _cycle_split("ppl_upper_lower_hybrid", 5)          # default for <2yr and >=2yr hypertrophy alike, and for anyone not showing high readiness
 
-    # Client hard-rule: exactly 6 training days/week always gets PPL
-    # (push/pull/legs cycled twice), not the PPL x2 heavy/volume variant.
     if days == 6:
         return _cycle_split("ppl", 6)                              # PPL (6-day) — mandatory per client rule
 
     # days >= 7 — hardwired: never program 7 hard days for a natural lifter.
+    # Low readiness gets the 7th day as pure mobility (as before); a
+    # high-readiness profile can absorb light conditioning instead, since
+    # they're already tolerating specialization at 6 days.
     six_day = _cycle_split("ppl_x2", 6)
+    seventh_day = "athletic" if readiness >= 2 else "mobility"
     return {
         "split_name": six_day["split_name"] + " + Active Recovery Day",
-        "sequence": six_day["sequence"] + ["mobility"],
+        "sequence": six_day["sequence"] + [seventh_day],
         "_key": six_day["_key"],
     }
 
 
 def recommend_split_master(profile: dict) -> dict:
     """
-    Default split-selection entry point, built directly from
-    1_Master_Workout_Split_Table.md §2's decision tree (see _decide_master).
-    Signature and return shape match the legacy recommend_split() so callers
-    (fitness_generator.py) need no changes beyond the import.
+    Default split-selection entry point, built from
+    1_Master_Workout_Split_Table.md §2's decision tree (see _decide_master),
+    extended with the agreed-scope additions on top of the original handoff:
+
+      1. A composite "readiness" score (training-age bracket + activity
+         level + a disclosed-injury penalty, reusing exercise_database's own
+         injury vocabulary/negation-aware matcher — the same one
+         cardio_engine.py already reuses for its HIIT gate) is computed for
+         every profile and used as the coach-style tiebreaker at 4/5/7+ days
+         instead of checking activity or training age in isolation. A real
+         coach doesn't ask "what's their activity level?" and "how long have
+         they trained?" as two separate yes/no gates — they weigh both
+         together (and back off hard the moment an injury is disclosed,
+         regardless of how fit the person otherwise is). Weight-gap
+         direction is still computed and still only ever agrees with an
+         already-present goal signal (see _weight_gap_direction) — it acts
+         alongside readiness, not instead of it.
+      2. Cardio can now claim a dedicated split day instead of only ever
+         attaching to rest days after the fact. When the goal is
+         cardio-priority (fat_loss or athletic) and cardio_engine's own
+         session-count table says this profile needs standalone cardio
+         sessions, up to that many requested days are RESERVED as "cardio"
+         tokens before the lifting-split decision runs, so e.g. a 4-day
+         fat_loss request can resolve to 3-day PPL + 1 dedicated cardio day
+         instead of a 4-day lifting split with cardio only reaching a
+         leftover rest day. Reservation never drops lifting below 3 days
+         (a 2-day-or-fewer "split" isn't a real split per §2), never reserves
+         more than cardio_engine's own demand for this profile, and is
+         skipped entirely for days==3/6 (client-mandated hard day counts —
+         see the guard below) and for recovery goals. cardio_engine.py's
+         downstream placement (build_cardio_plan) already recognizes a
+         "cardio" token in the weekly template and fills it directly (pass 2
+         of _plan_placement) instead of double-stacking a finisher on it, so
+         no changes were needed there.
     """
-    from . import programming_rules
+    from . import programming_rules, cardio_engine
 
     raw_days = int(profile.get("days_per_week", 4))
     days = max(1, min(7, raw_days))
     goals = _goal_flags(profile.get("goal", ""))
     training_age_yrs = programming_rules.training_age_years(profile)
+    activity_key = profile.get("activity_key", "moderate")
+    weight_gap_direction = _weight_gap_direction(
+        profile.get("current_weight_kg"), profile.get("target_weight_kg"), goals
+    )
+    notes_raw = profile.get("medical_notes") or profile.get("notes") or ""
+    has_injury = _has_disclosed_injury(notes_raw)
+    readiness = _readiness_score(training_age_yrs, activity_key, has_injury)
 
     # Recovery goal: doc 1 has no dedicated recovery row; keep the same
     # lowest-fatigue fallback the legacy table used, since it's still the
-    # most defensible choice available in this split library.
+    # most defensible choice available in this split library. Cardio-day
+    # reservation is skipped for recovery (cardio_engine's own recovery
+    # table is deliberately conservative/maintenance-only, not something
+    # that should be carving lifting days away).
+    reserved_cardio_days = 0
     if goals["recovery"]:
         final = _cycle_split("machine_based", min(days, 4)) if days <= 4 else _cycle_split("torso_limbs", days)
+        effective_days = days
     else:
-        final = _decide_master(training_age_yrs, days, goals)
+        cardio_priority = bool(goals["fat_loss"]) or ("athletic" in (profile.get("goal") or "").lower())
+        # days==3 and days==6 are client-mandated hard rules (always PPL at
+        # the FULL requested day count) — never carve a cardio day out of
+        # those, or reservation would silently override a rule stated as
+        # non-negotiable. Reservation only ever applies at 4/5/7+ where the
+        # tree already has room to move. An injury also blocks reservation
+        # from ADDING volume-equivalent standalone cardio on top of an
+        # already-reduced readiness budget — a coach wouldn't hand an
+        # injured client extra cardio sessions just because the goal is
+        # fat_loss; the deficit comes from diet, not more impact/volume.
+        if cardio_priority and days >= 4 and days != 6 and not has_injury:
+            cardio_demand = cardio_engine.estimate_session_count(
+                profile.get("goal", ""), profile.get("experience", ""), days,
+                current_weight_kg=profile.get("current_weight_kg"),
+                target_weight_kg=profile.get("target_weight_kg"),
+            )
+            # Never below a real 3-day split; never more than cardio's own demand.
+            reserved_cardio_days = max(0, min(cardio_demand, days - 3))
+        effective_days = days - reserved_cardio_days
+        final = _decide_master(training_age_yrs, effective_days, goals, activity_key, weight_gap_direction, readiness)
+
+    sequence = list(final["sequence"]) + ["cardio"] * reserved_cardio_days
+    split_name = final["split_name"]
+    if reserved_cardio_days:
+        split_name = f"{split_name} + {reserved_cardio_days}-Day Dedicated Cardio"
 
     goal_desc = profile.get("goal", "general fitness")
+    modifier_bits = [f"readiness score {readiness:+d} ({_training_age_bracket(training_age_yrs)})"]
+    if weight_gap_direction:
+        modifier_bits.append(f"weight-gap tiebreak toward {weight_gap_direction}")
+    if has_injury:
+        modifier_bits.append("disclosed injury lowered readiness")
+    if reserved_cardio_days:
+        modifier_bits.append(f"{reserved_cardio_days} day(s) reserved for standalone cardio")
+    modifier_desc = f" ({'; '.join(modifier_bits)})" if modifier_bits else ""
+
     reason = (
         f"~{training_age_yrs:g} yrs training age, {raw_days} days/week, "
-        f"{goal_desc} — per Master Workout Split Table §2 decision tree."
+        f"{goal_desc}{modifier_desc} — per Master Workout Split Table §2 decision tree."
     )
 
     return {
-        "split_name": final["split_name"],
-        "sequence": final["sequence"],
+        "split_name": split_name,
+        "sequence": sequence,
         "reason": reason,
     }
 
