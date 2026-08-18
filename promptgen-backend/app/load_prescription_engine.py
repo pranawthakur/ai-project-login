@@ -62,6 +62,9 @@ GOAL_INCREMENT_PCT = {
     "muscle gain": 0.03,
     "hypertrophy": 0.03,
     "general fitness": 0.025,
+    "maintenance": 0.02,
+    "recomp": 0.02,
+    "recomposition": 0.02,
     "fat loss": 0.02,
     "endurance": 0.02,
 }

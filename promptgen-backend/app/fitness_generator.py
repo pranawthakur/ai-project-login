@@ -1751,6 +1751,7 @@ def _calculate_macros(profile: dict) -> dict:
 
     # Calorie target
     is_recovery = any(t in goal for t in ("recovery", "recover", "deload", "injury", "rehab"))
+    is_recomp = any(t in goal for t in ("recomp", "recomposition", "body recomp"))
     if "fat loss" in goal or "weight loss" in goal or "cut" in goal:
         target_kcal = round(tdee * 0.82)   # ~18% deficit
         phase_label = "Calorie deficit"
@@ -1761,6 +1762,16 @@ def _calculate_macros(profile: dict) -> dict:
         # split_engine.py / EXERCISE_VOLUME) do the actual de-loading.
         target_kcal = round(tdee)
         phase_label = "Recovery — maintenance calories"
+    elif is_recomp:
+        # Was previously UNMATCHED: "recomposition" doesn't contain
+        # "muscle"/"gain"/"bulk"/"mass", so this fell all the way to the
+        # plain maintenance else-branch below (0% deficit) — silently
+        # DISAGREEING with dashbord.html's own client-side estimate, which
+        # already treats "Body recomposition" as a ~5% deficit. Matched to
+        # that same figure here so the dashboard's preview and the actual
+        # generated plan agree.
+        target_kcal = round(tdee * 0.95)   # ~5% deficit
+        phase_label = "Body recomposition — mild deficit"
     elif "muscle" in goal or "bulk" in goal or "gain" in goal or "mass" in goal:
         target_kcal = round(tdee * 1.10)   # ~10% surplus
         phase_label = "Lean bulk"

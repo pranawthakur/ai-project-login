@@ -319,6 +319,12 @@ def _goal_flags(raw_goal: str) -> dict:
         "bodybuilding": any(
             t in g for t in ("bodybuilding", "aesthetic", "stage prep", "physique")
         ),
+        # Body recomposition — simultaneous fat loss + muscle retention/gain.
+        # Previously UNRECOGNIZED: none of the other buckets above matched
+        # "recomp"/"body recomp", so a recomp goal silently matched ZERO
+        # flags and fell through to whatever branch's plain default was —
+        # not wrong by accident, just never actually decided FOR recomp.
+        "recomp": any(t in g for t in ("recomp", "recomposition", "body recomp")),
         "maintain": "maintain" in g,
         "recovery": any(
             t in g for t in ("recovery", "recover", "deload", "injury", "rehab", "rehabilitation")
@@ -386,11 +392,16 @@ _WEIGHT_GAP_PCT_THRESHOLD = 0.10
 def _weight_gap_direction(current_weight_kg, target_weight_kg, goals: dict) -> str | None:
     """
     Returns "fat_loss" if the gap is >=10% of current bodyweight AND the
-    goal is fat_loss-flavoured, "muscle_gain" if >=10% AND goal is
-    muscle_gain/bodybuilding-flavoured, else None. Direction only ever
-    agrees with a goal signal already present — this is a tiebreaker
-    between options the goal has already made eligible, never something
-    that invents a new goal on its own.
+    goal points that way (fat_loss, or recomp with current > target),
+    "muscle_gain" if >=10% AND the goal points that way (muscle_gain/
+    bodybuilding, or recomp with current < target), else None. Direction
+    only ever agrees with a goal signal already present — this is a
+    tiebreaker between options the goal has already made eligible, never
+    something that invents a new goal on its own.
+
+    For recomp specifically, the goal text alone doesn't say which way the
+    gap runs (unlike a plain fat_loss/muscle_gain goal), so the actual
+    sign of current-vs-target is what decides it, instead of guessing.
     """
     try:
         current = float(current_weight_kg)
@@ -402,6 +413,8 @@ def _weight_gap_direction(current_weight_kg, target_weight_kg, goals: dict) -> s
     gap = abs(current - target) / current
     if gap < _WEIGHT_GAP_PCT_THRESHOLD:
         return None
+    if goals.get("recomp"):
+        return "fat_loss" if current > target else "muscle_gain"
     if goals.get("fat_loss"):
         return "fat_loss"
     if goals.get("muscle_gain") or goals.get("bodybuilding"):
@@ -851,7 +864,7 @@ def recommend_split_master(profile: dict) -> dict:
         final = _cycle_split("machine_based", min(days, 4)) if days <= 4 else _cycle_split("torso_limbs", days)
         effective_days = days
     else:
-        cardio_priority = bool(goals["fat_loss"]) or ("athletic" in (profile.get("goal") or "").lower())
+        cardio_priority = bool(goals["fat_loss"]) or bool(goals["recomp"]) or ("athletic" in (profile.get("goal") or "").lower())
         # days==3 and days==6 are client-mandated hard rules (always PPL at
         # the FULL requested day count) — never carve a cardio day out of
         # those, or reservation would silently override a rule stated as

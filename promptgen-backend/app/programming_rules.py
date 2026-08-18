@@ -64,7 +64,15 @@ def _goal_key(raw_goal: str) -> str:
         return "fat_loss"
     if any(t in g for t in ("strength", "powerlift", "power lift")):
         return "strength"
-    if any(t in g for t in ("general fitness", "general health", "wellness")):
+    # Body recomposition — simultaneous fat loss + muscle retention/gain.
+    # Was previously UNMATCHED here, which meant a recomp client silently
+    # fell through to this function's default (see bottom) and got the
+    # SAME sets/reps/volume prescription as a pure muscle_gain surplus
+    # client — full MAV-tier volume on a caloric deficit body, which is a
+    # real overtraining/recovery risk, not just a labeling mismatch.
+    if any(t in g for t in ("recomp", "recomposition", "body recomp")):
+        return "recomp"
+    if any(t in g for t in ("general fitness", "general health", "wellness", "maintenance", "maintain")):
         return "general_fitness"
     if any(t in g for t in ("athletic", "performance", "sport")):
         return "athletic"
@@ -95,6 +103,12 @@ def weekly_volume_target(muscle: str, training_age: str, goal: str = "") -> int:
         return round(mav * 0.65)          # ~30-40% below MAV
     if goal_key == "fat_loss":
         return round((mev + mav) / 2)     # midpoint, not pushed to MAV
+    if goal_key == "recomp":
+        # Same moderate midpoint as fat_loss, not MAV — a recomp client is
+        # in/near a deficit too, so full hypertrophy-tier volume isn't
+        # recoverable, even though the rep range below still leans
+        # muscle_gain-style to protect the muscle being retained.
+        return round((mev + mav) / 2)
     if goal_key == "athletic":
         return round(mav * 0.8)
     return mav                             # muscle_gain / bodybuilding default
@@ -105,6 +119,10 @@ SETS_REPS_BY_GOAL = {
     "strength":       {"reps": "1–6",   "sets_per_exercise": 4, "rest": "3–5 min"},
     "muscle_gain":    {"reps": "6–12",  "sets_per_exercise": 4, "rest": "60–120s (compound), 45–90s (isolation)"},
     "fat_loss":       {"reps": "8–15",  "sets_per_exercise": 3, "rest": "45–90s"},
+    # Recomp: muscle_gain-style rep range (protect the muscle being kept)
+    # but fat_loss-style set count (deficit-compatible recovery budget) —
+    # a deliberate blend, not a copy of either pure goal.
+    "recomp":         {"reps": "6–12",  "sets_per_exercise": 3, "rest": "60–90s"},
     "general_fitness":{"reps": "8–15",  "sets_per_exercise": 3, "rest": "60–90s"},
     "athletic":       {"reps": "1–5 (power) / 6–12 (accessory)", "sets_per_exercise": 3, "rest": "3–5 min (power), 60–90s (accessory)"},
 }

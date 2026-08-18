@@ -132,6 +132,8 @@ def _goal_key(raw_goal: str) -> str:
     g = (raw_goal or "").lower()
     if any(t in g for t in ("recovery", "recover", "deload", "injury", "rehab", "rehabilitation")):
         return "recovery"
+    if any(t in g for t in ("recomp", "recomposition", "body recomp")):
+        return "general_fitness"
     if any(t in g for t in ("fat loss", "weight loss", "cut", "lean")):
         return "fat_loss"
     if any(t in g for t in ("strength", "powerlift", "power lift")):
